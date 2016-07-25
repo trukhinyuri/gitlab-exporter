@@ -47,7 +47,7 @@ class PrometheusMetrics
     buffer = StringIO.new
     @metrics.each { |name, metrics|
       buffer.write("#{name}")
-      labels = (metrics[:labels] || {}).map { |label, value| "#{label}=#{value}" }.join(",")
+      labels = (metrics[:labels] || {}).map { |label, value| "#{label}=\"#{value}\"" }.join(",")
       buffer.write("{#{labels}}") unless labels.empty?
       buffer.write(" #{metrics[:value]} #{metrics[:timestamp]}\n")
     }
@@ -59,9 +59,9 @@ end
 def main
   runner = GitRunner.new(File.expand_path("~/dev/emptyness"))
   metrics = PrometheusMetrics.new
-  metrics.add "git_pull_time_milliseconds", (runner.pull * 1000).to_i
-  metrics.add "git_push_time_milliseconds", (runner.push * 1000).to_i
-  File.open(File.expand_path("~/metrics/git.prom"), "w") do |prom|
+  metrics.add "git_pull_time_milliseconds", (runner.pull * 1000).to_i, repo: "emptyness"
+  metrics.add "git_push_time_milliseconds", (runner.push * 1000).to_i, repo: "emptyness"
+  File.open(File.expand_path("git.prom"), "w") do |prom|
     prom.write(metrics.to_s)
   end
 end
