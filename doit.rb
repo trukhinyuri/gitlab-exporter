@@ -59,8 +59,8 @@ end
 def main
   runner = GitRunner.new(File.expand_path("~/dev/emptyness"))
   metrics = PrometheusMetrics.new
-  metrics.add "git_pull_time_seconds", runner.pull
-  metrics.add "git_push_time_seconds", runner.push
+  metrics.add "git_pull_time_milliseconds", runner.pull * 1000
+  metrics.add "git_push_time_milliseconds", runner.push * 1000
   File.open(File.expand_path("~/metrics/git.prom"), "w") do |prom|
     prom.write(metrics.to_s)
   end
