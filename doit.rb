@@ -61,7 +61,7 @@ def main
   metrics = PrometheusMetrics.new
   metrics.add "git_pull_time_milliseconds", (runner.pull * 1000).to_i, repo: "emptyness"
   metrics.add "git_push_time_milliseconds", (runner.push * 1000).to_i, repo: "emptyness"
-  File.open(File.expand_path("git.prom"), "w") do |prom|
+  File.open(File.expand_path("~/metrics/git.prom"), "w") do |prom|
     prom.write(metrics.to_s)
   end
 end
