@@ -1,15 +1,5 @@
 #!/usr/bin/env ruby
 
-require "open3"
-
-class TimeTracker
-  def track
-    @start = Time.now.to_f
-    yield
-    Time.now.to_f - @start
-  end
-end
-
 class GitRunner
   def initialize(repo)
     @repo = repo
