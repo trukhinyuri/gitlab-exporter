@@ -2,14 +2,59 @@
 
 require "gitlab_monitor"
 
-def main
-  git = GitLab::Monitor::Git.new(File.expand_path("~/dev/emptyness"))
-  metrics = GitLab::Monitor::PrometheusMetrics.new
-  metrics.add "git_pull_time_milliseconds", (git.pull * 1000).to_i, repo: "emptyness"
-  metrics.add "git_push_time_milliseconds", (git.push * 1000).to_i, repo: "emptyness"
-  File.open(File.expand_path("~/metrics/git.prom"), "w") do |prom|
-    prom.write(metrics.to_s)
+class GitProber
+  def initialize(options)
+    @options = options
+    @metrics = GitLab::Monitor::PrometheusMetrics.new
+    @git = GitLab::Monitor::Git.new(@options.repo_path)
   end
+
+  def probe_pull
+    metrics.add "git_pull_time_milliseconds", (@git.pull.time * 1000).to_i, **(@options.labels || {})
+    self
+  end
+
+  def probe_push
+    metrics.add "git_push_time_milliseconds", (@git.push.time * 1000).to_i, **(@options.labels || {})
+    self
+  end
+
+  def write
+    File.open(@options.target_file, "w") do |prom|
+      prom.write(metrics.to_s)
+    end
+  end
+end
+
+def main
+	Options = Struct.new(:repo_path, :target_file, :labels) do
+		def validate!
+			fail "Repo path is required, please add -r repo_path" if repo_path.nil?
+			fail "Target file is required, please add -t target_file" if target_file.nil?
+			fail "Invalid repository #{repo_path}" unless File.directory? repo_path
+			labels ||= {}
+			self
+		end
+	end
+
+  options = Options.new
+  ARGV.options do |opts|
+    opts.on("-r", "--source-repo=val", String) {|val|
+      options.repo_path = File.expand_path(val)
+    }
+    opts.on("-t", "--target-file=val", String) {|val|
+      options.target_file = File.expand_path(val)
+    }
+    opts.on("-l", "--labels=key=value,key2=value2") { |val|
+      options.labels = val.split(",").map{|value| value.split("=").tap{|aa| aa[0] = aa[0].to_sym} }.to_h
+    }
+    opts.parse!
+  end
+  options.validate!
+  GitProber.new(options).probe_pull.probe_push.write
+rescue => e
+  puts e
+  exit 1
 end
 
 main() if __FILE__ == $0
