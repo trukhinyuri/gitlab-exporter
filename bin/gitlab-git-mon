@@ -11,12 +11,12 @@ class GitProber
   end
 
   def probe_pull
-    metrics.add "git_pull_time_milliseconds", (@git.pull.time * 1000).to_i, **(@options.labels || {})
+    @metrics.add "git_pull_time_milliseconds", (@git.pull.time * 1000).to_i, **(@options.labels || {})
     self
   end
 
   def probe_push
-    metrics.add "git_push_time_milliseconds", (@git.push.time * 1000).to_i, **(@options.labels || {})
+    @metrics.add "git_push_time_milliseconds", (@git.push.time * 1000).to_i, **(@options.labels || {})
     self
   end
 
