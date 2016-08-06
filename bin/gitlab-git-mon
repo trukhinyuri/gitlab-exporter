@@ -22,7 +22,7 @@ class GitProber
 
   def write
     File.open(@options.target_file, "w") do |prom|
-      prom.write(metrics.to_s)
+      prom.write(@metrics.to_s)
     end
   end
 end
