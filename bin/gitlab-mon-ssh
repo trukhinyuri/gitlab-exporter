@@ -1,34 +1,12 @@
 #!/usr/bin/env ruby
 
-class GitRunner
-  def initialize(repo)
-    @repo = repo
-    @tracker = TimeTracker.new
-  end
-
-  def pull
-    in_repo { @tracker.track { `git pull -q` } }
-  end
-
-  def push
-    in_repo {
-      `git commit --allow-empty -m "Beep"`
-      @tracker.track { `git push -q` }
-    }
-  end
-
-  private
-
-  def in_repo
-    Dir.chdir(@repo) { yield }
-  end
-end
+require "gitlab_monitor"
 
 def main
-  runner = GitRunner.new(File.expand_path("~/dev/emptyness"))
-  metrics = PrometheusMetrics.new
-  metrics.add "git_pull_time_milliseconds", (runner.pull * 1000).to_i, repo: "emptyness"
-  metrics.add "git_push_time_milliseconds", (runner.push * 1000).to_i, repo: "emptyness"
+  git = GitLab::Monitor::Git.new(File.expand_path("~/dev/emptyness"))
+  metrics = GitLab::Monitor::PrometheusMetrics.new
+  metrics.add "git_pull_time_milliseconds", (git.pull * 1000).to_i, repo: "emptyness"
+  metrics.add "git_push_time_milliseconds", (git.push * 1000).to_i, repo: "emptyness"
   File.open(File.expand_path("~/metrics/git.prom"), "w") do |prom|
     prom.write(metrics.to_s)
   end
