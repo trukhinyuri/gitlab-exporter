@@ -1,15 +1,23 @@
+require "gitlab_monitor/version"
+
 Gem::Specification.new do |s|
   s.name          = "gitlab-monitoring"
-  s.version       = "0.0.1"
+  s.version       = GitLab::Monitor::VERSION
   s.date          = "2016-07-27"
   s.summary       = "GitLab monitoring tools"
-  s.description   = "GitLab monitoring tools"
+  s.description   = "GitLab monitoring tools to use with prometheus"
   s.authors       = ["Pablo Carranza"]
   s.email         = "pablo@gitlab.com"
+
   s.files         = `git ls-files -z`.split("\x0")
+
+  s.bindir        = "exe"
+  s.executables   = s.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  s.test_files    = s.files.grep(%r{^(spec)/})
+
   s.require_paths = ["lib"]
-  s.executables   = s.files.grep(%r{^bin/}) { |f| File.basename(f) }
-  s.test_files    = s.files.grep(%r{^(test|spec|features)/})
   s.homepage      = "http://gitlab.com"
   s.license       = "MIT"
+
+  s.add_development_dependency "rspec", "~> 3.3"
 end

@@ -53,9 +53,9 @@ def main
   end
   options.validate!
   GitProber.new(options).probe_pull.probe_push.write
-# rescue => e
-#   puts e
-#   exit 1
+rescue => e
+  puts e
+  exit 1
 end
 
 main() if __FILE__ == $0
