@@ -3,30 +3,6 @@
 require "optparse"
 require "gitlab_monitor"
 
-class GitProber
-  def initialize(options)
-    @options = options
-    @metrics = GitLab::Monitor::PrometheusMetrics.new
-    @git = GitLab::Monitor::Git.new(@options.repo_path)
-  end
-
-  def probe_pull
-    @metrics.add "git_pull_time_milliseconds", (@git.pull.time * 1000).to_i, **(@options.labels || {})
-    self
-  end
-
-  def probe_push
-    @metrics.add "git_push_time_milliseconds", (@git.push.time * 1000).to_i, **(@options.labels || {})
-    self
-  end
-
-  def write
-    File.open(@options.target_file, "w") do |prom|
-      prom.write(@metrics.to_s)
-    end
-  end
-end
-
 Options = Struct.new(:repo_path, :target_file, :labels) do
   def validate!
     fail "Repo path is required, please add -r repo_path" if repo_path.nil?
@@ -34,6 +10,12 @@ Options = Struct.new(:repo_path, :target_file, :labels) do
     fail "Invalid repository #{repo_path}" unless File.directory? repo_path
     labels ||= {}
     self
+  end
+
+  def target
+    File.open(target_file, "w") do |target_io|
+      yield target_io
+    end
   end
 end
 
@@ -52,7 +34,7 @@ def main
     opts.parse!
   end
   options.validate!
-  GitProber.new(options).probe_pull.probe_push.write
+  GitLab::Monitor::GitProber.new(options).probe_pull.probe_push.write
 rescue => e
   puts e
   exit 1

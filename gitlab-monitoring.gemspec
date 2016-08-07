@@ -1,7 +1,9 @@
+lib = File.expand_path("../lib", __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "gitlab_monitor/version"
 
 Gem::Specification.new do |s|
-  s.name          = "gitlab-monitoring"
+  s.name          = "gitlab-monitor"
   s.version       = GitLab::Monitor::VERSION
   s.date          = "2016-07-27"
   s.summary       = "GitLab monitoring tools"
