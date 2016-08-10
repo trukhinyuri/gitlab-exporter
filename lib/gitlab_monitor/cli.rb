@@ -15,7 +15,7 @@ module GitLab
 
         def run
           fail InvalidCLICommand.new "Usage: #{EXECUTABLE_NAME} <command> [options] [arguments...]\n\n"\
-                                      "Available commands are: #{commands.keys.join(', ')}"
+                                      "Available commands are: #{GitLab::Monitor::CLI.commands.keys.join(', ')}"
         end
       end
 
