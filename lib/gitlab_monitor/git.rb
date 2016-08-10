@@ -46,26 +46,24 @@ module GitLab
     end
 
     class GitProber
-      def initialize(options)
-        @options = options
-        @metrics = PrometheusMetrics.new
-        @git = Git.new(@options.repo_path)
+      def initialize(options, metrics: PrometheusMetrics.new)
+        @metrics = metrics
+        @labels = options.labels || {}
+        @git = Git.new(options.source)
       end
 
       def probe_pull
-        @metrics.add "git_pull_time_milliseconds", (@git.pull.time * 1000).to_i, **(@options.labels || {})
+        @metrics.add "git_pull_time_milliseconds", (@git.pull.time * 1000).to_i, **@labels
         self
       end
 
       def probe_push
-        @metrics.add "git_push_time_milliseconds", (@git.push.time * 1000).to_i, **(@options.labels || {})
+        @metrics.add "git_push_time_milliseconds", (@git.push.time * 1000).to_i, **@labels
         self
       end
 
-      def write
-        @options.target do |target|
-          target.write(@metrics.to_s)
-        end
+      def write_to(target)
+        target.write(@metrics.to_s)
       end
     end
   end

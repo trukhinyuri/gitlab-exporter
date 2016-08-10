@@ -9,13 +9,13 @@ class GitRepoBuilder
     @origin ||= create_origin
   end
 
-  def clone
-    @clone ||= create_clone
+  def cloned_repo
+    @cloned_repo ||= clone_origin
   end
 
   def cleanup
     FileUtils.rm_r(@origin) if @origin
-    FileUtils.rm_r(@clone) if @clone
+    FileUtils.rm_r(@cloned_repo) if @cloned_repo
   end
 
   private
@@ -28,11 +28,31 @@ class GitRepoBuilder
     path
   end
 
-  def create_clone
+  def clone_origin
     path = Dir.mktmpdir
     Dir.rmdir(path)
     Open3.capture3("git clone #{origin} #{path}")
     Open3.capture3("git checkout master", chdir: path)
     path
+  end
+end
+
+class MyArgs
+  def initialize(args)
+    @arguments = args
+  end
+
+  def options
+    yield self
+  end
+
+  def on(*args)
+  end
+
+  def banner=(banner)
+  end
+
+  def parse!
+    @arguments
   end
 end

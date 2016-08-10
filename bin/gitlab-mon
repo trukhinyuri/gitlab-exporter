@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+
+
+require "optparse"
+require "gitlab_monitor"
+
+def main
+  clazz = GitLab::Monitor::CLI.for(ARGV.shift)
+  runner = clazz.new(ARGV)
+  runner.run
+rescue GitLab::Monitor::CLI::InvalidCLICommand => e
+  puts e
+  exit 1
+end
+
+main
