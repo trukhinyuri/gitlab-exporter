@@ -4,5 +4,6 @@ module GitLab
     autoload :TimeTracker,       "gitlab_monitor/util"
     autoload :PrometheusMetrics, "gitlab_monitor/prometheus"
     autoload :Git,               "gitlab_monitor/git"
+    autoload :GitProber,         "gitlab_monitor/git"
   end
 end
