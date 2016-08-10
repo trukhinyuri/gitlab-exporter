@@ -1,0 +1,12 @@
+image: "ruby:2.2"
+
+before_script:
+  - bundle install
+
+rspec:
+  script:
+    - bundle exec rspec spec
+
+rubocop:
+  script: 
+    - bundle exec rubocop
