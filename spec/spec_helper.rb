@@ -37,7 +37,9 @@ class GitRepoBuilder
   end
 end
 
-class MyArgs
+GitProberOptions = Struct.new(:source, :labels)
+
+class CLIArgs
   def initialize(args)
     @arguments = args
   end

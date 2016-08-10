@@ -12,12 +12,12 @@ context "An invalid repository" do
   end
 end
 
-GitProberOptions = Struct.new(:source, :labels)
-
 context "With valid pair of repositories" do
-  let (:repos) { GitRepoBuilder.new }
+  let(:repos) { GitRepoBuilder.new }
 
-  after do repos.cleanup end
+  after do
+    repos.cleanup
+  end
 
   describe GitLab::Monitor::Git do
     it "builds with a repo folder" do
@@ -34,8 +34,8 @@ context "With valid pair of repositories" do
   end
 
   describe GitLab::Monitor::GitProber do
-    let (:options) { GitProberOptions.new(repos.cloned_repo, {}) }
-    let (:output) { StringIO.new }
+    let(:options) { GitProberOptions.new(repos.cloned_repo, {}) }
+    let(:output) { StringIO.new }
 
     it "probes and monitors a pull" do
       prober = GitLab::Monitor::GitProber.new(options)
@@ -47,27 +47,6 @@ context "With valid pair of repositories" do
     it "probes and monitors a push" do
       prober = GitLab::Monitor::GitProber.new(options)
       prober.probe_push.write_to(output)
-      output.rewind
-      expect(output.read).to match(/git_push_time_milliseconds \d+ \d+/)
-    end
-  end
-
-  describe GitLab::Monitor::CLI do
-    it "returns the rigth parser" do
-      expect(GitLab::Monitor::CLI.for("git")).to be(GitLab::Monitor::CLI::GIT)
-    end
-
-    it "returns a null parser if it is not found" do
-      expect(GitLab::Monitor::CLI.for("invalid")).to be(GitLab::Monitor::CLI::NullRunner)
-    end
-  end
-
-  describe GitLab::Monitor::CLI::GIT do
-    let (:output) { StringIO.new }
-    it "works end to end" do
-      args = MyArgs.new([repos.cloned_repo, output])
-      ssh = GitLab::Monitor::CLI::GIT.new(args)
-      ssh.run
       output.rewind
       expect(output.read).to match(/git_push_time_milliseconds \d+ \d+/)
     end
