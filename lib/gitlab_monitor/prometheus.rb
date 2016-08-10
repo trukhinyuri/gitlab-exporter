@@ -13,7 +13,7 @@ module GitLab
       def to_s
         buffer = StringIO.new
         @metrics.each { |name, metrics|
-          buffer.write("#{name}")
+          buffer.write(name.to_s)
           labels = (metrics[:labels] || {}).map { |label, value| "#{label}=\"#{value}\"" }.join(",")
           buffer.write("{#{labels}}") unless labels.empty?
           buffer.write(" #{metrics[:value]} #{metrics[:timestamp]}\n")

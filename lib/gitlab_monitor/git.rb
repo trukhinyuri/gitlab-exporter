@@ -4,7 +4,7 @@ module GitLab
   module Monitor
     class Git
       def initialize(repo)
-        fail "Repository #{repo} does not exists" unless Dir.exists? repo
+        fail "Repository #{repo} does not exists" unless Dir.exist? repo
         @repo = repo
         @tracker = TimeTracker.new
       end
@@ -33,7 +33,7 @@ module GitLab
 
     CommandResult = Struct.new(:stdout, :status) do
       def failed?
-        status != 0
+        status.nonzero?
       end
 
       def status

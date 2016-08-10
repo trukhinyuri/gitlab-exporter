@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
 
   s.files         = `git ls-files -z`.split("\x0")
 
-  s.executables   = ['gitlab-mon']
+  s.executables   = ["gitlab-mon"]
   s.test_files    = s.files.grep(%r{^(spec)/})
 
   s.require_paths = ["lib"]

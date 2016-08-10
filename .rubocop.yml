@@ -1,0 +1,17 @@
+# Commonly used screens these days easily fit more than 80 characters.
+Metrics/LineLength:
+  Max: 120
+
+# Just use double quotes please
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+# Jim Weirich block style
+Style/BlockDelimiters:
+  EnforcedStyle: semantic
+
+Style/SignalException:
+  EnforcedStyle: semantic
+
+Style/RaiseArgs:
+  EnforcedStyle: compact

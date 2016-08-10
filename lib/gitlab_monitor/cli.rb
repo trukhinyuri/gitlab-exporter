@@ -1,7 +1,7 @@
 module GitLab
   module Monitor
     module CLI
-      EXECUTABLE_NAME = "gitlab-mon"
+      EXECUTABLE_NAME = "gitlab-mon".freeze
 
       def self.for(name)
         commands.fetch(name, NullRunner)
@@ -14,13 +14,13 @@ module GitLab
         end
 
         def run
-          fail InvalidCLICommand.new "Usage: #{EXECUTABLE_NAME} <command> [options] [arguments...]\n\n"\
-                                      "Available commands are: #{GitLab::Monitor::CLI.commands.keys.join(', ')}"
+          fail InvalidCLICommand.new("Usage: #{EXECUTABLE_NAME} <command> [options] [arguments...]\n\n"\
+                                     "Available commands are: #{GitLab::Monitor::CLI.commands.keys.join(', ')}")
         end
       end
 
       class GIT
-        COMMAND_NAME="git"
+        COMMAND_NAME = "git".freeze
 
         attr_reader :source, :target, :labels
 
