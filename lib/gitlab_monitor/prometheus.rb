@@ -6,18 +6,18 @@ module GitLab
       end
 
       def add(name, value, **labels)
-        @metrics[name] = { value: value, labels: labels, timestamp: (Time.now.to_f * 1000).to_i}
+        @metrics[name] = { value: value, labels: labels, timestamp: (Time.now.to_f * 1000).to_i }
         self
       end
 
       def to_s
         buffer = StringIO.new
-        @metrics.each { |name, metrics|
+        @metrics.each do |name, metrics|
           buffer.write(name.to_s)
           labels = (metrics[:labels] || {}).map { |label, value| "#{label}=\"#{value}\"" }.join(",")
           buffer.write("{#{labels}}") unless labels.empty?
           buffer.write(" #{metrics[:value]} #{metrics[:timestamp]}\n")
-        }
+        end
         buffer.rewind
         buffer.read
       end

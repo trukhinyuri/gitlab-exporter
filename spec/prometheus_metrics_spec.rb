@@ -11,6 +11,7 @@ describe GitLab::Monitor::PrometheusMetrics do
 
   it "supports metrics with many labels" do
     expect(subject.add("mymetric", 1.3, mylabel: "x", myotherlabel: "y").to_s).to match(
-      /mymetric{mylabel="x",myotherlabel="y"} 1.3 \d*$/)
+      /mymetric{mylabel="x",myotherlabel="y"} 1.3 \d*$/
+    )
   end
 end

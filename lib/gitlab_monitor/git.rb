@@ -18,7 +18,7 @@ module GitLab
         @tracker.track { execute "git push -q" }
       end
 
-      def empty_commit(message="Beep")
+      def empty_commit(message = "Beep")
         @tracker.track { execute("git commit --allow-empty -m '#{message}'") }
       end
 

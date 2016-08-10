@@ -15,4 +15,3 @@ module GitLab
     end
   end
 end
-

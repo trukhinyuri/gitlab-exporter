@@ -35,18 +35,18 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Monitor::GitProber.new(self).
-            probe_pull.
-            probe_push.
-            write_to(@target)
+          ::GitLab::Monitor::GitProber.new(self)
+                                      .probe_pull
+                                      .probe_push
+                                      .write_to(@target)
         end
 
         def options(args)
           args.options do |opts|
             opts.banner = "Usage: #{EXECUTABLE_NAME} #{COMMAND_NAME} [options] repository_path [target_file]"
-            opts.on("-l", "--labels=key=value,key2=value2", "Labels to append to the metrics") { |val|
-              @labels = val.split(",").map{|value| value.split("=").tap{|aa| aa[0] = aa[0].to_sym} }.to_h
-            }
+            opts.on("-l", "--labels=key=value,key2=value2", "Labels to append to the metrics") do |val|
+              @labels = val.split(",").map { |value| value.split("=").tap { |aa| aa[0] = aa[0].to_sym } }.to_h
+            end
             opts
           end
         end
@@ -62,7 +62,7 @@ module GitLab
       end
 
       def self.commands
-        [GIT].inject({}) do |commands, command_class|
+        [GIT].each_with_object({}) do |command_class, commands|
           commands[command_class::COMMAND_NAME] = command_class
           commands
         end

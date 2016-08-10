@@ -7,18 +7,17 @@ context "An invalid repository" do
     it "fails with an invalid repository" do
       repo = Dir.mktmpdir
       Dir.rmdir(repo)
-      expect{GitLab::Monitor::Git.new(repo)}.to raise_error(/Repository #{repo} does not exists/)
+      expect { GitLab::Monitor::Git.new(repo) }.to raise_error(/Repository #{repo} does not exists/)
     end
   end
 end
-
 
 GitProberOptions = Struct.new(:source, :labels)
 
 context "With valid pair of repositories" do
   let (:repos) { GitRepoBuilder.new }
 
-  after { repos.cleanup }
+  after do repos.cleanup end
 
   describe GitLab::Monitor::Git do
     it "builds with a repo folder" do
@@ -26,11 +25,11 @@ context "With valid pair of repositories" do
     end
 
     it "pulls correctly" do
-      expect(GitLab::Monitor::Git.new(repos.cloned_repo).pull.time).to satisfy {|v| v >= 0}
+      expect(GitLab::Monitor::Git.new(repos.cloned_repo).pull.time).to satisfy { |v| v >= 0 }
     end
 
     it "pushes correctly" do
-      expect(GitLab::Monitor::Git.new(repos.cloned_repo).push.time).to satisfy {|v| v >= 0}
+      expect(GitLab::Monitor::Git.new(repos.cloned_repo).push.time).to satisfy { |v| v >= 0 }
     end
   end
 
@@ -74,4 +73,3 @@ context "With valid pair of repositories" do
     end
   end
 end
-
