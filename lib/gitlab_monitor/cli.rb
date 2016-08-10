@@ -1,5 +1,10 @@
 module GitLab
   module Monitor
+    # Stores runner classes in a single place
+    #
+    # The entry point is the module method "for" which takes the name of a runner.
+    # In case the runner is invalid it will return a NullRunner which fails with an
+    # InvalidCLICommand error, which contains the general application usage instructions.
     module CLI
       EXECUTABLE_NAME = "gitlab-mon".freeze
 
@@ -9,6 +14,8 @@ module GitLab
 
       class InvalidCLICommand < RuntimeError; end
 
+      # Empty runner that will raise an InvalidCLICommand when executed to provide the usage
+      # in the exception message
       class NullRunner
         def initialize(args)
         end
@@ -19,6 +26,12 @@ module GitLab
         end
       end
 
+      # Git runner.
+      #
+      # Takes something that behaves like ARGV with optparse included as an argument.
+      #
+      # It will take 2 positional arguments once parsed, the first one for the repository location,
+      # the optional second one is an IO like object to write to
       class GIT
         COMMAND_NAME = "git".freeze
 

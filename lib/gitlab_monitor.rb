@@ -1,4 +1,5 @@
 module GitLab
+  # GitLab Monitoring
   module Monitor
     autoload :CLI,               "gitlab_monitor/cli"
     autoload :TimeTracker,       "gitlab_monitor/util"

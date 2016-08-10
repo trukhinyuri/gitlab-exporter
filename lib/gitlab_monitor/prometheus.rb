@@ -1,5 +1,11 @@
 module GitLab
   module Monitor
+    # Prometheus metrics container
+    #
+    # Provides a simple API to `add` metrics and then turn them `to_s` which will just
+    # dump all the metrics in prometheus format
+    #
+    # The add method also can take any arbitrary amount of labels in a `key: value` format.
     class PrometheusMetrics
       def initialize
         @metrics = {}

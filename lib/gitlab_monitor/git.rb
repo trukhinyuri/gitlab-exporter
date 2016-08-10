@@ -2,6 +2,14 @@ require "open3"
 
 module GitLab
   module Monitor
+    # Git monitoring helping class
+    #
+    # Takes a repository path for construction and provides 2 main methods:
+    #   - pull
+    #   - push
+    #
+    # Both methods return a CommandResult which includes the output of the execution
+    # plus the tracked execution time.
     class Git
       def initialize(repo)
         fail "Repository #{repo} does not exists" unless Dir.exist? repo
@@ -31,6 +39,10 @@ module GitLab
       end
     end
 
+    # Result of a command
+    #
+    # Provides some handy methods for checking if the execution failed and a simple to_s that will
+    # return the command output
     CommandResult = Struct.new(:stdout, :status) do
       def failed?
         status.nonzero?
@@ -45,6 +57,10 @@ module GitLab
       end
     end
 
+    # Handles creating a Git object, probing for both pull and push, and finally writing to metrics
+    #
+    # Optionally takes a metrics object which by default is a PrometheusMetrics, useful to change the
+    # metrics writer to something else.
     class GitProber
       def initialize(options, metrics: PrometheusMetrics.new)
         @metrics = metrics
