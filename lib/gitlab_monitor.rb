@@ -6,5 +6,6 @@ module GitLab
     autoload :PrometheusMetrics, "gitlab_monitor/prometheus"
     autoload :Git,               "gitlab_monitor/git"
     autoload :GitProber,         "gitlab_monitor/git"
+    autoload :DatabaseDeadTuplesCollector, "gitlab_monitor/database_dead_tuples_collector"
   end
 end

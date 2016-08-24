@@ -74,8 +74,63 @@ module GitLab
         end
       end
 
+      class DatabaseDeadTuples
+        COMMAND_NAME = "db-dead-tuples".freeze
+
+        def initialize(args)
+          @options = options(args)
+          @options.parse!
+        end
+
+        def options(args)
+          args.options do |opts|
+            opts.banner = "Usage: #{EXECUTABLE_NAME} #{COMMAND_NAME} [options]"
+            opts.on(
+              "-i", "--interval [NUMBER]", Numeric, "Interval (in seconds) at which data is collected. Default is 60."
+            ) do |val|
+              @interval = val || 60
+            end
+            opts.on("--db-conn=\"dbname=test port=5432\"", "Database connection string") do |val|
+              @db_connection_string = val
+            end
+          end
+        end
+
+        def help
+          @options.help
+        end
+
+        def run
+          validate!
+          run_loop
+        end
+
+        private
+
+        def validate!
+          fail InvalidCLICommand.new(help) unless @db_connection_string
+        end
+
+        def run_loop
+          collector = ::GitLab::Monitor::DatabaseDeadTuplesCollector.new(connection_string: @db_connection_string)
+          metrics   = PrometheusMetrics.new
+
+          loop do
+            result = collector.run
+
+            result.each do |table_name, dead_tuples_count|
+              metrics.add("#{table_name}_dead_tuples", dead_tuples_count)
+            end
+
+            puts metrics.to_s
+
+            sleep @interval
+          end
+        end
+      end
+
       def self.commands
-        [GIT].each_with_object({}) do |command_class, commands|
+        [GIT, DatabaseDeadTuples].each_with_object({}) do |command_class, commands|
           commands[command_class::COMMAND_NAME] = command_class
           commands
         end

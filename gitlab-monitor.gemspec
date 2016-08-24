@@ -20,5 +20,7 @@ Gem::Specification.new do |s|
   s.homepage      = "http://gitlab.com"
   s.license       = "MIT"
 
+  s.add_runtime_dependency "pg", "~> 0.18.4"
+
   s.add_development_dependency "rspec", "~> 3.3"
 end
