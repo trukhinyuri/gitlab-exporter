@@ -119,7 +119,7 @@ module GitLab
             result = collector.run
 
             result.each do |table_name, dead_tuples_count|
-              metrics.add("#{table_name}_dead_tuples", dead_tuples_count)
+              metrics.add("pg_dead_tuples{table=\"#{table_name}\"}", dead_tuples_count)
             end
 
             puts metrics.to_s
