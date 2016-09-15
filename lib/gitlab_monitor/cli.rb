@@ -74,6 +74,9 @@ module GitLab
         end
       end
 
+      # Database dead tuples runner.
+      #
+      # It will take a database connection string and print results to STDOUT
       class DatabaseDeadTuples
         COMMAND_NAME = "db-dead-tuples".freeze
 

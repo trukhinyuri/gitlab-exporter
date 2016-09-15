@@ -2,6 +2,9 @@ require "pg"
 
 module GitLab
   module Monitor
+    # A helper class to collect dead tuples stats from the database
+    #
+    # It takes a connection string (e.g. "dbname=test port=5432")
     class DatabaseDeadTuplesCollector
       attr_reader :result
 
