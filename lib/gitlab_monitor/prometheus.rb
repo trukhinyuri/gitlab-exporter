@@ -26,8 +26,7 @@ module GitLab
             buffer.write(" #{measurement[:value]} #{measurement[:timestamp]}\n")
           end
         end
-        buffer.rewind
-        buffer.read
+        buffer.string
       end
     end
   end

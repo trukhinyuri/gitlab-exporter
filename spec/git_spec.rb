@@ -40,15 +40,13 @@ context "With valid pair of repositories" do
     it "probes and monitors a pull" do
       prober = GitLab::Monitor::GitProber.new(options)
       prober.probe_pull.write_to(output)
-      output.rewind
-      expect(output.read).to match(/git_pull_time_milliseconds \d+ \d+/)
+      expect(output.string).to match(/git_pull_time_milliseconds \d+ \d+/)
     end
 
     it "probes and monitors a push" do
       prober = GitLab::Monitor::GitProber.new(options)
       prober.probe_push.write_to(output)
-      output.rewind
-      expect(output.read).to match(/git_push_time_milliseconds \d+ \d+/)
+      expect(output.string).to match(/git_push_time_milliseconds \d+ \d+/)
     end
   end
 end
