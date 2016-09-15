@@ -74,8 +74,56 @@ module GitLab
         end
       end
 
+      # Database dead tuples runner.
+      #
+      # It will take a database connection string and print results to STDOUT
+      class DatabaseDeadTuples
+        COMMAND_NAME = "db-dead-tuples".freeze
+
+        def initialize(args)
+          @options = options(args)
+          @options.parse!
+        end
+
+        def options(args)
+          args.options do |opts|
+            opts.banner = "Usage: #{EXECUTABLE_NAME} #{COMMAND_NAME} [options]"
+            opts.on("--db-conn=\"dbname=test port=5432\"", "Database connection string") do |val|
+              @db_connection_string = val
+            end
+          end
+        end
+
+        def help
+          @options.help
+        end
+
+        def run
+          validate!
+          run_loop
+        end
+
+        private
+
+        def validate!
+          fail InvalidCLICommand.new(help) unless @db_connection_string
+        end
+
+        def run_loop
+          collector = ::GitLab::Monitor::DatabaseDeadTuplesCollector.new(connection_string: @db_connection_string)
+          metrics   = PrometheusMetrics.new
+          result    = collector.run
+
+          result.each do |table_name, dead_tuples_count|
+            metrics.add("pg_dead_tuples", dead_tuples_count, table_name: table_name)
+          end
+
+          puts metrics.to_s
+        end
+      end
+
       def self.commands
-        [GIT].each_with_object({}) do |command_class, commands|
+        [GIT, DatabaseDeadTuples].each_with_object({}) do |command_class, commands|
           commands[command_class::COMMAND_NAME] = command_class
           commands
         end

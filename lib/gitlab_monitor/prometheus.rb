@@ -8,24 +8,25 @@ module GitLab
     # The add method also can take any arbitrary amount of labels in a `key: value` format.
     class PrometheusMetrics
       def initialize
-        @metrics = {}
+        @metrics = Hash.new { |h, k| h[k] = [] }
       end
 
       def add(name, value, **labels)
-        @metrics[name] = { value: value, labels: labels, timestamp: (Time.now.to_f * 1000).to_i }
+        @metrics[name] << { value: value, labels: labels, timestamp: (Time.now.to_f * 1000).to_i }
         self
       end
 
       def to_s
         buffer = StringIO.new
-        @metrics.each do |name, metrics|
-          buffer.write(name.to_s)
-          labels = (metrics[:labels] || {}).map { |label, value| "#{label}=\"#{value}\"" }.join(",")
-          buffer.write("{#{labels}}") unless labels.empty?
-          buffer.write(" #{metrics[:value]} #{metrics[:timestamp]}\n")
+        @metrics.each do |name, measurements|
+          measurements.each do |measurement|
+            buffer.write(name.to_s)
+            labels = (measurement[:labels] || {}).map { |label, value| "#{label}=\"#{value}\"" }.join(",")
+            buffer.write("{#{labels}}") unless labels.empty?
+            buffer.write(" #{measurement[:value]} #{measurement[:timestamp]}\n")
+          end
         end
-        buffer.rewind
-        buffer.read
+        buffer.string
       end
     end
   end
