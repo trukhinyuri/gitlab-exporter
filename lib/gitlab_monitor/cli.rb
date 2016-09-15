@@ -85,11 +85,6 @@ module GitLab
         def options(args)
           args.options do |opts|
             opts.banner = "Usage: #{EXECUTABLE_NAME} #{COMMAND_NAME} [options]"
-            opts.on(
-              "-i", "--interval [NUMBER]", Numeric, "Interval (in seconds) at which data is collected. Default is 60."
-            ) do |val|
-              @interval = val || 60
-            end
             opts.on("--db-conn=\"dbname=test port=5432\"", "Database connection string") do |val|
               @db_connection_string = val
             end
@@ -114,18 +109,13 @@ module GitLab
         def run_loop
           collector = ::GitLab::Monitor::DatabaseDeadTuplesCollector.new(connection_string: @db_connection_string)
           metrics   = PrometheusMetrics.new
+          result    = collector.run
 
-          loop do
-            result = collector.run
-
-            result.each do |table_name, dead_tuples_count|
-              metrics.add("pg_dead_tuples", dead_tuples_count, table_name: table_name)
-            end
-
-            puts metrics.to_s
-
-            sleep @interval
+          result.each do |table_name, dead_tuples_count|
+            metrics.add("pg_dead_tuples", dead_tuples_count, table_name: table_name)
           end
+
+          puts metrics.to_s
         end
       end
 
