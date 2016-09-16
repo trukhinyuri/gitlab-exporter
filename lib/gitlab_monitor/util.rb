@@ -19,7 +19,7 @@ module GitLab
       end
     end
 
-    # Stuff that's copied from ActiveSupport
+    # Helper methods, some stuff was copied from ActiveSupport
     module Utils
       def camel_case_string(str)
         str.gsub(/(?:_|^)([a-z\d]*)/i) { $1.capitalize } # rubocop:disable PerlBackrefs
@@ -46,6 +46,16 @@ module GitLab
         end
       end
       module_function :deep_transform_keys_in_object
+
+      def pgrep(pattern)
+        `pgrep -f #{pattern}`.split("\n")
+      end
+      module_function :pgrep
+
+      def system_uptime
+        File.read("/proc/uptime").split(" ")[0].to_f
+      end
+      module_function :system_uptime
     end
   end
 end

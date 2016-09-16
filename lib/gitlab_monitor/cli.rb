@@ -240,12 +240,54 @@ module GitLab
         end
       end
 
+      # Process runner
+      #
+      # Takes a pid and name for metrics
+      class Process
+        COMMAND_NAME = "process".freeze
+
+        def initialize(args)
+          @options = options(args)
+          @options.parse!
+
+          @target = args.shift || STDOUT
+          @target = File.open(@target, "a") if @target.is_a?(String)
+        end
+
+        def options(args)
+          args.options do |opts|
+            opts.banner = "Usage: #{EXECUTABLE_NAME} #{COMMAND_NAME} [options]"
+            opts.on("--pid=123", "Process ID") do |val|
+              @pid = val
+            end
+            opts.on("--pattern=unicron", "Process command pattern") do |val|
+              @pattern = val
+            end
+            opts.on("--name=NAME", "Process name to be used in metrics") do |val|
+              @name = val
+            end
+          end
+        end
+
+        def help
+          @options.help
+        end
+
+        def run
+          ::GitLab::Monitor::ProcessProber.new(pid_or_pattern: @pid || @pattern, name: @name)
+                                          .probe_memory
+                                          .probe_age
+                                          .write_to(@target)
+        end
+      end
+
       def self.commands
         [
           GIT,
           DatabaseDeadTuples,
           DatabaseBlockedQueries,
           DatabaseSlowQueries,
+          Process,
           Server
         ].each_with_object({}) do |command_class, commands|
           commands[command_class::COMMAND_NAME] = command_class
