@@ -13,7 +13,7 @@ module GitLab
       end
 
       def run
-        table_names = connection.exec("SELECT tablename FROM pg_tables WHERE tableowner <> 'postgres'").values.flatten
+        table_names = connection.exec("SELECT tablename FROM pg_tables WHERE tableowner = 'gitlab'").values.flatten
         stats       = {}
 
         table_names.each do |table_name|
