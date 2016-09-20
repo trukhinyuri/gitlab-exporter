@@ -83,6 +83,9 @@ module GitLab
         def initialize(args)
           @options = options(args)
           @options.parse!
+
+          @target = args.shift || STDOUT
+          @target = File.open(@target, "a") if @target.is_a?(String)
         end
 
         def options(args)
@@ -100,25 +103,16 @@ module GitLab
 
         def run
           validate!
-          run_loop
+
+          ::GitLab::Monitor::DatabaseDeadTuplesProber.new(connection_string: @db_connection_string)
+                                                     .probe_db
+                                                     .write_to(@target)
         end
 
         private
 
         def validate!
           fail InvalidCLICommand.new(help) unless @db_connection_string
-        end
-
-        def run_loop
-          collector = ::GitLab::Monitor::DatabaseDeadTuplesCollector.new(connection_string: @db_connection_string)
-          metrics   = PrometheusMetrics.new
-          result    = collector.run
-
-          result.each do |table_name, dead_tuples_count|
-            metrics.add("pg_dead_tuples", dead_tuples_count, table_name: table_name)
-          end
-
-          puts metrics.to_s
         end
       end
 

@@ -30,5 +30,27 @@ module GitLab
         @connection ||= PG.connect(@connection_string)
       end
     end
+
+    # Probes the DB specified by opts[:connection_string] for dead tubles stats, then converts them to metrics
+    class DatabaseDeadTuplesProber
+      def initialize(opts, metrics = PrometheusMetrics.new)
+        @metrics   = metrics
+        @collector = DatabaseDeadTuplesCollector.new(connection_string: opts[:connection_string])
+      end
+
+      def probe_db
+        result = @collector.run
+
+        result.each do |table_name, dead_tuples_count|
+          @metrics.add("pg_dead_tuples", dead_tuples_count, table_name: table_name)
+        end
+
+        self
+      end
+
+      def write_to(target)
+        target.write(@metrics.to_s)
+      end
+    end
   end
 end
