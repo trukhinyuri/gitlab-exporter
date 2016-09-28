@@ -48,7 +48,7 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Monitor::GitProber.new(self)
+          ::GitLab::Monitor::GitProber.new(labels: labels, source: source)
                                       .probe_pull
                                       .probe_push
                                       .write_to(@target)
