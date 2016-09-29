@@ -18,18 +18,18 @@ module GitLab
       end
 
       def to_s
-        buffer = StringIO.new
+        buffer = ""
         @metrics.each do |name, measurements|
           measurements.each do |measurement|
-            buffer.write(name.to_s)
+            buffer << name.to_s
             labels = (measurement[:labels] || {}).map { |label, value| "#{label}=\"#{value}\"" }.join(",")
-            buffer.write("{#{labels}}") unless labels.empty?
-            buffer.write(" #{measurement[:value]}")
-            buffer.write(" #{measurement[:timestamp]}") if @include_timestamp
-            buffer.write("\n")
+            buffer << "{#{labels}}" unless labels.empty?
+            buffer << " #{measurement[:value]}"
+            buffer << " #{measurement[:timestamp]}" if @include_timestamp
+            buffer << "\n"
           end
         end
-        buffer.string
+        buffer
       end
     end
   end
