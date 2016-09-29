@@ -104,9 +104,9 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Monitor::DatabaseDeadTuplesProber.new(connection_string: @db_connection_string)
-                                                     .probe_db
-                                                     .write_to(@target)
+          ::GitLab::Monitor::Database::DeadTuplesProber.new(connection_string: @db_connection_string)
+                                                       .probe_db
+                                                       .write_to(@target)
         end
 
         private
