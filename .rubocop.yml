@@ -15,3 +15,6 @@ Style/SignalException:
 
 Style/RaiseArgs:
   EnforcedStyle: compact
+
+Metrics/MethodLength:
+  Max: 15
