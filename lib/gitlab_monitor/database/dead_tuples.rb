@@ -20,7 +20,7 @@ module GitLab
 
       # Probes the DB specified by opts[:connection_string] for dead tubles stats, then converts them to metrics
       class DeadTuplesProber
-        def initialize(opts, metrics = PrometheusMetrics.new)
+        def initialize(opts, metrics: PrometheusMetrics.new)
           @metrics   = metrics
           @collector = DeadTuplesCollector.new(connection_string: opts[:connection_string])
         end

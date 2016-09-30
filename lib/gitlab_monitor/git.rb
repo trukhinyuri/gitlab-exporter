@@ -62,10 +62,10 @@ module GitLab
     # Optionally takes a metrics object which by default is a PrometheusMetrics, useful to change the
     # metrics writer to something else.
     class GitProber
-      def initialize(options, metrics: PrometheusMetrics.new)
+      def initialize(opts, metrics: PrometheusMetrics.new)
         @metrics = metrics
-        @labels = options.labels || {}
-        @git = Git.new(options.source)
+        @labels = opts[:labels] || {}
+        @git = Git.new(opts[:source])
       end
 
       def probe_pull

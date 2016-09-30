@@ -1,3 +1,5 @@
+require "yaml"
+
 module GitLab
   module Monitor
     # Stores runner classes in a single place
@@ -48,7 +50,7 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Monitor::GitProber.new(self)
+          ::GitLab::Monitor::GitProber.new(labels: labels, source: source)
                                       .probe_pull
                                       .probe_push
                                       .write_to(@target)
@@ -200,12 +202,51 @@ module GitLab
         end
       end
 
+      # Run a web server that exposes the metrics specified in a config file
+      class Server
+        COMMAND_NAME = "web".freeze
+
+        def initialize(args)
+          @options = options(args)
+          @options.parse!
+        end
+
+        def options(args)
+          args.options do |opts|
+            opts.banner = "Usage: #{EXECUTABLE_NAME} #{COMMAND_NAME} [options]"
+            opts.on("-c config.yml", "Monitoring config") do |val|
+              @config_file = val
+            end
+          end
+        end
+
+        def help
+          @options.help
+        end
+
+        def run
+          validate!
+
+          config = Utils.deep_symbolize_hash_keys(YAML.load_file(@config_file))
+
+          WebExporter.setup(config)
+          WebExporter.run!
+        end
+
+        private
+
+        def validate!
+          fail InvalidCLICommand.new(help) unless @config_file
+        end
+      end
+
       def self.commands
         [
           GIT,
           DatabaseDeadTuples,
           DatabaseBlockedQueries,
-          DatabaseSlowQueries
+          DatabaseSlowQueries,
+          Server
         ].each_with_object({}) do |command_class, commands|
           commands[command_class::COMMAND_NAME] = command_class
           commands
