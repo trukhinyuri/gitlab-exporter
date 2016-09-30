@@ -8,7 +8,7 @@ module GitLab
         def setup(config) # rubocop:disable Metrics/AbcSize
           config[:probes].each do |probe_name, params|
             prober_class_name = params.delete(:class_name) || Utils.camel_case_string("#{probe_name}_prober")
-            prober_class = GitLab::Monitor.const_get(prober_class_name)
+            prober_class = resolve_prober_class(prober_class_name)
 
             get "/#{probe_name}" do
               Utils.wrap_in_array(params[:opts]).each do |opts|
@@ -21,6 +21,12 @@ module GitLab
 
               response
             end
+          end
+        end
+
+        def resolve_prober_class(prober_class_name)
+          prober_class_name.split("::").reduce(GitLab::Monitor) do |ancestor, const_name|
+            ancestor.const_get(const_name)
           end
         end
       end

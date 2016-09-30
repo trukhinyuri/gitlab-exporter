@@ -1,6 +1,6 @@
 probes:
   dead_tuples_count:
-    class_name: DatabaseDeadTuplesProber
+    class_name: Database::DeadTuplesProber
     methods:
       - probe_db
     opts:
