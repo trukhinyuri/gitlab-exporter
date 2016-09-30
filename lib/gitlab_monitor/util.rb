@@ -56,6 +56,17 @@ module GitLab
         File.read("/proc/uptime").split(" ")[0].to_f
       end
       module_function :system_uptime
+
+      def wrap_in_array(object)
+        if object.nil?
+          []
+        elsif object.respond_to?(:to_ary)
+          object.to_ary || [object]
+        else
+          [object]
+        end
+      end
+      module_function :wrap_in_array
     end
   end
 end
