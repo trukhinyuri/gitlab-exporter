@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-monitor (0.0.1)
+    gitlab-monitor (0.0.2)
       pg (~> 0.18.4)
       sinatra (~> 1.4.7)
 
@@ -54,4 +54,4 @@ DEPENDENCIES
   rubocop (~> 0.42)
 
 BUNDLED WITH
-   1.12.5
+   1.13.2
