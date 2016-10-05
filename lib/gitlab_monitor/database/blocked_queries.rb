@@ -25,7 +25,7 @@ module GitLab
 
       # Probes the DB specified by opts[:connection_string] for blocked queries, then converts them to metrics
       class BlockedQueriesProber
-        def initialize(opts, metrics = PrometheusMetrics.new)
+        def initialize(opts, metrics: PrometheusMetrics.new)
           @metrics   = metrics
           @collector = BlockedQueriesCollector.new(connection_string: opts[:connection_string])
         end
