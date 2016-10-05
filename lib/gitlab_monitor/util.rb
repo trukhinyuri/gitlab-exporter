@@ -48,7 +48,7 @@ module GitLab
       module_function :deep_transform_keys_in_object
 
       def pgrep(pattern)
-        `pgrep -f #{pattern}`.split("\n")
+        `pgrep -f "#{pattern}"`.split("\n")
       end
       module_function :pgrep
 
