@@ -20,7 +20,7 @@ module GitLab
 
       # Probes the DB specified by opts[:connection_string] for slow queries, then converts them to metrics
       class SlowQueriesProber
-        def initialize(opts, metrics = PrometheusMetrics.new)
+        def initialize(opts, metrics: PrometheusMetrics.new)
           @metrics   = metrics
           @collector = SlowQueriesCollector.new(connection_string: opts[:connection_string])
         end
