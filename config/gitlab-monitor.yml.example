@@ -1,3 +1,7 @@
+server:
+  listen_address: 0.0.0.0
+  listen_port: 4567
+
 probes:
   dead_tuples_count:
     class_name: Database::DeadTuplesProber

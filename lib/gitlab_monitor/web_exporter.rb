@@ -5,8 +5,20 @@ module GitLab
     # Metrics web exporter
     class WebExporter < Sinatra::Base
       class << self
-        def setup(config) # rubocop:disable Metrics/AbcSize
-          config[:probes].each do |probe_name, params|
+        def setup(config)
+          setup_server(config[:server])
+          setup_probes(config[:probes])
+        end
+
+        def setup_server(config)
+          config ||= {}
+
+          set(:bind, config.fetch(:listen_address, "0.0.0.0"))
+          set(:port, config.fetch(:listen_port, 4567))
+        end
+
+        def setup_probes(config) # rubocop:disable Metrics/AbcSize
+          (config || {}).each do |probe_name, params|
             prober_class_name = params.delete(:class_name) || Utils.camel_case_string("#{probe_name}_prober")
             prober_class = resolve_prober_class(prober_class_name)
 
