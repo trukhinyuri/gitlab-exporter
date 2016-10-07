@@ -65,7 +65,7 @@ module GitLab
 
     # Probes a process for info then writes metrics to a target
     class ProcessProber
-      MEMORY_FIELDS = %w(RssFile RssAnon VmRss VmData).freeze
+      MEMORY_FIELDS = %w(RssFile RssAnon VmRSS VmData).freeze
 
       def initialize(options, metrics: PrometheusMetrics.new)
         @metrics = metrics
