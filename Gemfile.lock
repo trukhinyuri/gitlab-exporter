@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-monitor (0.0.3)
+    gitlab-monitor (0.0.4)
       pg (~> 0.18.4)
       sinatra (~> 1.4.7)
 
