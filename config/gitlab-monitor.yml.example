@@ -3,12 +3,14 @@ server:
   listen_port: 4567
 
 probes:
-  dead_tuples_count:
-    class_name: Database::DeadTuplesProber
-    methods:
-      - probe_db
-    opts:
-      connection_string: dbname=gitlabhq_development user=postgres
+  database:
+    multiple: true
+    dead_tuples_count:
+      class_name: Database::DeadTuplesProber
+      methods:
+        - probe_db
+      opts:
+        connection_string: dbname=gitlabhq_development user=postgres
   git:
     methods:
       - probe_pull

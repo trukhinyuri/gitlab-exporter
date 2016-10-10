@@ -11,5 +11,6 @@ module GitLab
     autoload :Database,          "gitlab_monitor/database"
     autoload :ProcessProber,     "gitlab_monitor/process"
     autoload :WebExporter,       "gitlab_monitor/web_exporter"
+    autoload :Prober,            "gitlab_monitor/prober"
   end
 end
