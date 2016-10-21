@@ -6,6 +6,7 @@ module GitLab
       autoload :BlockedQueriesProber, "gitlab_monitor/database/blocked_queries"
       autoload :SlowQueriesProber,    "gitlab_monitor/database/slow_queries"
       autoload :DeadTuplesProber,     "gitlab_monitor/database/dead_tuples"
+      autoload :VacuumQueriesProber,  "gitlab_monitor/database/vacuum_queries"
     end
   end
 end
