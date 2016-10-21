@@ -13,9 +13,10 @@ frequency.
 ### Supported Probes
 
 1. Database
-    *  Dead tuples
+    * Dead tuples
     * Slow queries
     * Blocked queries
+    * Vacuum queries
 1. Git
     * git pull/push timings
 1. Process
