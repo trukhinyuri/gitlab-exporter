@@ -25,7 +25,7 @@ module GitLab
         self
       end
 
-      def to_s # rubocop:disable Metrics/AbcSize
+      def to_s
         add_quantiles_to_metrics
 
         buffer = ""
@@ -44,7 +44,7 @@ module GitLab
 
       private
 
-      def add_quantiles_to_metrics # rubocop:disable Metrics/AbcSize
+      def add_quantiles_to_metrics
         @quantiles.each do |data, measurements|
           estimator = Quantile::Estimator.new
 
