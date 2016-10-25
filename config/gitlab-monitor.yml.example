@@ -28,3 +28,4 @@ probes:
         name: unicorn
       - pid_or_pattern: "git-upload-pack --stateless-rpc"
         name: git_upload_pack
+        quantiles: true

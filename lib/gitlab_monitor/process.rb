@@ -75,6 +75,7 @@ module GitLab
                    else
                      Utils.pgrep(options[:pid_or_pattern])
                    end
+        @use_quantiles = options.fetch(:quantiles, false)
       end
 
       def probe_memory
@@ -85,7 +86,7 @@ module GitLab
             value = memory[field]
             next unless value
 
-            @metrics.add("process_memory_bytes", value, name: @name.downcase, pid: pid, field: field)
+            @metrics.add("process_memory_bytes", value, @use_quantiles, name: @name.downcase, field: field)
           end
         end
 
@@ -97,7 +98,7 @@ module GitLab
           stats = ProcessStats.new(pid)
           next unless stats.valid?
 
-          @metrics.add("process_age_seconds", stats.age, name: @name.downcase, pid: pid)
+          @metrics.add("process_age_seconds", stats.age, @use_quantiles, name: @name.downcase)
         end
 
         self

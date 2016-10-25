@@ -308,6 +308,9 @@ module GitLab
             opts.on("--name=NAME", "Process name to be used in metrics") do |val|
               @name = val
             end
+            opts.on("--quantiles", "Return quantiles instead of exact metrics") do
+              @quantiles = true
+            end
           end
         end
 
@@ -316,7 +319,7 @@ module GitLab
         end
 
         def run
-          ::GitLab::Monitor::ProcessProber.new(pid_or_pattern: @pid || @pattern, name: @name)
+          ::GitLab::Monitor::ProcessProber.new(pid_or_pattern: @pid || @pattern, name: @name, quantiles: @quantiles)
                                           .probe_memory
                                           .probe_age
                                           .write_to(@target)
