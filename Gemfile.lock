@@ -1,8 +1,9 @@
 PATH
   remote: .
   specs:
-    gitlab-monitor (0.0.6)
+    gitlab-monitor (0.0.8)
       pg (~> 0.18.4)
+      quantile (~> 0.2.0)
       sinatra (~> 1.4.7)
 
 GEM
@@ -14,6 +15,7 @@ GEM
       ast (~> 2.2)
     pg (0.18.4)
     powerpack (0.1.1)
+    quantile (0.2.0)
     rack (1.6.4)
     rack-protection (1.5.3)
       rack

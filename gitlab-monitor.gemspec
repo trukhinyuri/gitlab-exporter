@@ -22,6 +22,7 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency "pg", "~> 0.18.4"
   s.add_runtime_dependency "sinatra", "~> 1.4.7"
+  s.add_runtime_dependency "quantile", "~> 0.2.0"
 
   s.add_development_dependency "rspec", "~> 3.3"
 end

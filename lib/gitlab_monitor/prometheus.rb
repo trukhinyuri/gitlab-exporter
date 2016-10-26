@@ -1,3 +1,5 @@
+require "quantile"
+
 module GitLab
   module Monitor
     # Prometheus metrics container
@@ -9,15 +11,23 @@ module GitLab
     class PrometheusMetrics
       def initialize(include_timestamp: true)
         @metrics = Hash.new { |h, k| h[k] = [] }
+        @quantiles = Hash.new { |h, k| h[k] = [] }
         @include_timestamp = include_timestamp
       end
 
-      def add(name, value, **labels)
-        @metrics[name] << { value: value, labels: labels, timestamp: (Time.now.to_f * 1000).to_i }
+      def add(name, value, quantile = false, **labels)
+        if quantile
+          @quantiles[{ name: name, labels: labels }] << value
+        else
+          @metrics[name] << { value: value, labels: labels, timestamp: (Time.now.to_f * 1000).to_i }
+        end
+
         self
       end
 
-      def to_s
+      def to_s # rubocop:disable Metrics/AbcSize
+        add_quantiles_to_metrics
+
         buffer = ""
         @metrics.each do |name, measurements|
           measurements.each do |measurement|
@@ -30,6 +40,24 @@ module GitLab
           end
         end
         buffer
+      end
+
+      private
+
+      def add_quantiles_to_metrics # rubocop:disable Metrics/AbcSize
+        @quantiles.each do |data, measurements|
+          estimator = Quantile::Estimator.new
+
+          measurements.each do |value|
+            estimator.observe(value)
+          end
+
+          estimator.invariants.each do |invariant|
+            data[:labels][:quantile] = "#{(invariant.quantile * 100).to_i}th"
+
+            add(data[:name], estimator.query(invariant.quantile), **data[:labels])
+          end
+        end
       end
     end
   end
