@@ -326,6 +326,50 @@ module GitLab
         end
       end
 
+      # Sidekiq runner.
+      #
+      # It will take a Redis connection URL and print results to STDOUT
+      class SidekiqRunner
+        COMMAND_NAME = "sidekiq".freeze
+
+        def initialize(args)
+          @options = options(args)
+          @options.parse!
+
+          @target = args.shift || STDOUT
+          @target = File.open(@target, "a") if @target.is_a?(String)
+        end
+
+        def options(args)
+          args.options do |opts|
+            opts.banner = "Usage: #{EXECUTABLE_NAME} #{COMMAND_NAME} [options]"
+            opts.on("--redis-url=\"redis://localhost:6379\"", "Redis URL") do |val|
+              @redis_url = val
+            end
+          end
+        end
+
+        def help
+          @options.help
+        end
+
+        def run
+          validate!
+
+          ::GitLab::Monitor::SidekiqProber.new(redis_url: @redis_url)
+                                          .probe_queues
+                                          .probe_workers
+                                          .probe_retries
+                                          .write_to(@target)
+        end
+
+        private
+
+        def validate!
+          fail InvalidCLICommand.new(help) unless @redis_url
+        end
+      end
+
       def self.commands
         [
           GIT,
@@ -334,6 +378,7 @@ module GitLab
           DatabaseSlowQueries,
           DatabaseVacuumQueries,
           Process,
+          SidekiqRunner,
           Server
         ].each_with_object({}) do |command_class, commands|
           commands[command_class::COMMAND_NAME] = command_class

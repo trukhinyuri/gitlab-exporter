@@ -22,5 +22,6 @@ frequency.
 1. Process
     * Age
     * Memory usage
+1. Sidekiq
 
 [Prometheus Web exporter]: https://prometheus.io/docs/instrumenting/exporters/
