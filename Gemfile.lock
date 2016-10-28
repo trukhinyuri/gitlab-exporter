@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-monitor (0.0.8)
+    gitlab-monitor (0.0.9)
       pg (~> 0.18.4)
       quantile (~> 0.2.0)
       redis-namespace (~> 1.5.2)
