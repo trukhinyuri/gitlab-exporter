@@ -21,6 +21,7 @@ probes:
     methods:
       - probe_memory
       - probe_age
+      - probe_count
     opts:
       - pid_or_pattern: "sidekiq .* \\[.*?\\]"
         name: sidekiq

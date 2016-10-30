@@ -104,6 +104,12 @@ module GitLab
         self
       end
 
+      def probe_count
+        @metrics.add("process_count", @pids.count, name: @name.downcase)
+
+        self
+      end
+
       def write_to(target)
         target.write(@metrics.to_s)
       end
