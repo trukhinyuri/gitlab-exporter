@@ -17,6 +17,7 @@ frequency.
     * Slow queries
     * Blocked queries
     * Vacuum queries
+    * Row count queries
 1. Git
     * git pull/push timings
 1. Process
@@ -24,4 +25,18 @@ frequency.
     * Memory usage
 1. Sidekiq
 
+### Setup with GitLab Development Kit
+
+gitlab-monitor can be setup with the [GitLab Development Kit] for development.
+When using the CLI, you'll need to set the --db-conn flag to connect to the PG
+instance in your GDK folder. Like:
+
+`bin/gitlab-mon row-counts --db-conn="dbname=gitlabhq_development host=/Users/<user>/gitlab-development-kit/postgresql"`
+
+When serving the pages on localhost, you'll need to edit the config yaml. An
+example can be found under `config/gitlab-monitor.yml.example`. For each probe
+which has to connect to the database, set the connection_string to:
+`dbname=gitlabhq_development host=/Users/<user>/gitlab-development-kit/postgresq`
+
 [Prometheus Web exporter]: https://prometheus.io/docs/instrumenting/exporters/
+[GitLab Development Kit]: https://gitlab.com/gitlab-org/gitlab-development-kit
