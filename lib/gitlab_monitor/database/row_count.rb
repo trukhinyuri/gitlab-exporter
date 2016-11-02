@@ -6,9 +6,9 @@ module GitLab
       # This class works under the assumption you do COUNT(*) queries
       class RowCountCollector < Base
         QUERIES = [
-          :orphaned_projects,
           :soft_deleted_projects,
-          :orphaned_soft_deleted_projects
+          :soft_deleted_namespaces,
+          :orphaned_projects
         ].freeze
 
         def run
@@ -27,13 +27,6 @@ module GitLab
           connection.exec(send(query))[0]["count"]
         end
 
-        def orphaned_projects
-          <<-SQL
-            SELECT COUNT(*) FROM projects
-            WHERE namespace_id IS NULL;
-          SQL
-        end
-
         def soft_deleted_projects
           <<-SQL
             SELECT COUNT(*) FROM projects
@@ -41,10 +34,18 @@ module GitLab
           SQL
         end
 
-        def orphaned_soft_deleted_projects
+        def soft_deleted_namespaces
+          <<-SQL
+            SELECT COUNT(*) FROM namespaces
+            WHERE deleted_at IS NOT NULL;
+          SQL
+        end
+
+        def orphaned_projects
           <<-SQL
             SELECT COUNT(*) FROM projects
-            WHERE pending_delete=true AND namespace_id IS NULL;
+            LEFT JOIN namespaces ON projects.namespace_id = namespaces.id
+            WHERE namespaces.id IS NULL;
           SQL
         end
       end
