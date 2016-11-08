@@ -3,16 +3,43 @@ module GitLab
     module Database
       # A helper class that executes the query its given and returns an int of
       # the row count
-      # This class works under the assumption you do COUNT(*) queries
+      # This class works under the assumption you do COUNT(*) queries, define
+      # queries in the QUERIES constant. If in doubt how these work, read
+      # #construct_query
       class RowCountCollector < Base
         QUERIES = {
+          award_emoji: { select: :award_emoji },
+          boards: { select: :boards },
+          ci_builds: { select: :ci_builds },
+          ci_commits: { select: :ci_commits },
+          active_ci_runners: { select: :ci_runners, where: "active=true" },
+          inactive_ci_runners: { select: :ci_runners, where: "active=false" },
+          ci_variables: { select: :ci_variables },
+          deployments: { select: :deployments },
+          environments: { select: :environments },
+          events: { select: :events },
+          fork_count: { select: :forked_project_links },
+          issues: { select: :issues, where: "deleted_at IS NULL" },
+          keys: { select: :keys },
+          labels: { select: :labels },
+          merge_requests: { select: :merge_requests, where: "deleted_at IS NULL" },
+          milestones: { select: :milestones },
+          groups: { select: :namespaces, where: "type='Group'" },
+          project_count: { select: :projects, where: "pending_delete=false" },
           soft_deleted_projects: { select: :projects, where: "pending_delete=true" },
           orphaned_projects: {
             select: :projects,
             joins: "LEFT JOIN namespaces ON projects.namespace_id = namespaces.id",
             where: "namespaces.id IS NULL"
           },
-          soft_deleted_namespaces: { select: :namespaces, where: "deleted_at IS NOT NULL" }
+          soft_deleted_namespaces: { select: :namespaces, where: "deleted_at IS NOT NULL" },
+          active_project_services: { select: :services, where: "active=true" },
+          personal_snippets: { select: :snippets, where: "type='PersonalSnippet'" },
+          project_snippets: { select: :snippets, where: "type='ProjectSnippet'" },
+          user_notes: { select: :notes, where: "system=false" },
+          system_note: { select: :notes, where: "system=true" },
+          starred_projects: { select: :users_star_projects },
+          user_count: { select: :users }
         }.freeze
 
         def run
@@ -29,6 +56,8 @@ module GitLab
 
         def execute(query)
           connection.exec(construct_query(query))[0]["count"]
+        rescue PG::UndefinedTable, PG::UndefinedColumn
+          0
         end
 
         # Not private so I can test it without meta programming tricks
