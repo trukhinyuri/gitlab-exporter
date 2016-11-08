@@ -5,17 +5,21 @@ module GitLab
       # the row count
       # This class works under the assumption you do COUNT(*) queries
       class RowCountCollector < Base
-        QUERIES = [
-          :soft_deleted_projects,
-          :soft_deleted_namespaces,
-          :orphaned_projects
-        ].freeze
+        QUERIES = {
+          soft_deleted_projects: { select: :projects, where: "pending_delete=true" },
+          orphaned_projects: {
+            select: :projects,
+            joins: "LEFT JOIN namespaces ON projects.namespace_id = namespaces.id",
+            where: "namespaces.id IS NULL"
+          },
+          soft_deleted_namespaces: { select: :namespaces, where: "deleted_at IS NOT NULL" }
+        }.freeze
 
         def run
           results = Hash.new(0)
 
-          QUERIES.each do |query|
-            results[query] = execute(query)
+          QUERIES.each do |key, query|
+            results[key] = execute(query)
           end
 
           results
@@ -24,29 +28,15 @@ module GitLab
         private
 
         def execute(query)
-          connection.exec(send(query))[0]["count"]
+          connection.exec(construct_query(query))[0]["count"]
         end
 
-        def soft_deleted_projects
-          <<-SQL
-            SELECT COUNT(*) FROM projects
-            WHERE pending_delete=true;
-          SQL
-        end
-
-        def soft_deleted_namespaces
-          <<-SQL
-            SELECT COUNT(*) FROM namespaces
-            WHERE deleted_at IS NOT NULL;
-          SQL
-        end
-
-        def orphaned_projects
-          <<-SQL
-            SELECT COUNT(*) FROM projects
-            LEFT JOIN namespaces ON projects.namespace_id = namespaces.id
-            WHERE namespaces.id IS NULL;
-          SQL
+        # Not private so I can test it without meta programming tricks
+        def construct_query(query)
+          query_string = "SELECT COUNT(*) FROM #{query[:select]} "
+          query_string << "#{query[:joins]} "       if query[:joins]
+          query_string << "WHERE #{query[:where]}"  if query[:where]
+          query_string << ";"
         end
       end
 
