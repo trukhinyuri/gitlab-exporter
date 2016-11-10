@@ -122,7 +122,8 @@ module GitLab
         cmd_splitted = cmd.split("\u0000") # cmdline does not return it space-separated
 
         cmd_splitted.shift # Because it's "git"
-        cmd_splitted.shift while cmd_splitted.first && (cmd_splitted.first.empty? || cmd_splitted.first !~ /^[^-][a-z\-]*$/)
+        cmd_splitted.shift while cmd_splitted.first &&
+                                 (cmd_splitted.first.empty? || cmd_splitted.first !~ /^[^-][a-z\-]*$/)
 
         cmd_splitted[0]
       end
