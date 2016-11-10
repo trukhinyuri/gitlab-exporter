@@ -93,7 +93,7 @@ module GitLab
       def probe_git # rubocop:disable Metrics/MethodLength
         Utils.pgrep("^git ").each do |pid|
           process_cmd = File.read("/proc/#{pid}/cmdline")
-          subcommand  = extract_subcommand(process_cmd)
+          subcommand  = self.class.extract_subcommand(process_cmd)
           next unless subcommand # Unlikely, but just to be safe
 
           prober = ProcessProber.new(
@@ -118,13 +118,11 @@ module GitLab
         target.write(@metrics.to_s)
       end
 
-      private
-
-      def extract_subcommand(cmd)
+      def self.extract_subcommand(cmd)
         cmd_splitted = cmd.split("\u0000") # cmdline does not return it space-separated
 
         cmd_splitted.shift # Because it's "git"
-        cmd_splitted.shift while cmd_splitted.first && cmd_splitted.first.start_with?("-")
+        cmd_splitted.shift while cmd_splitted.first && (cmd_splitted.first.empty? || cmd_splitted.first !~ /^[^-][a-z\-]*$/)
 
         cmd_splitted[0]
       end
