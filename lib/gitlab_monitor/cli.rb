@@ -413,6 +413,40 @@ module GitLab
         end
       end
 
+      # Process runner
+      #
+      # Takes a pid and name for metrics
+      class GitProcess
+        COMMAND_NAME = "git-process".freeze
+
+        def initialize(args)
+          @options = options(args)
+          @options.parse!
+
+          @target = args.shift || STDOUT
+          @target = File.open(@target, "a") if @target.is_a?(String)
+        end
+
+        def options(args)
+          args.options do |opts|
+            opts.banner = "Usage: #{EXECUTABLE_NAME} #{COMMAND_NAME} [options]"
+            opts.on("--quantiles", "Return quantiles instead of exact metrics") do
+              @quantiles = true
+            end
+          end
+        end
+
+        def help
+          @options.help
+        end
+
+        def run
+          ::GitLab::Monitor::GitProcessProber.new(quantiles: @quantiles)
+                                             .probe_git
+                                             .write_to(@target)
+        end
+      end
+
       def self.commands
         [
           GIT,
@@ -422,6 +456,7 @@ module GitLab
           DatabaseVacuumQueries,
           DatabaseRowCounts,
           Process,
+          GitProcess,
           SidekiqRunner,
           Server
         ].each_with_object({}) do |command_class, commands|
