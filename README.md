@@ -20,8 +20,10 @@ frequency.
     * Row count queries
 1. Git
     * git pull/push timings
+    * git processes stats (see Process below)
 1. Process
     * Age
+    * Count
     * Memory usage
 1. Sidekiq
 
