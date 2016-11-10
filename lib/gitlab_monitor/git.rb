@@ -82,5 +82,52 @@ module GitLab
         target.write(@metrics.to_s)
       end
     end
+
+    # A special prober for git processes
+    class GitProcessProber
+      def initialize(opts, metrics: PrometheusMetrics.new)
+        @opts    = opts
+        @metrics = metrics
+      end
+
+      def probe_git # rubocop:disable Metrics/MethodLength
+        Utils.pgrep("^git ").each do |pid|
+          process_cmd = File.read("/proc/#{pid}/cmdline")
+          subcommand  = extract_subcommand(process_cmd)
+          next unless subcommand # Unlikely, but just to be safe
+
+          prober = ProcessProber.new(
+            {
+              name: "git #{subcommand}",
+              pid_or_pattern: pid,
+              quantiles: @opts[:quantiles]
+            },
+            metrics: @metrics
+          )
+
+          prober
+            .probe_memory
+            .probe_age
+            .probe_count
+        end
+
+        self
+      end
+
+      def write_to(target)
+        target.write(@metrics.to_s)
+      end
+
+      private
+
+      def extract_subcommand(cmd)
+        cmd_splitted = cmd.split("\u0000") # cmdline does not return it space-separated
+
+        cmd_splitted.shift # Because it's "git"
+        cmd_splitted.shift while cmd_splitted.first && cmd_splitted.first.start_with?("-")
+
+        cmd_splitted[0]
+      end
+    end
   end
 end
