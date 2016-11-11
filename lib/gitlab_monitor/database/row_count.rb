@@ -9,7 +9,7 @@ module GitLab
       class RowCountCollector < Base
         QUERIES = {
           groups: { select: :namespaces, where: "type='Group'" },
-          project_count: { select: :projects, where: "pending_delete=false" },
+          projects: { select: :projects, where: "pending_delete=false" },
           soft_deleted_projects: { select: :projects, where: "pending_delete=true" },
           orphaned_projects: {
             select: :projects,
