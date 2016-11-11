@@ -3,19 +3,30 @@ module GitLab
     module Database
       # A helper class that executes the query its given and returns an int of
       # the row count
-      # This class works under the assumption you do COUNT(*) queries
+      # This class works under the assumption you do COUNT(*) queries, define
+      # queries in the QUERIES constant. If in doubt how these work, read
+      # #construct_query
       class RowCountCollector < Base
-        QUERIES = [
-          :soft_deleted_projects,
-          :soft_deleted_namespaces,
-          :orphaned_projects
-        ].freeze
+        QUERIES = {
+          groups: { select: :namespaces, where: "type='Group'" },
+          project_count: { select: :projects, where: "pending_delete=false" },
+          soft_deleted_projects: { select: :projects, where: "pending_delete=true" },
+          orphaned_projects: {
+            select: :projects,
+            joins: "LEFT JOIN namespaces ON projects.namespace_id = namespaces.id",
+            where: "namespaces.id IS NULL"
+          },
+          soft_deleted_namespaces: { select: :namespaces, where: "deleted_at IS NOT NULL" },
+          personal_snippets: { select: :snippets, where: "type='PersonalSnippet'" },
+          project_snippets: { select: :snippets, where: "type='ProjectSnippet'" },
+          users: { select: :users }
+        }.freeze
 
         def run
           results = Hash.new(0)
 
-          QUERIES.each do |query|
-            results[query] = execute(query)
+          QUERIES.each do |key, query|
+            results[key] = execute(query)
           end
 
           results
@@ -24,29 +35,17 @@ module GitLab
         private
 
         def execute(query)
-          connection.exec(send(query))[0]["count"]
+          connection.exec(construct_query(query))[0]["count"]
+        rescue PG::UndefinedTable, PG::UndefinedColumn
+          0
         end
 
-        def soft_deleted_projects
-          <<-SQL
-            SELECT COUNT(*) FROM projects
-            WHERE pending_delete=true;
-          SQL
-        end
-
-        def soft_deleted_namespaces
-          <<-SQL
-            SELECT COUNT(*) FROM namespaces
-            WHERE deleted_at IS NOT NULL;
-          SQL
-        end
-
-        def orphaned_projects
-          <<-SQL
-            SELECT COUNT(*) FROM projects
-            LEFT JOIN namespaces ON projects.namespace_id = namespaces.id
-            WHERE namespaces.id IS NULL;
-          SQL
+        # Not private so I can test it without meta programming tricks
+        def construct_query(query)
+          query_string = "SELECT COUNT(*) FROM #{query[:select]} "
+          query_string << "#{query[:joins]} "       if query[:joins]
+          query_string << "WHERE #{query[:where]}"  if query[:where]
+          query_string << ";"
         end
       end
 
