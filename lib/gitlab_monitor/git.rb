@@ -91,14 +91,19 @@ module GitLab
       end
 
       def probe_git # rubocop:disable Metrics/MethodLength
+        counts = Hash.new(0)
+
         Utils.pgrep("^git ").each do |pid|
           process_cmd = File.read("/proc/#{pid}/cmdline")
           subcommand  = self.class.extract_subcommand(process_cmd)
           next unless subcommand # Unlikely, but just to be safe
 
+          name = "git #{subcommand}"
+          counts[name] += 1
+
           prober = ProcessProber.new(
             {
-              name: "git #{subcommand}",
+              name: name,
               pid_or_pattern: pid,
               quantiles: @opts[:quantiles]
             },
@@ -108,7 +113,10 @@ module GitLab
           prober
             .probe_memory
             .probe_age
-            .probe_count
+        end
+
+        counts.each do |name, count|
+          @metrics.add("process_count", count, name: name)
         end
 
         self
