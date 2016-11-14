@@ -86,7 +86,10 @@ module GitLab
             value = memory[field]
             next unless value
 
-            @metrics.add("process_memory_bytes", value, @use_quantiles, name: @name.downcase, field: field)
+            labels = { name: @name.downcase, field: field }
+            labels[:pid] = pid unless @use_quantiles
+
+            @metrics.add("process_memory_bytes", value, @use_quantiles, **labels)
           end
         end
 
@@ -98,7 +101,10 @@ module GitLab
           stats = ProcessStats.new(pid)
           next unless stats.valid?
 
-          @metrics.add("process_age_seconds", stats.age, @use_quantiles, name: @name.downcase)
+          labels = { name: @name.downcase }
+          labels[:pid] = pid unless @use_quantiles
+
+          @metrics.add("process_age_seconds", stats.age, @use_quantiles, **labels)
         end
 
         self
