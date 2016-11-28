@@ -16,7 +16,6 @@ module GitLab
             joins: "LEFT JOIN namespaces ON projects.namespace_id = namespaces.id",
             where: "namespaces.id IS NULL"
           },
-          soft_deleted_namespaces: { select: :namespaces, where: "deleted_at IS NOT NULL" },
           personal_snippets: { select: :snippets, where: "type='PersonalSnippet'" },
           project_snippets: { select: :snippets, where: "type='ProjectSnippet'" },
           users: { select: :users }
