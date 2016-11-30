@@ -1,4 +1,5 @@
 require "sidekiq/api"
+require "digest"
 
 module GitLab
   module Monitor
@@ -6,25 +7,33 @@ module GitLab
     #
     # It takes the Redis URL Sidekiq is connected to
     class SidekiqProber
+      QUEUE_JOB_STATS_SCRIPT = File.read(File.expand_path("#{__FILE__}/../sidekiq_queue_job_stats.lua")).freeze
+      QUEUE_JOB_STATS_SHA    = Digest::SHA1.hexdigest(QUEUE_JOB_STATS_SCRIPT).freeze
+
       def initialize(opts, metrics: PrometheusMetrics.new)
         @opts    = opts
         @metrics = metrics
 
-        Sidekiq.configure_client { |config|
+        Sidekiq.configure_client do |config|
           config.redis = { url: opts[:redis_url], namespace: "resque:gitlab" }
-        }
+        end
+
+        ensure_queue_job_stats_script_loaded
       end
 
       def probe_queues
         return self unless connected?
 
-        job_stats = Hash.new(0)
+        job_stats = {}
 
         Sidekiq::Queue.all.each do |queue|
           @metrics.add("sidekiq_queue_size", queue.size, name: queue.name)
           @metrics.add("sidekiq_queue_latency", queue.latency, name: queue.name)
 
-          queue.each { |job| job_stats[job.klass] += 1 }
+          Sidekiq.redis do |conn|
+            stats = conn.evalsha(QUEUE_JOB_STATS_SHA, ["queue:#{queue.name}"])
+            job_stats.merge!(stats.to_h)
+          end
         end
 
         job_stats.each do |class_name, count|
@@ -83,6 +92,15 @@ module GitLab
                        end
       rescue Redis::CannotConnectError # rubocop:disable Lint/HandleExceptions
         # Maybe we're trying connecting to a slave
+      end
+
+      def ensure_queue_job_stats_script_loaded
+        return unless connected?
+
+        Sidekiq.redis do |conn|
+          next if conn.script(:exists, QUEUE_JOB_STATS_SHA)
+          conn.script(:load, QUEUE_JOB_STATS_SCRIPT)
+        end
       end
     end
   end
