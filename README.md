@@ -18,6 +18,7 @@ frequency.
     * Blocked queries
     * Vacuum queries
     * Row count queries
+    * CI builds
 1. Git
     * git pull/push timings
     * git processes stats (see Process below)
