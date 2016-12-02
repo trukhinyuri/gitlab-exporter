@@ -21,7 +21,7 @@ module GitLab
         ensure_queue_job_stats_script_loaded
       end
 
-      def probe_queues
+      def probe_queues # rubocop:disable Metrics/MethodLength
         return self unless connected?
 
         job_stats = {}
@@ -30,9 +30,14 @@ module GitLab
           @metrics.add("sidekiq_queue_size", queue.size, name: queue.name)
           @metrics.add("sidekiq_queue_latency", queue.latency, name: queue.name)
 
-          Sidekiq.redis do |conn|
-            stats = conn.evalsha(QUEUE_JOB_STATS_SHA, ["queue:#{queue.name}"])
-            job_stats.merge!(stats.to_h)
+          begin
+            Sidekiq.redis do |conn|
+              stats = conn.evalsha(QUEUE_JOB_STATS_SHA, ["queue:#{queue.name}"])
+              job_stats.merge!(stats.to_h)
+            end
+          rescue Redis::CommandError # Could happen if the script exceeded the maximum run time (5 seconds by default)
+            # FIXME: Should we call SCRIPT KILL?
+            next
           end
         end
 
