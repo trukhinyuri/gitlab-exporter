@@ -6,6 +6,15 @@ module GitLab
         RUNNING_BUILDS_QUERY =
           "SELECT COUNT(*) AS count FROM ci_builds AS b WHERE b.type = 'Ci::Build' AND b.status = 'running'".freeze
 
+        NOT_UPDATED_RUNNING_BUILDS_QUERY =
+          "SELECT COUNT(*) AS count FROM ci_builds AS b WHERE b.type = 'Ci::Build' AND b.status = 'running' " \
+          "AND b.updated_at < NOW() - INTERVAL '1 hour'".freeze
+
+        PENDING_BUILDS_QUERY =
+          "SELECT p.shared_runners_enabled, COUNT(*) AS count FROM ci_builds AS b JOIN projects AS p " \
+          "ON p.id = b.gl_project_id WHERE b.type = 'Ci::Build' AND b.status = 'pending' " \
+          "GROUP BY p.shared_runners_enabled".freeze
+
         RUNNING_PER_SHARED_RUNNER_QUERY =
           "SELECT b.runner_id, COUNT(*) AS count " \
           "FROM ci_builds AS b " \
@@ -23,6 +32,8 @@ module GitLab
         def run
           results = {}
           results[:all] = get_general(RUNNING_BUILDS_QUERY)
+          results[:pending] = get_shared_enabled_grouped(PENDING_BUILDS_QUERY)
+          results[:not_updated_last_hour] = get_general(NOT_UPDATED_RUNNING_BUILDS_QUERY)
           results[:per_runner] = get_per_shared_runner(RUNNING_PER_SHARED_RUNNER_QUERY)
           results[:per_runner_mirrors] = get_per_shared_runner(RUNNING_FOR_MIRRORS_PER_SHARED_RUNNER_QUERY)
           results
@@ -55,6 +66,18 @@ module GitLab
           0
         end
 
+        def get_shared_enabled_grouped(query)
+          results = { shared_enabled: 0, shared_disabled: 0 }
+          connection.exec(query).each do |row|
+            row["shared_runners_enabled"] = row["shared_runners_enabled"] == "t"
+            results[:shared_enabled] = row["count"].to_i if row["shared_runners_enabled"]
+            results[:shared_disabled] = row["count"].to_i unless row["shared_runners_enabled"]
+          end
+          results
+        rescue PG::UndefinedTable, PG::UndefinedColumn
+          { shared_enabled: 0, shared_disabled: 0 }
+        end
+
         def shared_runners_ids
           @shared_runners_ids ||= find_shared_runners_ids
         end
@@ -76,23 +99,38 @@ module GitLab
         def probe_db
           return self unless @collector.connected?
 
-          results = @collector.run
+          @results = @collector.run
 
-          @metrics.add("ci_builds_total", results[:all].to_i, status: "running")
-
-          results[:per_runner].each do |key, value|
-            all = value
-            for_mirrors = results[:per_runner_mirrors][key]
-            not_for_mirrors = all - for_mirrors
-            @metrics.add("ci_builds_per_runner", not_for_mirrors, status: "running", runner: key, mirrors: 0)
-            @metrics.add("ci_builds_per_runner", for_mirrors, status: "running", runner: key, mirrors: 1)
-          end
+          metrics_total
+          metrics_per_runner
 
           self
         end
 
         def write_to(target)
           target.write(@metrics.to_s)
+        end
+
+        private
+
+        def metrics_total
+          @metrics.add("ci_builds_total", @results[:all], status: "running")
+          @metrics.add("ci_builds_total", @results[:pending][:shared_enabled], status: "pending",
+                                                                               shared_runners_enabled_projects: 1)
+          @metrics.add("ci_builds_total", @results[:pending][:shared_disabled], status: "pending",
+                                                                                shared_runners_enabled_projects: 0)
+
+          @metrics.add("ci_builds_stale", @results[:not_updated_last_hour], status: "running", when: "last_hour")
+        end
+
+        def metrics_per_runner
+          @results[:per_runner].each do |key, value|
+            all = value
+            for_mirrors = @results[:per_runner_mirrors][key]
+            not_for_mirrors = all - for_mirrors
+            @metrics.add("ci_builds_per_runner", not_for_mirrors, status: "running", runner: key, mirrors: 0)
+            @metrics.add("ci_builds_per_runner", for_mirrors, status: "running", runner: key, mirrors: 1)
+          end
         end
       end
     end
