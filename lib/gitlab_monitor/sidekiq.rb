@@ -15,7 +15,7 @@ module GitLab
         @metrics = metrics
 
         Sidekiq.configure_client do |config|
-          config.redis = { url: opts[:redis_url], namespace: "resque:gitlab" }
+          config.redis = { url: opts[:redis_url], namespace: "resque:gitlab", connect_timeout: 1 }
         end
 
         ensure_queue_job_stats_script_loaded
@@ -103,7 +103,7 @@ module GitLab
                          end
                          true
                        end
-      rescue Redis::CannotConnectError # rubocop:disable Lint/HandleExceptions
+      rescue Redis::CannotConnectError, Redis::TimeoutError # rubocop:disable Lint/HandleExceptions
         # Maybe we're trying connecting to a slave
       end
 
