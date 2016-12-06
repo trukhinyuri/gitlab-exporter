@@ -401,6 +401,7 @@ module GitLab
 
           ::GitLab::Monitor::SidekiqProber.new(redis_url: @redis_url)
                                           .probe_queues
+                                          .probe_jobs
                                           .probe_workers
                                           .probe_retries
                                           .write_to(@target)
