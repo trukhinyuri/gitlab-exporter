@@ -35,14 +35,9 @@ module GitLab
               stats = conn.evalsha(QUEUE_JOB_STATS_SHA, ["queue:#{queue.name}"])
               job_stats.merge!(stats.to_h)
             end
-          rescue Redis::CommandError => e
-            # Could happen if the script exceeded the maximum run time (5 seconds by default)
-            next unless e.message.start_with?("BUSY Redis is busy running a script")
-
-            Sidekiq.redis do |conn|
-              conn.script(:kill)
-            end
-            return self
+          rescue Redis::CommandError # Could happen if the script exceeded the maximum run time (5 seconds by default)
+            # FIXME: Should we call SCRIPT KILL?
+            next
           end
         end
 
