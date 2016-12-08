@@ -3,17 +3,14 @@ module GitLab
     module Database
       # A helper class to collect blocked queries
       class CiBuildsCollector < Base
-        RUNNING_BUILDS_QUERY =
-          "SELECT COUNT(*) AS count FROM ci_builds AS b WHERE b.type = 'Ci::Build' AND b.status = 'running'".freeze
+        TOTAL_BUILDS_QUERY =
+          "SELECT p.shared_runners_enabled, b.status, COUNT(*) AS count FROM ci_builds AS b JOIN projects AS p " \
+          "ON p.id = b.gl_project_id WHERE b.type = 'Ci::Build' AND b.status IN ('pending', 'running') " \
+          "GROUP BY p.shared_runners_enabled, b.status".freeze
 
         NOT_UPDATED_RUNNING_BUILDS_QUERY =
           "SELECT COUNT(*) AS count FROM ci_builds AS b WHERE b.type = 'Ci::Build' AND b.status = 'running' " \
           "AND b.updated_at < NOW() - INTERVAL '1 hour'".freeze
-
-        PENDING_BUILDS_QUERY =
-          "SELECT p.shared_runners_enabled, COUNT(*) AS count FROM ci_builds AS b JOIN projects AS p " \
-          "ON p.id = b.gl_project_id WHERE b.type = 'Ci::Build' AND b.status = 'pending' " \
-          "GROUP BY p.shared_runners_enabled".freeze
 
         RUNNING_PER_SHARED_RUNNER_QUERY =
           "SELECT b.runner_id, COUNT(*) AS count " \
@@ -31,8 +28,11 @@ module GitLab
 
         def run
           results = {}
-          results[:all] = get_general(RUNNING_BUILDS_QUERY)
-          results[:pending] = get_shared_enabled_grouped(PENDING_BUILDS_QUERY)
+
+          total = get_shared_enabled_and_status_grouped(TOTAL_BUILDS_QUERY)
+          results[:running] = total[:running]
+          results[:pending] = total[:pending]
+
           results[:not_updated_last_hour] = get_general(NOT_UPDATED_RUNNING_BUILDS_QUERY)
           results[:per_runner] = get_per_shared_runner(RUNNING_PER_SHARED_RUNNER_QUERY)
           results[:per_runner_mirrors] = get_per_shared_runner(RUNNING_FOR_MIRRORS_PER_SHARED_RUNNER_QUERY)
@@ -66,16 +66,21 @@ module GitLab
           0
         end
 
-        def get_shared_enabled_grouped(query)
-          results = { shared_enabled: 0, shared_disabled: 0 }
+        def get_shared_enabled_and_status_grouped(query)
+          results = { running: { shared_enabled: 0, shared_disabled: 0 },
+                      pending: { shared_enabled: 0, shared_disabled: 0 } }
+
           connection.exec(query).each do |row|
-            row["shared_runners_enabled"] = row["shared_runners_enabled"] == "t"
-            results[:shared_enabled] = row["count"].to_i if row["shared_runners_enabled"]
-            results[:shared_disabled] = row["count"].to_i unless row["shared_runners_enabled"]
+            shared_enabled = row["shared_runners_enabled"] == "t"
+            status = row["status"].to_sym
+
+            results[status][:shared_enabled] = row["count"].to_i if shared_enabled
+            results[status][:shared_disabled] = row["count"].to_i unless shared_enabled
           end
+
           results
         rescue PG::UndefinedTable, PG::UndefinedColumn
-          { shared_enabled: 0, shared_disabled: 0 }
+          { running: { shared_enabled: 0, shared_disabled: 0 }, pending: { shared_enabled: 0, shared_disabled: 0 } }
         end
 
         def shared_runners_ids
@@ -114,7 +119,10 @@ module GitLab
         private
 
         def metrics_total
-          @metrics.add("ci_builds_total", @results[:all], status: "running")
+          @metrics.add("ci_builds_total", @results[:running][:shared_enabled], status: "running",
+                                                                               shared_runners_enabled_projects: 1)
+          @metrics.add("ci_builds_total", @results[:running][:shared_disabled], status: "running",
+                                                                                shared_runners_enabled_projects: 0)
           @metrics.add("ci_builds_total", @results[:pending][:shared_enabled], status: "pending",
                                                                                shared_runners_enabled_projects: 1)
           @metrics.add("ci_builds_total", @results[:pending][:shared_disabled], status: "pending",
