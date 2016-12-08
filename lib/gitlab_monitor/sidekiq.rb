@@ -15,7 +15,12 @@ module GitLab
         @metrics = metrics
 
         Sidekiq.configure_client do |config|
-          config.redis = { url: opts[:redis_url], namespace: "resque:gitlab", connect_timeout: 1 }
+          config.redis = {
+            url: opts[:redis_url],
+            namespace: "resque:gitlab",
+            connect_timeout: 1,
+            reconnect_attempts: 0
+          }
         end
 
         ensure_queue_job_stats_script_loaded
