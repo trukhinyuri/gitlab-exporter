@@ -19,7 +19,7 @@ module GitLab
           personal_snippets: { select: :snippets, where: "type='PersonalSnippet'" },
           project_snippets: { select: :snippets, where: "type='ProjectSnippet'" },
           users: { select: :users },
-          active_runners: { select: :ci_runners, where: "active=true AND contacted_at > current_date - 1" }
+          active_runners: { select: :ci_runners, where: "active=true AND contacted_at >= NOW() - '1 day'::INTERVAL" }
         }.freeze
 
         def run
