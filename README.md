@@ -13,7 +13,7 @@ frequency.
 ### Supported Probes
 
 1. Database
-    * Dead tuples
+    * Per-table tuple stats
     * Slow queries
     * Blocked queries
     * Vacuum queries

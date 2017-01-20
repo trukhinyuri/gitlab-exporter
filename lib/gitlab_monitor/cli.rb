@@ -76,11 +76,11 @@ module GitLab
         end
       end
 
-      # Database dead tuples runner.
+      # Database tuple stats runner.
       #
       # It will take a database connection string and print results to STDOUT
-      class DatabaseDeadTuples
-        COMMAND_NAME = "db-dead-tuples".freeze
+      class DatabaseTupleStats
+        COMMAND_NAME = "db-tuple-stats".freeze
 
         def initialize(args)
           @options = options(args)
@@ -106,9 +106,9 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Monitor::Database::DeadTuplesProber.new(connection_string: @db_connection_string)
-                                                       .probe_db
-                                                       .write_to(@target)
+          ::GitLab::Monitor::Database::TuplesProber.new(connection_string: @db_connection_string)
+                                                   .probe_db
+                                                   .write_to(@target)
         end
 
         private
@@ -451,7 +451,7 @@ module GitLab
       def self.commands
         [
           GIT,
-          DatabaseDeadTuples,
+          DatabaseTupleStats,
           DatabaseBlockedQueries,
           DatabaseSlowQueries,
           DatabaseVacuumQueries,
