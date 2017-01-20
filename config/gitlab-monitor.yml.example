@@ -5,8 +5,8 @@ server:
 probes:
   database:
     multiple: true
-    dead_tuples_count:
-      class_name: Database::DeadTuplesProber
+    tuple_stats:
+      class_name: Database::TuplesProber
       methods:
         - probe_db
       opts:
