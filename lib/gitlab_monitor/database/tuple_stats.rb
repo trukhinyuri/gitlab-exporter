@@ -5,24 +5,19 @@ module GitLab
       #
       # It takes a connection string (e.g. "dbname=test port=5432")
       class TupleStatsCollector < Base
+        COLUMNS = %w(relname seq_tup_read idx_tup_fetch n_tup_ins n_tup_upd n_tup_del n_tup_hot_upd n_dead_tup)
+                  .join(",")
+        QUERY   = <<-SQL.freeze
+          SELECT #{COLUMNS}
+          FROM pg_stat_user_tables
+          WHERE relname IN (SELECT tablename FROM pg_tables WHERE tableowner = 'gitlab')
+          GROUP BY #{COLUMNS}
+        SQL
+
         def run
-          table_names = connection.exec("SELECT tablename FROM pg_tables WHERE tableowner = 'gitlab'").values.flatten
-          stats       = {}
-
-          table_names.each do |table_name|
-            result = connection.exec(
-              <<-SQL
-                SELECT seq_tup_read, idx_tup_fetch, n_tup_ins, n_tup_upd, n_tup_del, n_tup_hot_upd, n_dead_tup
-                FROM pg_stat_user_tables
-                WHERE relname = '#{table_name}'
-              SQL
-            )
-            next if result.count.zero?
-
-            stats[table_name] = result[0]
+          connection.exec(QUERY).each.with_object({}) do |row, stats|
+            stats[row.delete("relname")] = row
           end
-
-          stats
         end
       end
 
