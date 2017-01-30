@@ -14,7 +14,7 @@ module GitLab
           config ||= {}
 
           set(:bind, config.fetch(:listen_address, "0.0.0.0"))
-          set(:port, config.fetch(:listen_port, 4567))
+          set(:port, config.fetch(:listen_port, 9168))
         end
 
         def setup_probes(config)
