@@ -5,7 +5,7 @@ module GitLab
       #
       # It takes a connection string (e.g. "dbname=test port=5432")
       class TupleStatsCollector < Base
-        COLUMNS = %w(relname seq_tup_read idx_tup_fetch n_tup_ins n_tup_upd n_tup_del n_tup_hot_upd n_dead_tup)
+        COLUMNS = %w(relname seq_tup_read idx_tup_fetch n_tup_ins n_tup_upd n_tup_del n_tup_hot_upd n_dead_tup seq_scan)
                   .join(",")
         QUERY   = <<-SQL.freeze
           SELECT #{COLUMNS}
