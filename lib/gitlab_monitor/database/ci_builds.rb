@@ -5,7 +5,7 @@ module GitLab
       class CiBuildsCollector < Base
         TOTAL_BUILDS_QUERY =
           "SELECT p.shared_runners_enabled, b.status, COUNT(*) AS count FROM ci_builds AS b JOIN projects AS p " \
-          "ON p.id = b.gl_project_id WHERE b.type = 'Ci::Build' AND b.status IN ('pending', 'running') " \
+          "ON p.id = b.gl_project_id WHERE b.type = 'Ci::Build' AND b.status IN ('created', 'pending', 'running') " \
           "GROUP BY p.shared_runners_enabled, b.status".freeze
 
         NOT_UPDATED_RUNNING_BUILDS_QUERY =
@@ -30,8 +30,9 @@ module GitLab
           results = {}
 
           total = get_shared_enabled_and_status_grouped(TOTAL_BUILDS_QUERY)
-          results[:running] = total[:running]
+          results[:created] = total[:created]
           results[:pending] = total[:pending]
+          results[:running] = total[:running]
 
           results[:not_updated_last_hour] = get_general(NOT_UPDATED_RUNNING_BUILDS_QUERY)
           results[:per_runner] = get_per_shared_runner(RUNNING_PER_SHARED_RUNNER_QUERY)
@@ -67,8 +68,9 @@ module GitLab
         end
 
         def get_shared_enabled_and_status_grouped(query)
-          results = { running: { shared_enabled: 0, shared_disabled: 0 },
-                      pending: { shared_enabled: 0, shared_disabled: 0 } }
+          results = { created: { shared_enabled: 0, shared_disabled: 0 },
+                      pending: { shared_enabled: 0, shared_disabled: 0 },
+                      running: { shared_enabled: 0, shared_disabled: 0 } }
 
           connection.exec(query).each do |row|
             shared_enabled = row["shared_runners_enabled"] == "t"
@@ -80,7 +82,9 @@ module GitLab
 
           results
         rescue PG::UndefinedTable, PG::UndefinedColumn
-          { running: { shared_enabled: 0, shared_disabled: 0 }, pending: { shared_enabled: 0, shared_disabled: 0 } }
+          { created: { shared_enabled: 0, shared_disabled: 0 },
+            pending: { shared_enabled: 0, shared_disabled: 0 },
+            running: { shared_enabled: 0, shared_disabled: 0 } }
         end
 
         def shared_runners_ids
@@ -119,13 +123,17 @@ module GitLab
         private
 
         def metrics_total
-          @metrics.add("ci_builds_total", @results[:running][:shared_enabled], status: "running",
+          @metrics.add("ci_builds_total", @results[:created][:shared_enabled], status: "created",
                                                                                shared_runners_enabled_projects: 1)
-          @metrics.add("ci_builds_total", @results[:running][:shared_disabled], status: "running",
+          @metrics.add("ci_builds_total", @results[:created][:shared_disabled], status: "created",
                                                                                 shared_runners_enabled_projects: 0)
           @metrics.add("ci_builds_total", @results[:pending][:shared_enabled], status: "pending",
                                                                                shared_runners_enabled_projects: 1)
           @metrics.add("ci_builds_total", @results[:pending][:shared_disabled], status: "pending",
+                                                                                shared_runners_enabled_projects: 0)
+          @metrics.add("ci_builds_total", @results[:running][:shared_enabled], status: "running",
+                                                                               shared_runners_enabled_projects: 1)
+          @metrics.add("ci_builds_total", @results[:running][:shared_disabled], status: "running",
                                                                                 shared_runners_enabled_projects: 0)
 
           @metrics.add("ci_builds_stale", @results[:not_updated_last_hour], status: "running", when: "last_hour")

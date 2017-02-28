@@ -21,10 +21,12 @@ describe GitLab::Monitor::Database do
       .and_return([1, 2])
 
     allow(connection).to receive(:exec).with(total_builds_query)
-      .and_return([{ "shared_runners_enabled" => "f", "status" => "running", "count" => 2 },
-                   { "shared_runners_enabled" => "t", "status" => "running", "count" => 3 },
+      .and_return([{ "shared_runners_enabled" => "f", "status" => "created", "count" => 1 },
+                   { "shared_runners_enabled" => "t", "status" => "created", "count" => 4 },
                    { "shared_runners_enabled" => "f", "status" => "pending", "count" => 2 },
-                   { "shared_runners_enabled" => "t", "status" => "pending", "count" => 5 }])
+                   { "shared_runners_enabled" => "t", "status" => "pending", "count" => 5 },
+                   { "shared_runners_enabled" => "f", "status" => "running", "count" => 2 },
+                   { "shared_runners_enabled" => "t", "status" => "running", "count" => 3 }])
     allow(connection).to receive(:exec).with(not_updated_running_builds_query).and_return([{ "count" => 2 }])
     allow(connection).to receive(:exec).with(per_runner_query % "1, 2")
       .and_return([{ "runner_id" => 2, "count" => 15 }])
@@ -38,8 +40,9 @@ describe GitLab::Monitor::Database do
     it "executes the query" do
       expect(collector.run).to eq(per_runner: { 1 => 0, 2 => 15 },
                                   per_runner_mirrors: { 1 => 0, 2 => 10 },
-                                  running: { shared_enabled: 3, shared_disabled: 2 },
+                                  created: { shared_enabled: 4, shared_disabled: 1 },
                                   pending: { shared_enabled: 5, shared_disabled: 2 },
+                                  running: { shared_enabled: 3, shared_disabled: 2 },
                                   not_updated_last_hour: 2)
     end
   end
@@ -59,10 +62,12 @@ describe GitLab::Monitor::Database do
       prober.probe_db
       prober.write_to(writer)
 
-      expect(writer.string).to match(/ci_builds_total{status="running",shared_runners_enabled_projects="1"} 3/)
-      expect(writer.string).to match(/ci_builds_total{status="running",shared_runners_enabled_projects="0"} 2/)
+      expect(writer.string).to match(/ci_builds_total{status="created",shared_runners_enabled_projects="1"} 4/)
+      expect(writer.string).to match(/ci_builds_total{status="created",shared_runners_enabled_projects="0"} 1/)
       expect(writer.string).to match(/ci_builds_total{status="pending",shared_runners_enabled_projects="1"} 5/)
       expect(writer.string).to match(/ci_builds_total{status="pending",shared_runners_enabled_projects="0"} 2/)
+      expect(writer.string).to match(/ci_builds_total{status="running",shared_runners_enabled_projects="1"} 3/)
+      expect(writer.string).to match(/ci_builds_total{status="running",shared_runners_enabled_projects="0"} 2/)
       expect(writer.string).to match(/ci_builds_stale{status="running",when="last_hour"} 2/)
       expect(writer.string).to match(/ci_builds_per_runner{status="running",runner="1",mirrors="0"} 0/)
       expect(writer.string).to match(/ci_builds_per_runner{status="running",runner="2",mirrors="0"} 5/)
