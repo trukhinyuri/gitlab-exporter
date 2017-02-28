@@ -2,14 +2,14 @@ require "spec_helper"
 require "gitlab_monitor/database/ci_builds"
 
 describe GitLab::Monitor::Database do
-  let(:total_builds_query) { "SELECT TOTAL BUILDS" }
+  let(:builds_query) { "SELECT BUILDS" }
   let(:not_updated_running_builds_query) { "SELECT NOT UPDATED RUNNING" }
   let(:per_runner_query) { "SELECT ALL RUNNING PER RUNNER %s" }
   let(:mirrors_per_runner_query) { "SELECT MIRRORS RUNNING PER RUNNER %s" }
   let(:connection) { double("connection") }
 
   before do
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::TOTAL_BUILDS_QUERY", total_builds_query)
+    stub_const("GitLab::Monitor::Database::CiBuildsCollector::BUILDS_QUERY", builds_query)
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::NOT_UPDATED_RUNNING_BUILDS_QUERY",
                not_updated_running_builds_query)
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::RUNNING_PER_SHARED_RUNNER_QUERY", per_runner_query)
@@ -20,13 +20,13 @@ describe GitLab::Monitor::Database do
     allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:shared_runners_ids)
       .and_return([1, 2])
 
-    allow(connection).to receive(:exec).with(total_builds_query)
-      .and_return([{ "shared_runners_enabled" => "f", "status" => "created", "count" => 1 },
-                   { "shared_runners_enabled" => "t", "status" => "created", "count" => 4 },
-                   { "shared_runners_enabled" => "f", "status" => "pending", "count" => 2 },
-                   { "shared_runners_enabled" => "t", "status" => "pending", "count" => 5 },
-                   { "shared_runners_enabled" => "f", "status" => "running", "count" => 2 },
-                   { "shared_runners_enabled" => "t", "status" => "running", "count" => 3 }])
+    allow(connection).to receive(:exec).with(builds_query)
+      .and_return([{ "shared_runners_enabled" => "f", "status" => "created", "path" => "foo", "count" => 10 },
+                   { "shared_runners_enabled" => "t", "status" => "pending", "path" => "foo", "count" => 30 },
+                   { "shared_runners_enabled" => "f", "status" => "created", "path" => "bar", "count" => 20 },
+                   { "shared_runners_enabled" => "t", "status" => "pending", "path" => "bar", "count" => 50 },
+                   { "shared_runners_enabled" => "t", "status" => "pending", "path" => "baz", "count" => 1 },
+                   { "shared_runners_enabled" => "t", "status" => "pending", "path" => "bob", "count" => 2 }])
     allow(connection).to receive(:exec).with(not_updated_running_builds_query).and_return([{ "count" => 2 }])
     allow(connection).to receive(:exec).with(per_runner_query % "1, 2")
       .and_return([{ "runner_id" => 2, "count" => 15 }])
@@ -40,9 +40,16 @@ describe GitLab::Monitor::Database do
     it "executes the query" do
       expect(collector.run).to eq(per_runner: { 1 => 0, 2 => 15 },
                                   per_runner_mirrors: { 1 => 0, 2 => 10 },
-                                  created: { shared_enabled: 4, shared_disabled: 1 },
-                                  pending: { shared_enabled: 5, shared_disabled: 2 },
-                                  running: { shared_enabled: 3, shared_disabled: 2 },
+                                  pending_builds: [
+                                    { namespace: "foo", shared_runners: "yes", value: 30 },
+                                    { namespace: "bar", shared_runners: "yes", value: 50 },
+                                    { namespace: "baz", shared_runners: "yes", value: 1 },
+                                    { namespace: "bob", shared_runners: "yes", value: 2 }
+                                  ],
+                                  created_builds: [
+                                    { namespace: "foo", shared_runners: "no", value: 10 },
+                                    { namespace: "bar", shared_runners: "no", value: 20 }
+                                  ],
                                   not_updated_last_hour: 2)
     end
   end
@@ -62,12 +69,11 @@ describe GitLab::Monitor::Database do
       prober.probe_db
       prober.write_to(writer)
 
-      expect(writer.string).to match(/ci_builds_total{status="created",shared_runners_enabled_projects="1"} 4/)
-      expect(writer.string).to match(/ci_builds_total{status="created",shared_runners_enabled_projects="0"} 1/)
-      expect(writer.string).to match(/ci_builds_total{status="pending",shared_runners_enabled_projects="1"} 5/)
-      expect(writer.string).to match(/ci_builds_total{status="pending",shared_runners_enabled_projects="0"} 2/)
-      expect(writer.string).to match(/ci_builds_total{status="running",shared_runners_enabled_projects="1"} 3/)
-      expect(writer.string).to match(/ci_builds_total{status="running",shared_runners_enabled_projects="0"} 2/)
+      expect(writer.string).to match(/ci_created_builds{namespace="foo",shared_runners="no"} 10/)
+      expect(writer.string).to match(/ci_created_builds{namespace="bar",shared_runners="no"} 20/)
+      expect(writer.string).to match(/ci_pending_builds{namespace="foo",shared_runners="yes"} 30/)
+      expect(writer.string).to match(/ci_pending_builds{namespace="bar",shared_runners="yes"} 50/)
+      expect(writer.string).to match(/ci_pending_builds{namespace="",shared_runners="yes"} 3/)
       expect(writer.string).to match(/ci_builds_stale{status="running",when="last_hour"} 2/)
       expect(writer.string).to match(/ci_builds_per_runner{status="running",runner="1",mirrors="0"} 0/)
       expect(writer.string).to match(/ci_builds_per_runner{status="running",runner="2",mirrors="0"} 5/)
