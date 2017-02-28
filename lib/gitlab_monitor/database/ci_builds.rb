@@ -4,27 +4,51 @@ module GitLab
       # A helper class to collect blocked queries
       class CiBuildsCollector < Base
         TOTAL_BUILDS_QUERY =
-          "SELECT p.shared_runners_enabled, b.status, COUNT(*) AS count FROM ci_builds AS b JOIN projects AS p " \
-          "ON p.id = b.gl_project_id WHERE b.type = 'Ci::Build' AND b.status IN ('created', 'pending', 'running') " \
-          "GROUP BY p.shared_runners_enabled, b.status".freeze
+          "SELECT " \
+          "  projects.shared_runners_enabled, " \
+          "  ci_builds.status, " \
+          "  COUNT(*) AS count " \
+          "  FROM ci_builds " \
+          "  JOIN projects " \
+          "    ON projects.id = ci_builds.gl_project_id " \
+          "  WHERE ci_builds.type = 'Ci::Build' " \
+          "    AND ci_builds.status IN ('created', 'pending', 'running') " \
+          "  GROUP BY " \
+          "    projects.shared_runners_enabled, " \
+          "    ci_builds.status".freeze
 
         NOT_UPDATED_RUNNING_BUILDS_QUERY =
-          "SELECT COUNT(*) AS count FROM ci_builds AS b WHERE b.type = 'Ci::Build' AND b.status = 'running' " \
-          "AND b.updated_at < NOW() - INTERVAL '1 hour'".freeze
+          "SELECT " \
+          "  COUNT(*) AS count " \
+          "  FROM ci_builds " \
+          "  WHERE ci_builds.type = 'Ci::Build' " \
+          "    AND ci_builds.status = 'running' " \
+          "    AND ci_builds.updated_at < NOW() - INTERVAL '1 hour'".freeze
 
         RUNNING_PER_SHARED_RUNNER_QUERY =
-          "SELECT b.runner_id, COUNT(*) AS count " \
-          "FROM ci_builds AS b " \
-          "WHERE b.type = 'Ci::Build' AND b.status = 'running' AND b.runner_id IN (%s) " \
-          "GROUP BY b.runner_id".freeze
+          "SELECT " \
+          "  ci_builds.runner_id, " \
+          "  COUNT(*) AS count " \
+          "  FROM ci_builds " \
+          "  WHERE ci_builds.type = 'Ci::Build' " \
+          "    AND ci_builds.status = 'running' " \
+          "    AND ci_builds.runner_id IN (%s) " \
+          "  GROUP BY " \
+          "    ci_builds.runner_id".freeze
 
         RUNNING_FOR_MIRRORS_PER_SHARED_RUNNER_QUERY =
-          "SELECT b.runner_id, COUNT(*) AS count " \
-          "FROM ci_builds AS b " \
-          "JOIN projects AS p " \
-          "ON p.id = b.gl_project_id AND p.pending_delete = 'f' AND p.mirror = 't' AND p.mirror_trigger_builds = 't' " \
-          "WHERE b.type = 'Ci::Build' AND b.status = 'running' AND b.runner_id IN (%s) " \
-          "GROUP BY b.runner_id".freeze
+          "SELECT ci_builds.runner_id, COUNT(*) AS count " \
+          "  FROM ci_builds " \
+          "  JOIN projects " \
+          "    ON projects.id = ci_builds.gl_project_id " \
+          "    AND projects.pending_delete = 'f' " \
+          "    AND projects.mirror = 't' " \
+          "    AND projects.mirror_trigger_builds = 't' " \
+          "  WHERE ci_builds.type = 'Ci::Build' " \
+          "    AND ci_builds.status = 'running' " \
+          "    AND ci_builds.runner_id IN (%s) " \
+          "  GROUP BY " \
+          "    ci_builds.runner_id".freeze
 
         def run
           results = {}
@@ -92,7 +116,7 @@ module GitLab
         end
 
         def find_shared_runners_ids
-          shared_runners_result = connection.exec("SELECT id FROM ci_runners AS r WHERE r.is_shared = 't'")
+          shared_runners_result = connection.exec("SELECT id FROM ci_runners WHERE ci_runners.is_shared = 't'")
           return [] unless shared_runners_result.count > 0
           shared_runners_result.map { |v| v["id"].to_i }
         end
