@@ -141,16 +141,16 @@ module GitLab
             shared_runners = metric[:shared_runners]
             namespace = metric[:namespace]
             value = metric[:value]
+            # If we have a low value, put the value into an "other" bucket.
             if value < 10
               other_value[shared_runners] += value
-              value = other_value[shared_runners]
-              namespace = ""
+            else
+              @metrics.add(metric_name, value, namespace: namespace, shared_runners: shared_runners)
             end
-            @metrics.add(metric_name,
-                         value,
-                         namespace: namespace,
-                         shared_runners: shared_runners)
           end
+          # Add metrics for the "other" bucket.
+          @metrics.add(metric_name, other_value["yes"], namespace: "", shared_runners: "yes")
+          @metrics.add(metric_name, other_value["no"], namespace: "", shared_runners: "no")
         end
 
         def ci_stale_builds_metrics
