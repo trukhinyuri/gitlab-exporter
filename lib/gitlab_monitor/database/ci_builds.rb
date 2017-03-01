@@ -5,19 +5,17 @@ module GitLab
       class CiBuildsCollector < Base
         BUILDS_QUERY =
           "SELECT " \
-          "  namespaces.path, " \
+          "  projects.namespace_id, " \
           "  ci_builds.status, " \
           "  projects.shared_runners_enabled, " \
           "  COUNT(*) AS count " \
           "  FROM ci_builds " \
           "  JOIN projects " \
           "    ON projects.id = ci_builds.gl_project_id " \
-          "  JOIN namespaces " \
-          "    ON namespaces.id = projects.namespace_id " \
           "  WHERE ci_builds.type = 'Ci::Build' " \
           "    AND ci_builds.status IN ('created', 'pending') " \
           "  GROUP BY " \
-          "    namespaces.path, " \
+          "    projects.namespace_id, " \
           "    ci_builds.status, " \
           "    projects.shared_runners_enabled".freeze
 
@@ -93,7 +91,7 @@ module GitLab
 
           connection.exec(query).each do |row|
             shared_runners = row["shared_runners_enabled"] == "t" ? "yes" : "no"
-            namespace = row["path"]
+            namespace = row["namespace_id"].to_s
             value = row["count"].to_i
 
             if row["status"] == "pending"

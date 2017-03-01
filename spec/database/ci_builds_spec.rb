@@ -17,12 +17,12 @@ describe GitLab::Monitor::Database do
     allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:connection).and_return(connection)
 
     allow(connection).to receive(:exec).with(builds_query)
-      .and_return([{ "shared_runners_enabled" => "f", "status" => "created", "path" => "foo", "count" => 10 },
-                   { "shared_runners_enabled" => "t", "status" => "pending", "path" => "foo", "count" => 30 },
-                   { "shared_runners_enabled" => "f", "status" => "created", "path" => "bar", "count" => 20 },
-                   { "shared_runners_enabled" => "t", "status" => "pending", "path" => "bar", "count" => 50 },
-                   { "shared_runners_enabled" => "t", "status" => "pending", "path" => "baz", "count" => 1 },
-                   { "shared_runners_enabled" => "t", "status" => "pending", "path" => "bob", "count" => 2 }])
+      .and_return([{ "shared_runners_enabled" => "f", "status" => "created", "namespace_id" => "1", "count" => 10 },
+                   { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "1", "count" => 30 },
+                   { "shared_runners_enabled" => "f", "status" => "created", "namespace_id" => "2", "count" => 20 },
+                   { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "2", "count" => 50 },
+                   { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "3", "count" => 1 },
+                   { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "4", "count" => 2 }])
     allow(connection).to receive(:exec).with(not_updated_running_builds_query).and_return([{ "count" => 2 }])
     allow(connection).to receive(:exec).with(per_runner_query)
       .and_return([{ "runner_id" => 1,
@@ -48,14 +48,14 @@ describe GitLab::Monitor::Database do
                                     { runner: "2", shared_runner: "no", mirror: "yes", pending_delete: "no", mirror_trigger_builds: "yes", value: 5 }
                                   ],
                                   pending_builds: [
-                                    { namespace: "foo", shared_runners: "yes", value: 30 },
-                                    { namespace: "bar", shared_runners: "yes", value: 50 },
-                                    { namespace: "baz", shared_runners: "yes", value: 1 },
-                                    { namespace: "bob", shared_runners: "yes", value: 2 }
+                                    { namespace: "1", shared_runners: "yes", value: 30 },
+                                    { namespace: "2", shared_runners: "yes", value: 50 },
+                                    { namespace: "3", shared_runners: "yes", value: 1 },
+                                    { namespace: "4", shared_runners: "yes", value: 2 }
                                   ],
                                   created_builds: [
-                                    { namespace: "foo", shared_runners: "no", value: 10 },
-                                    { namespace: "bar", shared_runners: "no", value: 20 }
+                                    { namespace: "1", shared_runners: "no", value: 10 },
+                                    { namespace: "2", shared_runners: "no", value: 20 }
                                   ],
                                   not_updated_last_hour: 2)
     end
@@ -76,10 +76,10 @@ describe GitLab::Monitor::Database do
       prober.probe_db
       prober.write_to(writer)
 
-      expect(writer.string).to match(/ci_created_builds{namespace="foo",shared_runners="no"} 10/)
-      expect(writer.string).to match(/ci_created_builds{namespace="bar",shared_runners="no"} 20/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="foo",shared_runners="yes"} 30/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="bar",shared_runners="yes"} 50/)
+      expect(writer.string).to match(/ci_created_builds{namespace="1",shared_runners="no"} 10/)
+      expect(writer.string).to match(/ci_created_builds{namespace="2",shared_runners="no"} 20/)
+      expect(writer.string).to match(/ci_pending_builds{namespace="1",shared_runners="yes"} 30/)
+      expect(writer.string).to match(/ci_pending_builds{namespace="2",shared_runners="yes"} 50/)
       expect(writer.string).to match(/ci_pending_builds{namespace="",shared_runners="yes"} 3/)
       expect(writer.string).to match(/ci_pending_builds{namespace="",shared_runners="no"} 0/)
       expect(writer.string).to match(/ci_created_builds{namespace="",shared_runners="yes"} 0/)
