@@ -29,30 +29,27 @@ module GitLab
           "    AND ci_builds.status = 'running' " \
           "    AND ci_builds.updated_at < NOW() - INTERVAL '1 hour'".freeze
 
-        RUNNING_PER_SHARED_RUNNER_QUERY =
+        PER_RUNNER_QUERY =
           "SELECT " \
           "  ci_builds.runner_id, " \
+          "  ci_runners.is_shared, " \
+          "  projects.mirror, " \
+          "  projects.pending_delete, " \
+          "  projects.mirror_trigger_builds, " \
           "  COUNT(*) AS count " \
           "  FROM ci_builds " \
-          "  WHERE ci_builds.type = 'Ci::Build' " \
-          "    AND ci_builds.status = 'running' " \
-          "    AND ci_builds.runner_id IN (%s) " \
-          "  GROUP BY " \
-          "    ci_builds.runner_id".freeze
-
-        RUNNING_FOR_MIRRORS_PER_SHARED_RUNNER_QUERY =
-          "SELECT ci_builds.runner_id, COUNT(*) AS count " \
-          "  FROM ci_builds " \
+          "  JOIN ci_runners " \
+          "    ON ci_runners.id = ci_builds.runner_id " \
           "  JOIN projects " \
           "    ON projects.id = ci_builds.gl_project_id " \
-          "    AND projects.pending_delete = 'f' " \
-          "    AND projects.mirror = 't' " \
-          "    AND projects.mirror_trigger_builds = 't' " \
           "  WHERE ci_builds.type = 'Ci::Build' " \
           "    AND ci_builds.status = 'running' " \
-          "    AND ci_builds.runner_id IN (%s) " \
           "  GROUP BY " \
-          "    ci_builds.runner_id".freeze
+          "    ci_builds.runner_id, " \
+          "    projects.mirror, " \
+          "    projects.pending_delete, " \
+          "    projects.mirror_trigger_builds, " \
+          "    ci_runners.is_shared".freeze
 
         def run
           results = {}
@@ -60,30 +57,29 @@ module GitLab
           results.merge!(get_builds(BUILDS_QUERY))
 
           results[:not_updated_last_hour] = get_general(NOT_UPDATED_RUNNING_BUILDS_QUERY)
-          results[:per_runner] = get_per_shared_runner(RUNNING_PER_SHARED_RUNNER_QUERY)
-          results[:per_runner_mirrors] = get_per_shared_runner(RUNNING_FOR_MIRRORS_PER_SHARED_RUNNER_QUERY)
+          results[:per_runner] = get_per_runner(PER_RUNNER_QUERY)
           results
         end
 
         private
 
-        def get_per_shared_runner(query)
-          return {} unless shared_runners_ids.count > 0
-          query = query % shared_runners_ids.join(", ")
+        def get_per_runner(query)
+          results = []
 
-          builds = begin
-            result = connection.exec(query)
-            result.map { |v| [v["runner_id"].to_i, v["count"].to_i] }.to_h
-          rescue PG::UndefinedTable, PG::UndefinedColumn
-            {}
-          end
-
-          results = {}
-          shared_runners_ids.each do |id|
-            results[id] = builds[id] || 0
+          connection.exec(query).each do |row|
+            results.push(
+              runner: row["runner_id"].to_s,
+              shared_runner: row["is_shared"] == "t" ? "yes" : "no",
+              mirror: row["mirror"] == "t" ? "yes" : "no",
+              pending_delete: row["pending_delete"] == "t" ? "yes" : "no",
+              mirror_trigger_builds: row["mirror_trigger_builds"] == "t" ? "yes" : "no",
+              value: row["count"].to_i
+            )
           end
 
           results
+        rescue PG::UndefinedTable, PG::UndefinedColumn
+          []
         end
 
         def get_general(query)
@@ -110,16 +106,6 @@ module GitLab
           results
         rescue PG::UndefinedTable, PG::UndefinedColumn
           {}
-        end
-
-        def shared_runners_ids
-          @shared_runners_ids ||= find_shared_runners_ids
-        end
-
-        def find_shared_runners_ids
-          shared_runners_result = connection.exec("SELECT id FROM ci_runners WHERE ci_runners.is_shared = 't'")
-          return [] unless shared_runners_result.count > 0
-          shared_runners_result.map { |v| v["id"].to_i }
         end
       end
 
@@ -172,12 +158,14 @@ module GitLab
         end
 
         def metrics_per_runner
-          @results[:per_runner].each do |key, value|
-            all = value
-            for_mirrors = @results[:per_runner_mirrors][key]
-            not_for_mirrors = all - for_mirrors
-            @metrics.add("ci_builds_per_runner", not_for_mirrors, status: "running", runner: key, mirrors: 0)
-            @metrics.add("ci_builds_per_runner", for_mirrors, status: "running", runner: key, mirrors: 1)
+          @results[:per_runner].each do |metric|
+            @metrics.add("ci_running_builds",
+                         metric[:value],
+                         runner: metric[:runner],
+                         shared_runner: metric[:shared_runner],
+                         mirror: metric[:mirror],
+                         pending_delete: metric[:pending_delete],
+                         mirror_trigger_builds: metric[:mirror_trigger_builds])
           end
         end
       end
