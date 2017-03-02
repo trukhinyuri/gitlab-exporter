@@ -75,17 +75,21 @@ describe GitLab::Monitor::Database do
       prober.probe_db
       prober.write_to(writer)
 
-      expect(writer.string).to match(/ci_created_builds{namespace="1",shared_runners="no"} 10/)
-      expect(writer.string).to match(/ci_created_builds{namespace="2",shared_runners="no"} 20/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="1",shared_runners="yes"} 30/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="2",shared_runners="yes"} 50/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="",shared_runners="yes"} 3/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="",shared_runners="no"} 0/)
-      expect(writer.string).to match(/ci_created_builds{namespace="",shared_runners="yes"} 0/)
-      expect(writer.string).to match(/ci_created_builds{namespace="",shared_runners="no"} 0/)
-      expect(writer.string).to match(/ci_stale_builds 2/)
-      expect(writer.string).to match(/ci_running_builds{runner="1",shared_runner="yes",mirror="no",pending_delete="no",mirror_trigger_builds="no"} 15/)
-      expect(writer.string).to match(/ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes"} 5/)
+      output = <<-OUTPUT
+        ci_pending_builds{namespace="1",shared_runners="yes"} 30
+        ci_pending_builds{namespace="2",shared_runners="yes"} 50
+        ci_pending_builds{namespace="",shared_runners="yes"} 3
+        ci_pending_builds{namespace="",shared_runners="no"} 0
+        ci_created_builds{namespace="1",shared_runners="no"} 10
+        ci_created_builds{namespace="2",shared_runners="no"} 20
+        ci_created_builds{namespace="",shared_runners="yes"} 0
+        ci_created_builds{namespace="",shared_runners="no"} 0
+        ci_stale_builds 2
+        ci_running_builds{runner="1",shared_runner="yes",mirror="no",pending_delete="no",mirror_trigger_builds="no"} 15
+        ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes"} 5
+        OUTPUT
+
+      expect(writer.string).to eq(output.gsub(/^ {8}/, ""))
     end
   end
 end
