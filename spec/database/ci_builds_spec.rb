@@ -4,14 +4,13 @@ require "gitlab_monitor/database/ci_builds"
 # rubocop:disable Metrics/LineLength
 describe GitLab::Monitor::Database do
   let(:builds_query) { "SELECT BUILDS" }
-  let(:not_updated_running_builds_query) { "SELECT NOT UPDATED RUNNING" }
+  let(:stale_builds_query) { "SELECT NOT UPDATED RUNNING" }
   let(:per_runner_query) { "SELECT ALL RUNNING PER RUNNER" }
   let(:connection) { double("connection") }
 
   before do
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::BUILDS_QUERY", builds_query)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::NOT_UPDATED_RUNNING_BUILDS_QUERY",
-               not_updated_running_builds_query)
+    stub_const("GitLab::Monitor::Database::CiBuildsCollector::STALE_BUILDS_QUERY", stale_builds_query)
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::PER_RUNNER_QUERY", per_runner_query)
 
     allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:connection).and_return(connection)
@@ -23,7 +22,7 @@ describe GitLab::Monitor::Database do
                    { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "2", "count" => 50 },
                    { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "3", "count" => 1 },
                    { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "4", "count" => 2 }])
-    allow(connection).to receive(:exec).with(not_updated_running_builds_query).and_return([{ "count" => 2 }])
+    allow(connection).to receive(:exec).with(stale_builds_query).and_return([{ "count" => 2 }])
     allow(connection).to receive(:exec).with(per_runner_query)
       .and_return([{ "runner_id" => 1,
                      "is_shared" => "t",
@@ -57,7 +56,7 @@ describe GitLab::Monitor::Database do
                                     { namespace: "1", shared_runners: "no", value: 10 },
                                     { namespace: "2", shared_runners: "no", value: 20 }
                                   ],
-                                  not_updated_last_hour: 2)
+                                  stale_builds: 2)
     end
   end
 
@@ -76,17 +75,21 @@ describe GitLab::Monitor::Database do
       prober.probe_db
       prober.write_to(writer)
 
-      expect(writer.string).to match(/ci_created_builds{namespace="1",shared_runners="no"} 10/)
-      expect(writer.string).to match(/ci_created_builds{namespace="2",shared_runners="no"} 20/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="1",shared_runners="yes"} 30/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="2",shared_runners="yes"} 50/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="",shared_runners="yes"} 3/)
-      expect(writer.string).to match(/ci_pending_builds{namespace="",shared_runners="no"} 0/)
-      expect(writer.string).to match(/ci_created_builds{namespace="",shared_runners="yes"} 0/)
-      expect(writer.string).to match(/ci_created_builds{namespace="",shared_runners="no"} 0/)
-      expect(writer.string).to match(/ci_builds_stale{status="running",when="last_hour"} 2/)
-      expect(writer.string).to match(/ci_running_builds{runner="1",shared_runner="yes",mirror="no",pending_delete="no",mirror_trigger_builds="no"} 15/)
-      expect(writer.string).to match(/ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes"} 5/)
+      output = <<-OUTPUT
+        ci_pending_builds{namespace="1",shared_runners="yes"} 30
+        ci_pending_builds{namespace="2",shared_runners="yes"} 50
+        ci_pending_builds{namespace="",shared_runners="yes"} 3
+        ci_pending_builds{namespace="",shared_runners="no"} 0
+        ci_created_builds{namespace="1",shared_runners="no"} 10
+        ci_created_builds{namespace="2",shared_runners="no"} 20
+        ci_created_builds{namespace="",shared_runners="yes"} 0
+        ci_created_builds{namespace="",shared_runners="no"} 0
+        ci_stale_builds 2
+        ci_running_builds{runner="1",shared_runner="yes",mirror="no",pending_delete="no",mirror_trigger_builds="no"} 15
+        ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes"} 5
+        OUTPUT
+
+      expect(writer.string).to eq(output.gsub(/^ {8}/, ""))
     end
   end
 end

@@ -19,7 +19,7 @@ module GitLab
           "    ci_builds.status, " \
           "    projects.shared_runners_enabled".freeze
 
-        NOT_UPDATED_RUNNING_BUILDS_QUERY =
+        STALE_BUILDS_QUERY =
           "SELECT " \
           "  COUNT(*) AS count " \
           "  FROM ci_builds " \
@@ -54,7 +54,7 @@ module GitLab
 
           results.merge!(get_builds(BUILDS_QUERY))
 
-          results[:not_updated_last_hour] = get_general(NOT_UPDATED_RUNNING_BUILDS_QUERY)
+          results[:stale_builds] = get_general(STALE_BUILDS_QUERY)
           results[:per_runner] = get_per_runner(PER_RUNNER_QUERY)
           results
         end
@@ -152,7 +152,7 @@ module GitLab
         end
 
         def ci_stale_builds_metrics
-          @metrics.add("ci_builds_stale", @results[:not_updated_last_hour], status: "running", when: "last_hour")
+          @metrics.add("ci_stale_builds", @results[:stale_builds])
         end
 
         def metrics_per_runner
