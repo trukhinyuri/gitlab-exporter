@@ -2,7 +2,8 @@
 
 gitlab-monitor is a [Prometheus Web exporter] that does the following:
 
-1. Collects GitLab production metrics via custom probes defined in a YAML file.
+1. Collects GitLab production metrics via custom probes defined in a YAML file
+  (config format is explained in [config/gitlab-monitor.yml.example]).
 2. Custom probes gather measurements in the form of key/value pairs.
 3. For each probe, gitlab-monitor creates an HTTP endpoint `/<probe_name>`
    (by default on port 9168) that delivers these metrics to a Prometheus scraper.
@@ -43,3 +44,4 @@ which has to connect to the database, set the connection_string to:
 
 [Prometheus Web exporter]: https://prometheus.io/docs/instrumenting/exporters/
 [GitLab Development Kit]: https://gitlab.com/gitlab-org/gitlab-development-kit
+[config/gitlab-monitor.yml.example]: https://gitlab.com/gitlab-org/gitlab-monitor/blob/master/config/gitlab-monitor.yml.example
