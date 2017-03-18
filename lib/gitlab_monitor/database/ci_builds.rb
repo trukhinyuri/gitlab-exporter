@@ -11,7 +11,7 @@ module GitLab
           "  COUNT(*) AS count " \
           "  FROM ci_builds " \
           "  JOIN projects " \
-          "    ON projects.id = ci_builds.gl_project_id " \
+          "    ON projects.id = ci_builds.project_id " \
           "  WHERE ci_builds.type = 'Ci::Build' " \
           "    AND ci_builds.status IN ('created', 'pending') " \
           "  GROUP BY " \
@@ -39,7 +39,7 @@ module GitLab
           "  JOIN ci_runners " \
           "    ON ci_runners.id = ci_builds.runner_id " \
           "  JOIN projects " \
-          "    ON projects.id = ci_builds.gl_project_id " \
+          "    ON projects.id = ci_builds.project_id " \
           "  WHERE ci_builds.type = 'Ci::Build' " \
           "    AND ci_builds.status = 'running' " \
           "  GROUP BY " \
