@@ -94,7 +94,11 @@ module GitLab
         counts = Hash.new(0)
 
         Utils.pgrep("^git ").each do |pid|
-          process_cmd = File.read("/proc/#{pid}/cmdline")
+          process_cmd = begin
+                          File.read("/proc/#{pid}/cmdline")
+                        rescue
+                          "" # Process file is gone (race condition)
+                        end
           subcommand  = self.class.extract_subcommand(process_cmd)
           next unless subcommand # Unlikely, but just to be safe
 
@@ -127,6 +131,7 @@ module GitLab
       end
 
       def self.extract_subcommand(cmd)
+        return if cmd.empty?
         cmd_splitted = cmd.split("\u0000") # cmdline does not return it space-separated
 
         cmd_splitted.shift # Because it's "git"
