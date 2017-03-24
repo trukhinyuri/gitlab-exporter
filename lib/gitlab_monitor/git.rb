@@ -113,6 +113,8 @@ module GitLab
           prober
             .probe_memory
             .probe_age
+        rescue
+            # Process file is gone (race condition)
         end
 
         counts.each do |name, count|
