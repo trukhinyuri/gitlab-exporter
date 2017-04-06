@@ -13,21 +13,35 @@ frequency.
 
 ### Supported Probes
 
+Below is a list of probes added by this exporter, and their corresponding
+metrics.
+
 1. Database
-    * Per-table tuple stats
-    * Slow queries
-    * Blocked queries
-    * Vacuum queries
-    * Row count queries
-    * CI builds
+    * [Per-table tuple stats](lib/gitlab_monitor/database/tuple_stats.rb) --
+      `pg_stat_table_*`
+    * [Slow queries](lib/gitlab_monitor/database/slow_queries.rb) --
+      `pg_slow_queries_total`
+    * [Blocked queries](lib/gitlab_monitor/database/blocked_queries.rb) --
+      `pg_blocked_queries_total`
+    * [Vacuum queries](lib/gitlab_monitor/database/vacuum_queries.rb) --
+      `pg_vacuum_count`, `pg_vacuum_age_in_seconds`, `pg_vacuum_analyze_count`,
+      `pg_vacuum_analyze_age_in_seconds`
+    * [Row count queries](lib/gitlab_monitor/database/row_count.rb) --
+      `db_rows_count`
+    * [CI builds](lib/gitlab_monitor/database/ci_builds.rb) --
+      `ci_pending_builds`, `ci_created_builds`, `ci_stale_builds`,
+      `ci_running_builds`
 1. Git
-    * git pull/push timings
+    * [git pull/push timings](lib/gitlab_monitor/git.rb) --
+      `git_pull_time_milliseconds`, `git_push_time_milliseconds`
     * git processes stats (see Process below)
-1. Process
-    * Age
-    * Count
-    * Memory usage
-1. Sidekiq
+1. [Process](lib/gitlab_monitor/process.rb)
+    * Age -- `process_age_seconds`
+    * Count -- `process_count`
+    * Memory usage -- `process_memory_bytes`
+1. [Sidekiq](lib/gitlab_monitor/sidekiq.rb) -- `sidekiq_queue_size`,
+   `sidekiq_queue_latency`, `sidekiq_enqueued_jobs_count`,
+   `sidekiq_running_jobs_count`, `sidekiq_jobs_to_be_retried_count`
 
 ### Setup with GitLab Development Kit
 
