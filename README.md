@@ -21,6 +21,8 @@ metrics.
       `pg_stat_table_*`
     * [Slow queries](lib/gitlab_monitor/database/slow_queries.rb) --
       `pg_slow_queries_total`
+    * [Stuck queries in idle in transaction](lib/gitlab_monitor/database/stuck_idle_in_transactions.rb) --
+      `pg_stuck_idle_in_transactions_total`
     * [Blocked queries](lib/gitlab_monitor/database/blocked_queries.rb) --
       `pg_blocked_queries_total`
     * [Vacuum queries](lib/gitlab_monitor/database/vacuum_queries.rb) --
