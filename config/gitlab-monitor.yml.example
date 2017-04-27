@@ -76,5 +76,6 @@ probes:
       - probe_jobs
       - probe_workers
       - probe_retries
+      - probe_dead
     opts:
       redis_url: "redis://localhost:6379"
