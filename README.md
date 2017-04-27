@@ -55,12 +55,27 @@ connect to the PostgreSQL instance in your GDK folder. For example:
 bin/gitlab-mon row-counts --db-conn="dbname=gitlabhq_development host=/Users/<user>/gitlab-development-kit/postgresql"
 ```
 
+### Running gitlab-monitor as a Web exporter
+
 When serving the pages on `localhost`, you'll need to edit the YAML
 configuration file. An example can be found under
 [`config/gitlab-monitor.yml.example`](config/gitlab-monitor.yml.example). For
 each probe that has to connect to the database, set the `connection_string` to
 `dbname=gitlabhq_development
 host=/Users/<user>/gitlab-development-kit/postgresql`
+
+Once you have this configured, you can then run:
+
+```
+bin/gitlab-mon web -c config/gitlab-monitor.yml
+```
+
+Once running, you can point your browser or curl to the following URLs:
+
+* http://localhost:9168/database
+* http://localhost:9168/git
+* http://localhost:9168/process
+* http://localhost:9168/sidekiq
 
 [Prometheus Web exporter]: https://prometheus.io/docs/instrumenting/exporters/
 [GitLab Development Kit]: https://gitlab.com/gitlab-org/gitlab-development-kit
