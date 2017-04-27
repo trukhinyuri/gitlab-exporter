@@ -95,6 +95,14 @@ module GitLab
         self
       end
 
+      def probe_dead
+        return self unless connected?
+
+        @metrics.add("sidekiq_dead_jobs_total", Sidekiq::Stats.new.dead_size)
+
+        self
+      end
+
       def write_to(target)
         target.write(@metrics.to_s)
       end
