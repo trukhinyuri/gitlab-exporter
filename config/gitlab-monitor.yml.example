@@ -49,6 +49,9 @@ probes:
     slow_queries:
       class_name: Database::SlowQueriesProber
       <<: *db_common
+    stuck_idle_in_transactions:
+      class_name: Database::StuckIdleInTransactionsProber
+      <<: *db_common
     vacuum_queries:
       class_name: Database::VacuumQueriesProber
       <<: *db_common
