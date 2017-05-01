@@ -71,25 +71,48 @@ describe GitLab::Monitor::Database do
       allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:connected?).and_return(true)
     end
 
-    it "responds with Prometheus metrics" do
-      prober.probe_db
-      prober.write_to(writer)
+    context "when no PG exceptions are raised" do
+      it "responds with Prometheus metrics" do
+        prober.probe_db
+        prober.write_to(writer)
 
-      output = <<-OUTPUT
-        ci_pending_builds{namespace="1",shared_runners="yes"} 30
-        ci_pending_builds{namespace="2",shared_runners="yes"} 50
-        ci_pending_builds{namespace="",shared_runners="yes"} 3
-        ci_pending_builds{namespace="",shared_runners="no"} 0
-        ci_created_builds{namespace="1",shared_runners="no"} 10
-        ci_created_builds{namespace="2",shared_runners="no"} 20
-        ci_created_builds{namespace="",shared_runners="yes"} 0
-        ci_created_builds{namespace="",shared_runners="no"} 0
-        ci_stale_builds 2
-        ci_running_builds{runner="1",shared_runner="yes",mirror="no",pending_delete="no",mirror_trigger_builds="no"} 15
-        ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes"} 5
+        output = <<-OUTPUT
+          ci_pending_builds{namespace="1",shared_runners="yes"} 30
+          ci_pending_builds{namespace="2",shared_runners="yes"} 50
+          ci_pending_builds{namespace="",shared_runners="yes"} 3
+          ci_pending_builds{namespace="",shared_runners="no"} 0
+          ci_created_builds{namespace="1",shared_runners="no"} 10
+          ci_created_builds{namespace="2",shared_runners="no"} 20
+          ci_created_builds{namespace="",shared_runners="yes"} 0
+          ci_created_builds{namespace="",shared_runners="no"} 0
+          ci_stale_builds 2
+          ci_running_builds{runner="1",shared_runner="yes",mirror="no",pending_delete="no",mirror_trigger_builds="no"} 15
+          ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes"} 5
         OUTPUT
 
-      expect(writer.string).to eq(output.strip_heredoc)
+        expect(writer.string).to eq(output.strip_heredoc)
+      end
+    end
+
+    context "when PG exceptions are raised" do
+      before do
+        allow(connection).to receive(:exec).and_raise(PG::UndefinedColumn)
+      end
+
+      it "responds with Prometheus metrics" do
+        prober.probe_db
+        prober.write_to(writer)
+
+        output = <<-OUTPUT
+          ci_pending_builds{namespace="",shared_runners="yes"} 0
+          ci_pending_builds{namespace="",shared_runners="no"} 0
+          ci_created_builds{namespace="",shared_runners="yes"} 0
+          ci_created_builds{namespace="",shared_runners="no"} 0
+          ci_stale_builds 0
+        OUTPUT
+
+        expect(writer.string).to eq(output.strip_heredoc)
+      end
     end
   end
 end
