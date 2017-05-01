@@ -4,6 +4,9 @@ require "gitlab_monitor"
 require "open3"
 require "tmpdir"
 
+$LOAD_PATH.unshift File.expand_path(".")
+Dir["spec/support/**/*.rb"].each do |f| require f end
+
 class GitRepoBuilder
   def origin
     @origin ||= create_origin

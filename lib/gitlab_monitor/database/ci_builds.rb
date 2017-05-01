@@ -103,7 +103,7 @@ module GitLab
 
           results
         rescue PG::UndefinedTable, PG::UndefinedColumn
-          {}
+          results
         end
       end
 
