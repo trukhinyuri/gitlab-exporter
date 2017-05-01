@@ -89,7 +89,7 @@ describe GitLab::Monitor::Database do
         ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes"} 5
         OUTPUT
 
-      expect(writer.string).to eq(output.gsub(/^ {8}/, ""))
+      expect(writer.string).to eq(output.strip_heredoc)
     end
   end
 end
