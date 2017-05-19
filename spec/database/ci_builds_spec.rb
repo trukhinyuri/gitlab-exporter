@@ -80,7 +80,7 @@ describe GitLab::Monitor::Database do
         prober.probe_db
         prober.write_to(writer)
 
-        output = <<-OUTPUT
+        output = <<~OUTPUT
           ci_pending_builds{namespace="1",shared_runners="yes"} 30
           ci_pending_builds{namespace="2",shared_runners="yes"} 50
           ci_pending_builds{namespace="",shared_runners="yes"} 3
@@ -94,7 +94,7 @@ describe GitLab::Monitor::Database do
           ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes",scheduled="no",triggered="yes"} 5
         OUTPUT
 
-        expect(writer.string).to eq(output.strip_heredoc)
+        expect(writer.string).to eq(output)
       end
     end
 
@@ -107,7 +107,7 @@ describe GitLab::Monitor::Database do
         prober.probe_db
         prober.write_to(writer)
 
-        output = <<-OUTPUT
+        output = <<~OUTPUT
           ci_pending_builds{namespace="",shared_runners="yes"} 0
           ci_pending_builds{namespace="",shared_runners="no"} 0
           ci_created_builds{namespace="",shared_runners="yes"} 0
@@ -115,7 +115,7 @@ describe GitLab::Monitor::Database do
           ci_stale_builds 0
         OUTPUT
 
-        expect(writer.string).to eq(output.strip_heredoc)
+        expect(writer.string).to eq(output)
       end
     end
   end
