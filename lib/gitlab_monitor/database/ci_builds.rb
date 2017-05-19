@@ -28,26 +28,34 @@ module GitLab
           "    AND ci_builds.updated_at < NOW() - INTERVAL '1 hour'".freeze
 
         PER_RUNNER_QUERY =
-          "SELECT " \
-          "  ci_builds.runner_id, " \
-          "  ci_runners.is_shared, " \
-          "  projects.mirror, " \
-          "  projects.pending_delete, " \
-          "  projects.mirror_trigger_builds, " \
-          "  COUNT(*) AS count " \
-          "  FROM ci_builds " \
-          "  JOIN ci_runners " \
-          "    ON ci_runners.id = ci_builds.runner_id " \
-          "  JOIN projects " \
-          "    ON projects.id = ci_builds.project_id " \
-          "  WHERE ci_builds.type = 'Ci::Build' " \
-          "    AND ci_builds.status = 'running' " \
-          "  GROUP BY " \
-          "    ci_builds.runner_id, " \
-          "    projects.mirror, " \
-          "    projects.pending_delete, " \
-          "    projects.mirror_trigger_builds, " \
-          "    ci_runners.is_shared".freeze
+          <<~SQL.freeze
+            SELECT
+              ci_builds.runner_id,
+              ci_runners.is_shared,
+              projects.mirror,
+              projects.pending_delete,
+              projects.mirror_trigger_builds,
+              ci_pipelines.pipeline_schedule_id,
+              ci_builds.trigger_request_id,
+              COUNT(*) AS count
+            FROM ci_builds
+            JOIN ci_runners
+              ON ci_runners.id = ci_builds.runner_id
+            JOIN projects
+              ON projects.id = ci_builds.project_id
+            JOIN ci_pipelines
+              ON ci_pipelines.id = ci_builds.commit_id
+            WHERE ci_builds.type = 'Ci::Build'
+              AND ci_builds.status = 'running'
+            GROUP BY
+              ci_builds.runner_id,
+              projects.mirror,
+              projects.pending_delete,
+              projects.mirror_trigger_builds,
+              ci_runners.is_shared,
+              ci_pipelines.pipeline_schedule_id,
+              ci_builds.trigger_request_id
+          SQL
 
         def run
           results = {}
@@ -65,19 +73,25 @@ module GitLab
           results = []
 
           connection.exec(query).each do |row|
-            results.push(
-              runner: row["runner_id"].to_s,
-              shared_runner: row["is_shared"] == "t" ? "yes" : "no",
-              mirror: row["mirror"] == "t" ? "yes" : "no",
-              pending_delete: row["pending_delete"] == "t" ? "yes" : "no",
-              mirror_trigger_builds: row["mirror_trigger_builds"] == "t" ? "yes" : "no",
-              value: row["count"].to_i
-            )
+            results << transform_row_to_values(row)
           end
 
           results
         rescue PG::UndefinedTable, PG::UndefinedColumn
           []
+        end
+
+        def transform_row_to_values(row) # rubocop:disable Metrics/CyclomaticComplexity
+          {
+            runner: row["runner_id"].to_s,
+            shared_runner: row["is_shared"] == "t" ? "yes" : "no",
+            mirror: row["mirror"] == "t" ? "yes" : "no",
+            scheduled: row["pipeline_schedule_id"] ? "yes" : "no",
+            triggered: row["trigger_request_id"] ? "yes" : "no",
+            pending_delete: row["pending_delete"] == "t" ? "yes" : "no",
+            mirror_trigger_builds: row["mirror_trigger_builds"] == "t" ? "yes" : "no",
+            value: row["count"].to_i
+          }
         end
 
         def get_general(query)
@@ -135,10 +149,12 @@ module GitLab
 
         def ci_builds_metrics(results_list, metric_name)
           other_value = { "yes" => 0, "no" => 0 }
+
           results_list.each do |metric|
             shared_runners = metric[:shared_runners]
             namespace = metric[:namespace]
             value = metric[:value]
+
             # If we have a low value, put the value into an "other" bucket.
             if value < 10
               other_value[shared_runners] += value
@@ -146,6 +162,7 @@ module GitLab
               @metrics.add(metric_name, value, namespace: namespace, shared_runners: shared_runners)
             end
           end
+
           # Add metrics for the "other" bucket.
           @metrics.add(metric_name, other_value["yes"], namespace: "", shared_runners: "yes")
           @metrics.add(metric_name, other_value["no"], namespace: "", shared_runners: "no")
@@ -163,7 +180,9 @@ module GitLab
                          shared_runner: metric[:shared_runner],
                          mirror: metric[:mirror],
                          pending_delete: metric[:pending_delete],
-                         mirror_trigger_builds: metric[:mirror_trigger_builds])
+                         mirror_trigger_builds: metric[:mirror_trigger_builds],
+                         scheduled: metric[:scheduled],
+                         triggered: metric[:triggered])
           end
         end
       end

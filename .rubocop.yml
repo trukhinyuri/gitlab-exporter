@@ -1,6 +1,5 @@
-# Commonly used screens these days easily fit more than 80 characters.
-Metrics/LineLength:
-  Max: 120
+AllCops:
+  TargetRubyVersion: 2.3
 
 # Just use double quotes please
 Style/StringLiterals:
@@ -16,8 +15,19 @@ Style/SignalException:
 Style/RaiseArgs:
   EnforcedStyle: compact
 
+# Lets not freeze all the strings by default
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
 Metrics/MethodLength:
   Max: 15
 
 Metrics/AbcSize:
   Enabled: false
+
+# Commonly used screens these days easily fit more than 80 characters.
+Metrics/LineLength:
+  Max: 120
+
+Metrics/ClassLength:
+  Max: 150
