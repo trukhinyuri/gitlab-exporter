@@ -1,4 +1,4 @@
-image: "ruby:2.2"
+image: "ruby:2.3"
 
 before_script:
   - git config --global user.email "bot@gitlab.com"

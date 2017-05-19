@@ -29,10 +29,14 @@ describe GitLab::Monitor::Database do
                      "mirror" => "f",
                      "pending_delete" => "f",
                      "mirror_trigger_builds" => "f",
+                     "pipeline_schedule_id" => 1,
+                     "trigger_request_id" => nil,
                      "count" => 15 },
                    { "runner_id" => 2,
                      "is_shared" => "f",
                      "mirror" => "t",
+                     "pipeline_schedule_id" => nil,
+                     "trigger_request_id" => 3,
                      "pending_delete" => "f",
                      "mirror_trigger_builds" => "t",
                      "count" => 5 }])
@@ -43,8 +47,8 @@ describe GitLab::Monitor::Database do
 
     it "executes the query" do
       expect(collector.run).to eq(per_runner: [
-                                    { runner: "1", shared_runner: "yes", mirror: "no", pending_delete: "no", mirror_trigger_builds: "no", value: 15 },
-                                    { runner: "2", shared_runner: "no", mirror: "yes", pending_delete: "no", mirror_trigger_builds: "yes", value: 5 }
+                                    { runner: "1", shared_runner: "yes", mirror: "no", pending_delete: "no", mirror_trigger_builds: "no", scheduled: "yes", triggered: "no", value: 15 },
+                                    { runner: "2", shared_runner: "no", mirror: "yes", pending_delete: "no", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 }
                                   ],
                                   pending_builds: [
                                     { namespace: "1", shared_runners: "yes", value: 30 },
@@ -86,8 +90,8 @@ describe GitLab::Monitor::Database do
           ci_created_builds{namespace="",shared_runners="yes"} 0
           ci_created_builds{namespace="",shared_runners="no"} 0
           ci_stale_builds 2
-          ci_running_builds{runner="1",shared_runner="yes",mirror="no",pending_delete="no",mirror_trigger_builds="no"} 15
-          ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes"} 5
+          ci_running_builds{runner="1",shared_runner="yes",mirror="no",pending_delete="no",mirror_trigger_builds="no",scheduled="yes",triggered="no"} 15
+          ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes",scheduled="no",triggered="yes"} 5
         OUTPUT
 
         expect(writer.string).to eq(output.strip_heredoc)
