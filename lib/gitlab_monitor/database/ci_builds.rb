@@ -32,9 +32,7 @@ module GitLab
             SELECT
               ci_builds.runner_id,
               ci_runners.is_shared,
-              projects.mirror,
-              projects.pending_delete,
-              projects.mirror_trigger_builds,
+              projects.*,
               ci_pipelines.pipeline_schedule_id,
               ci_builds.trigger_request_id,
               COUNT(*) AS count
@@ -49,9 +47,7 @@ module GitLab
               AND ci_builds.status = 'running'
             GROUP BY
               ci_builds.runner_id,
-              projects.mirror,
-              projects.pending_delete,
-              projects.mirror_trigger_builds,
+              projects.id,
               ci_runners.is_shared,
               ci_pipelines.pipeline_schedule_id,
               ci_builds.trigger_request_id
