@@ -23,23 +23,40 @@ describe GitLab::Monitor::Database do
                    { "shared_runners_enabled" => "f", "status" => "created", "namespace_id" => "2", "count" => 20 },
                    { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "2", "count" => 50 },
                    { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "3", "count" => 1 },
-                   { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "4", "count" => 2 }])
+                   { "shared_runners_enabled" => "t", "status" => "pending", "namespace_id" => "4", "count" => 2 },
+                   { "shared_runners_enabled" => "f", "status" => "pending", "namespace_id" => "5", "count" => 2 }])
     allow(connection).to receive(:exec).with(stale_builds_query).and_return([{ "count" => 2 }])
     allow(connection).to receive(:exec).with(per_runner_query)
       .and_return([{ "runner_id" => 1,
                      "is_shared" => "t",
+                     "namespace_id" => 1,
                      "mirror" => "f",
-                     "pending_delete" => "f",
                      "mirror_trigger_builds" => "f",
                      "pipeline_schedule_id" => 1,
                      "trigger_request_id" => nil,
                      "count" => 15 },
                    { "runner_id" => 2,
                      "is_shared" => "f",
+                     "namespace_id" => 2,
                      "mirror" => "t",
                      "pipeline_schedule_id" => nil,
                      "trigger_request_id" => 3,
-                     "pending_delete" => "f",
+                     "mirror_trigger_builds" => "t",
+                     "count" => 5 },
+                   { "runner_id" => 2,
+                     "is_shared" => "f",
+                     "namespace_id" => 3,
+                     "mirror" => "t",
+                     "pipeline_schedule_id" => nil,
+                     "trigger_request_id" => 3,
+                     "mirror_trigger_builds" => "t",
+                     "count" => 5 },
+                   { "runner_id" => 3,
+                     "is_shared" => "f",
+                     "namespace_id" => 4,
+                     "mirror" => "t",
+                     "pipeline_schedule_id" => nil,
+                     "trigger_request_id" => 3,
                      "mirror_trigger_builds" => "t",
                      "count" => 5 }])
   end
@@ -49,14 +66,17 @@ describe GitLab::Monitor::Database do
 
     it "executes the query" do
       expect(collector.run).to eq(per_runner: [
-                                    { runner: "1", shared_runner: "yes", mirror: "no", pending_delete: "no", mirror_trigger_builds: "no", scheduled: "yes", triggered: "no", value: 15 },
-                                    { runner: "2", shared_runner: "no", mirror: "yes", pending_delete: "no", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 }
+                                    { runner: "1", shared_runner: "yes", namespace: "1", mirror: "no", mirror_trigger_builds: "no", scheduled: "yes", triggered: "no", value: 15 },
+                                    { runner: "2", shared_runner: "no", namespace: "2", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 },
+                                    { runner: "2", shared_runner: "no", namespace: "3", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 },
+                                    { runner: "3", shared_runner: "no", namespace: "4", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 }
                                   ],
                                   pending_builds: [
                                     { namespace: "1", shared_runners: "yes", value: 30 },
                                     { namespace: "2", shared_runners: "yes", value: 50 },
                                     { namespace: "3", shared_runners: "yes", value: 1 },
-                                    { namespace: "4", shared_runners: "yes", value: 2 }
+                                    { namespace: "4", shared_runners: "yes", value: 2 },
+                                    { namespace: "5", shared_runners: "no", value: 2 }
                                   ],
                                   created_builds: [
                                     { namespace: "1", shared_runners: "no", value: 10 },
@@ -86,14 +106,13 @@ describe GitLab::Monitor::Database do
           ci_pending_builds{namespace="1",shared_runners="yes"} 30
           ci_pending_builds{namespace="2",shared_runners="yes"} 50
           ci_pending_builds{namespace="",shared_runners="yes"} 3
-          ci_pending_builds{namespace="",shared_runners="no"} 0
+          ci_pending_builds{namespace="",shared_runners="no"} 2
           ci_created_builds{namespace="1",shared_runners="no"} 10
           ci_created_builds{namespace="2",shared_runners="no"} 20
-          ci_created_builds{namespace="",shared_runners="yes"} 0
-          ci_created_builds{namespace="",shared_runners="no"} 0
           ci_stale_builds 2
-          ci_running_builds{runner="1",shared_runner="yes",mirror="no",pending_delete="no",mirror_trigger_builds="no",scheduled="yes",triggered="no"} 15
-          ci_running_builds{runner="2",shared_runner="no",mirror="yes",pending_delete="no",mirror_trigger_builds="yes",scheduled="no",triggered="yes"} 5
+          ci_running_builds{runner="1",shared_runner="yes",namespace="1",mirror="no",mirror_trigger_builds="no",scheduled="yes",triggered="no"} 15
+          ci_running_builds{runner="2",shared_runner="no",namespace="",mirror="yes",mirror_trigger_builds="yes",scheduled="no",triggered="yes"} 10
+          ci_running_builds{runner="3",shared_runner="no",namespace="",mirror="yes",mirror_trigger_builds="yes",scheduled="no",triggered="yes"} 5
         OUTPUT
 
         expect(writer.string).to eq(output)
@@ -110,10 +129,6 @@ describe GitLab::Monitor::Database do
         prober.write_to(writer)
 
         output = <<~OUTPUT
-          ci_pending_builds{namespace="",shared_runners="yes"} 0
-          ci_pending_builds{namespace="",shared_runners="no"} 0
-          ci_created_builds{namespace="",shared_runners="yes"} 0
-          ci_created_builds{namespace="",shared_runners="no"} 0
           ci_stale_builds 0
         OUTPUT
 
