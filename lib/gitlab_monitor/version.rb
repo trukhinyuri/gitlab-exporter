@@ -1,5 +1,5 @@
 module GitLab
   module Monitor
-    VERSION = "1.7.0".freeze
+    VERSION = "1.8.0".freeze
   end
 end
