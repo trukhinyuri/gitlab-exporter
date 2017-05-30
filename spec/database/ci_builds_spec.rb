@@ -6,14 +6,16 @@ describe GitLab::Monitor::Database do
   let(:builds_query) { "SELECT BUILDS" }
   let(:stale_builds_query) { "SELECT NOT UPDATED RUNNING" }
   let(:per_runner_query) { "SELECT ALL RUNNING PER RUNNER" }
+  let(:mirror_column_query) { "SELECT EXISTS \n  (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='mirror')\n" }
   let(:connection) { double("connection") }
 
   before do
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::BUILDS_QUERY", builds_query)
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::STALE_BUILDS_QUERY", stale_builds_query)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::PER_RUNNER_QUERY", per_runner_query)
+    stub_const("GitLab::Monitor::Database::CiBuildsCollector::PER_RUNNER_QUERY_EE", per_runner_query)
 
     allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:connection).and_return(connection)
+    allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:mirror_column?).and_return(true)
 
     allow(connection).to receive(:exec).with(builds_query)
       .and_return([{ "shared_runners_enabled" => "f", "status" => "created", "namespace_id" => "1", "count" => 10 },
