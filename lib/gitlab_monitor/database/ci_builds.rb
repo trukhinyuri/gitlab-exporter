@@ -27,12 +27,39 @@ module GitLab
           "    AND ci_builds.status = 'running' " \
           "    AND ci_builds.updated_at < NOW() - INTERVAL '1 hour'".freeze
 
-        PER_RUNNER_QUERY =
+        PER_RUNNER_QUERY_EE =
           <<~SQL.freeze
             SELECT
               ci_builds.runner_id,
               ci_runners.is_shared,
-              projects.*,
+              projects.mirror,
+              projects.pending_delete,
+              projects.mirror_trigger_builds,
+              ci_pipelines.pipeline_schedule_id,
+              ci_builds.trigger_request_id,
+              COUNT(*) AS count
+            FROM ci_builds
+            JOIN ci_runners
+              ON ci_runners.id = ci_builds.runner_id
+            JOIN projects
+              ON projects.id = ci_builds.project_id
+            JOIN ci_pipelines
+              ON ci_pipelines.id = ci_builds.commit_id
+            WHERE ci_builds.type = 'Ci::Build'
+              AND ci_builds.status = 'running'
+            GROUP BY
+              ci_builds.runner_id,
+              ci_runners.is_shared,
+              ci_pipelines.pipeline_schedule_id,
+              ci_builds.trigger_request_id
+          SQL
+
+        PER_RUNNER_QUERY_CE =
+          <<~SQL.freeze
+            SELECT
+              ci_builds.runner_id,
+              ci_runners.is_shared,
+              projects.pending_delete,
               ci_pipelines.pipeline_schedule_id,
               ci_builds.trigger_request_id,
               COUNT(*) AS count
@@ -59,7 +86,9 @@ module GitLab
           results.merge!(get_builds(BUILDS_QUERY))
 
           results[:stale_builds] = get_general(STALE_BUILDS_QUERY)
-          results[:per_runner] = get_per_runner(PER_RUNNER_QUERY)
+
+          query = mirror_column? ? PER_RUNNER_QUERY_EE : PER_RUNNER_QUERY_CE
+          results[:per_runner] = get_per_runner(query)
           results
         end
 
@@ -114,6 +143,20 @@ module GitLab
           results
         rescue PG::UndefinedTable, PG::UndefinedColumn
           results
+        end
+
+        def mirror_column?
+          @mirror_column ||=
+            begin
+              connection.exec(
+                <<~SQL
+                SELECT EXISTS
+                  (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='mirror')
+              SQL
+              )[0]["exists"] == "t"
+            rescue PG::UndefinedColumn
+              false
+            end
         end
       end
 
