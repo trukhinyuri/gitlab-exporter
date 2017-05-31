@@ -90,6 +90,11 @@ module GitLab
               ci_builds.trigger_request_id
           SQL
 
+        MIRROR_COLUMN_QUERY =
+          <<~SQL.freeze
+            SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='mirror')
+           SQL
+
         def run
           results = {}
 
@@ -142,27 +147,29 @@ module GitLab
         end
 
         def transform_row_to_values(row)
-          {
+          values = {
             runner: row["runner_id"].to_s,
             shared_runner: row["is_shared"] == "t" ? "yes" : "no",
             namespace: row["namespace_id"].to_s,
-            mirror: row["mirror"] == "t" ? "yes" : "no",
             scheduled: row["pipeline_schedule_id"] ? "yes" : "no",
             triggered: row["trigger_request_id"] ? "yes" : "no",
-            mirror_trigger_builds: row["mirror_trigger_builds"] == "t" ? "yes" : "no",
             value: row["count"].to_i
           }
+
+          include_mirror_fields(values, row)
+        end
+
+        def include_mirror_fields(values, row)
+          values[:mirror] = row["mirror"] == "t" ? "yes" : "no" if row["mirror"]
+          values[:mirror_trigger_builds] =
+            row["mirror_trigger_builds"] == "t" ? "yes" : "no" if row["mirror_trigger_builds"]
+          values
         end
 
         def mirror_column?
           @mirror_column ||=
             begin
-              connection.exec(
-                <<~SQL
-                SELECT EXISTS
-                  (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='mirror')
-              SQL
-              )[0]["exists"] == "t"
+              connection.exec(MIRROR_COLUMN_QUERY)[0]["exists"] == "t"
             rescue PG::UndefinedColumn
               false
             end
@@ -216,10 +223,10 @@ module GitLab
         end
 
         def add_ci_created_pending_builds(metric_name, value, labels)
-          @metrics.add(metric_name,
-                       value,
-                       namespace: labels[:namespace] ? labels[:namespace] : "",
-                       shared_runners: labels[:shared_runners])
+          add_metric_with_namespace_label(metric_name,
+                                          [:namespace, :shared_runners],
+                                          value,
+                                          labels)
         end
 
         def ci_stale_builds_metrics
@@ -232,9 +239,11 @@ module GitLab
           @results[:per_runner].each do |metric|
             # If we have a low value, put the value into an "other" bucket.
             if metric[:value] < 10
-              key = { runner: metric[:runner], shared_runner: metric[:shared_runner], mirror: metric[:mirror],
-                      mirror_trigger_builds: metric[:mirror_trigger_builds], scheduled: metric[:scheduled],
-                      triggered: metric[:triggered] }
+              key = { runner: metric[:runner], shared_runner: metric[:shared_runner],
+                      scheduled: metric[:scheduled], triggered: metric[:triggered] }
+              key[:mirror] = metric[:mirror] if metric[:mirror]
+              key[:mirror_trigger_builds] = metric[:mirror_trigger_builds] if metric[:mirror_trigger_builds]
+
               other_values[key] ||= 0
               other_values[key] += metric[:value]
             else
@@ -249,15 +258,16 @@ module GitLab
         end
 
         def add_ci_running_builds(value, labels)
-          @metrics.add("ci_running_builds",
-                       value,
-                       runner: labels[:runner],
-                       shared_runner: labels[:shared_runner],
-                       namespace: labels[:namespace] ? labels[:namespace] : "",
-                       mirror: labels[:mirror],
-                       mirror_trigger_builds: labels[:mirror_trigger_builds],
-                       scheduled: labels[:scheduled],
-                       triggered: labels[:triggered])
+          add_metric_with_namespace_label("ci_running_builds",
+                                          [:runner, :namespace, :shared_runner, :scheduled, :triggered, :mirror, :mirror_trigger_builds],
+                                          value,
+                                          labels)
+        end
+
+        def add_metric_with_namespace_label(metric_name, allowed_labels, value, labels)
+          labels[:namespace] = "" unless labels[:namespace]
+          selected_labels = labels.select{ |k, _| allowed_labels.include?(k) }
+          @metrics.add(metric_name, value, selected_labels.sort.to_h)
         end
       end
     end
