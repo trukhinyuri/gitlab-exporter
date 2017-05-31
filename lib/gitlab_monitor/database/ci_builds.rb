@@ -93,16 +93,14 @@ module GitLab
         MIRROR_COLUMN_QUERY =
           <<~SQL.freeze
             SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='mirror')
-           SQL
+          SQL
 
         def run
           results = {}
-
           results.merge!(get_builds(BUILDS_QUERY))
           results[:stale_builds] = get_stale_builds(STALE_BUILDS_QUERY)
           query = mirror_column? ? PER_RUNNER_QUERY_EE : PER_RUNNER_QUERY_CE
           results[:per_runner] = get_per_runner(query)
-
           results
         end
 
@@ -147,15 +145,12 @@ module GitLab
         end
 
         def transform_row_to_values(row)
-          values = {
-            runner: row["runner_id"].to_s,
-            shared_runner: row["is_shared"] == "t" ? "yes" : "no",
-            namespace: row["namespace_id"].to_s,
-            scheduled: row["pipeline_schedule_id"] ? "yes" : "no",
-            triggered: row["trigger_request_id"] ? "yes" : "no",
-            value: row["count"].to_i
-          }
-
+          values = { runner: row["runner_id"].to_s,
+                     shared_runner: row["is_shared"] == "t" ? "yes" : "no",
+                     namespace: row["namespace_id"].to_s,
+                     scheduled: row["pipeline_schedule_id"] ? "yes" : "no",
+                     triggered: row["trigger_request_id"] ? "yes" : "no",
+                     value: row["count"].to_i }
           include_mirror_fields(values, row)
         end
 
@@ -217,9 +212,7 @@ module GitLab
           end
 
           # Add metrics for the "other" bucket.
-          other_values.each do |key, value|
-            add_ci_created_pending_builds(metric_name, value, key)
-          end
+          other_values.each { |key, value| add_ci_created_pending_builds(metric_name, value, key) }
         end
 
         def add_ci_created_pending_builds(metric_name, value, labels)
@@ -252,22 +245,23 @@ module GitLab
           end
 
           # Add metrics for the "other" bucket.
-          other_values.each do |key, value|
-            add_ci_running_builds(value, key)
-          end
+          other_values.each { |key, value| add_ci_running_builds(value, key) }
         end
 
         def add_ci_running_builds(value, labels)
-          add_metric_with_namespace_label("ci_running_builds",
-                                          [:runner, :namespace, :shared_runner, :scheduled, :triggered, :mirror, :mirror_trigger_builds],
-                                          value,
-                                          labels)
+          add_metric_with_namespace_label(
+            "ci_running_builds",
+            [:runner, :namespace, :shared_runner, :scheduled, :triggered, :mirror, :mirror_trigger_builds],
+            value,
+            labels
+          )
         end
 
         def add_metric_with_namespace_label(metric_name, allowed_labels, value, labels)
           labels[:namespace] = "" unless labels[:namespace]
-          selected_labels = labels.select{ |k, _| allowed_labels.include?(k) }
-          @metrics.add(metric_name, value, selected_labels.sort.to_h)
+
+          selected_labels = labels.select { |k, _| allowed_labels.include?(k) }.sort.to_h
+          @metrics.add(metric_name, value, selected_labels)
         end
       end
     end

@@ -18,13 +18,16 @@ describe GitLab::Monitor::Database do
     allow(connection).to receive(:exec).with(mirror_column_query).and_return([{ "exists" => "f" }])
   end
 
+  # rubocop:disable Metrics/ParameterLists
   def per_runner_query_row_ee(runner_id, is_shared, namespace_id, mirror, mirror_trigger_builds, pipeline_schedule_id, trigger_request_id, count)
     row = per_runner_query_row_ce(runner_id, is_shared, namespace_id, pipeline_schedule_id, trigger_request_id, count)
     row["mirror"] = mirror
     row["mirror_trigger_builds"] = mirror_trigger_builds
     row
   end
+  # rubocop:enable Metrics/ParameterLists
 
+  # rubocop:disable Metrics/ParameterLists
   def per_runner_query_row_ce(runner_id, is_shared, namespace_id, pipeline_schedule_id, trigger_request_id, count)
     { "runner_id" => runner_id,
       "is_shared" => is_shared,
@@ -33,6 +36,7 @@ describe GitLab::Monitor::Database do
       "trigger_request_id" => trigger_request_id,
       "count" => count }
   end
+  # rubocop:enable Metrics/ParameterLists
 
   before do
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::BUILDS_QUERY", builds_query)
@@ -67,19 +71,19 @@ describe GitLab::Monitor::Database do
 
   describe GitLab::Monitor::Database::CiBuildsCollector do
     let(:collector) { described_class.new(connection_string: "host=localhost") }
-    let(:expected_pending_builds) {[
-        { namespace: "1", shared_runners: "yes", value: 30 },
-        { namespace: "2", shared_runners: "yes", value: 50 },
-        { namespace: "3", shared_runners: "yes", value: 1 },
-        { namespace: "4", shared_runners: "yes", value: 2 },
-        { namespace: "5", shared_runners: "no", value: 2 }
-    ]}
-    let(:expected_created_builds) {[
-        { namespace: "1", shared_runners: "no", value: 10 },
-        { namespace: "2", shared_runners: "no", value: 20 }
-    ]}
-
+    let(:expected_pending_builds) do
+      [{ namespace: "1", shared_runners: "yes", value: 30 },
+       { namespace: "2", shared_runners: "yes", value: 50 },
+       { namespace: "3", shared_runners: "yes", value: 1 },
+       { namespace: "4", shared_runners: "yes", value: 2 },
+       { namespace: "5", shared_runners: "no", value: 2 }]
+    end
+    let(:expected_created_builds) do
+      [{ namespace: "1", shared_runners: "no", value: 10 },
+       { namespace: "2", shared_runners: "no", value: 20 }]
+    end
     let(:expected_stale_builds) { 2 }
+
     shared_examples "data collector" do
       it "returns raw data" do
         data = collector.run
@@ -91,27 +95,31 @@ describe GitLab::Monitor::Database do
     end
 
     context "when executed on EE" do
-      let(:expected_per_runner) {[
-        { runner: "1", shared_runner: "yes", namespace: "1", mirror: "no", mirror_trigger_builds: "no", scheduled: "yes", triggered: "no", value: 15 },
-        { runner: "2", shared_runner: "no", namespace: "2", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 },
-        { runner: "2", shared_runner: "no", namespace: "3", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 },
-        { runner: "3", shared_runner: "no", namespace: "4", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 }
-      ]}
+      let(:expected_per_runner) do
+        [{ runner: "1", shared_runner: "yes", namespace: "1", mirror: "no", mirror_trigger_builds: "no", scheduled: "yes", triggered: "no", value: 15 },
+         { runner: "2", shared_runner: "no", namespace: "2", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 },
+         { runner: "2", shared_runner: "no", namespace: "3", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 },
+         { runner: "3", shared_runner: "no", namespace: "4", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", value: 5 }]
+      end
 
-      before { stub_ee }
+      before do
+        stub_ee
+      end
 
       it_behaves_like "data collector"
     end
 
     context "when executed on CE" do
-      let(:expected_per_runner) {[
-          { runner: "1", shared_runner: "yes", namespace: "1", scheduled: "yes", triggered: "no", value: 15 },
-          { runner: "2", shared_runner: "no", namespace: "2", scheduled: "no", triggered: "yes", value: 5 },
-          { runner: "2", shared_runner: "no", namespace: "3", scheduled: "no", triggered: "yes", value: 5 },
-          { runner: "3", shared_runner: "no", namespace: "4", scheduled: "no", triggered: "yes", value: 5 }
-      ]}
+      let(:expected_per_runner) do
+        [{ runner: "1", shared_runner: "yes", namespace: "1", scheduled: "yes", triggered: "no", value: 15 },
+         { runner: "2", shared_runner: "no", namespace: "2", scheduled: "no", triggered: "yes", value: 5 },
+         { runner: "2", shared_runner: "no", namespace: "3", scheduled: "no", triggered: "yes", value: 5 },
+         { runner: "3", shared_runner: "no", namespace: "4", scheduled: "no", triggered: "yes", value: 5 }]
+      end
 
-      before { stub_ce }
+      before do
+        stub_ce
+      end
 
       it_behaves_like "data collector"
     end
@@ -134,7 +142,6 @@ describe GitLab::Monitor::Database do
           prober.probe_db
           prober.write_to(writer)
           output = writer.string
-
 
           expect(output).to match(/^ci_pending_builds\{namespace="1",shared_runners="yes"\} 30$/m)
           expect(output).to match(/^ci_pending_builds\{namespace="2",shared_runners="yes"\} 50$/m)
@@ -169,25 +176,29 @@ describe GitLab::Monitor::Database do
     end
 
     context "when executed on EE" do
-      let(:ci_running_builds_expected_lines) {[
-        'ci_running_builds\{mirror="no",mirror_trigger_builds="no",namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15',
-        'ci_running_builds\{mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 10',
-        'ci_running_builds\{mirror="yes",mirror_trigger_builds="yes",namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5'
-      ]}
-      before { stub_ee }
+      let(:ci_running_builds_expected_lines) do
+        ['ci_running_builds\{mirror="no",mirror_trigger_builds="no",namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15',
+         'ci_running_builds\{mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 10',
+         'ci_running_builds\{mirror="yes",mirror_trigger_builds="yes",namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5']
+      end
+
+      before do
+        stub_ee
+      end
 
       it_behaves_like "metrics server"
-
     end
 
     context "when executed on CE" do
-      let(:ci_running_builds_expected_lines) {[
-          'ci_running_builds\{namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15',
-          'ci_running_builds\{namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 10',
-          'ci_running_builds\{namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5'
-      ]}
+      let(:ci_running_builds_expected_lines) do
+        ['ci_running_builds\{namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15',
+         'ci_running_builds\{namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 10',
+         'ci_running_builds\{namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5']
+      end
 
-      before { stub_ce }
+      before do
+        stub_ce
+      end
 
       it_behaves_like "metrics server"
     end
