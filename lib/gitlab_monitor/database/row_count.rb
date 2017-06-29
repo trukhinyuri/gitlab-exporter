@@ -14,7 +14,7 @@ module GitLab
             joins: "LEFT JOIN namespaces ON projects.namespace_id = namespaces.id",
             where: "namespaces.id IS NULL"
           },
-          uploads: { select: :uploads },
+          uploads: { select: :uploads }
         }.freeze
 
         def run
