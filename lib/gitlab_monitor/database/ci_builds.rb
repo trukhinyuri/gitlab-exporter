@@ -60,7 +60,10 @@ module GitLab
               ci_builds.runner_id,
               ci_runners.is_shared,
               ci_pipelines.pipeline_schedule_id,
-              ci_builds.trigger_request_id
+              ci_builds.trigger_request_id,
+              projects.mirror,
+              projects.namespace_id,
+              projects.mirror_trigger_builds
           SQL
 
         PER_RUNNER_QUERY_CE =
