@@ -8,19 +8,13 @@ module GitLab
       # #construct_query
       class RowCountCollector < Base
         QUERIES = {
-          groups: { select: :namespaces, where: "type='Group'" },
-          projects: { select: :projects, where: "pending_delete=false" },
           soft_deleted_projects: { select: :projects, where: "pending_delete=true" },
           orphaned_projects: {
             select: :projects,
             joins: "LEFT JOIN namespaces ON projects.namespace_id = namespaces.id",
             where: "namespaces.id IS NULL"
           },
-          personal_snippets: { select: :snippets, where: "type='PersonalSnippet'" },
-          project_snippets: { select: :snippets, where: "type='ProjectSnippet'" },
-          uploads: { select: :uploads },
-          users: { select: :users },
-          active_runners: { select: :ci_runners, where: "active=true AND contacted_at >= NOW() - '1 day'::INTERVAL" }
+          uploads: { select: :uploads }
         }.freeze
 
         def run
