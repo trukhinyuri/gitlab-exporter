@@ -3,12 +3,8 @@ module GitLab
     # Database-related classes
     module Database
       autoload :Base,                 "gitlab_monitor/database/base"
-      autoload :BlockedQueriesProber, "gitlab_monitor/database/blocked_queries"
       autoload :CiBuildsProber,       "gitlab_monitor/database/ci_builds"
-      autoload :SlowQueriesProber,    "gitlab_monitor/database/slow_queries"
-      autoload :StuckIdleInTransactionsProber, "gitlab_monitor/database/stuck_idle_in_transactions"
       autoload :TuplesProber,         "gitlab_monitor/database/tuple_stats"
-      autoload :VacuumQueriesProber,  "gitlab_monitor/database/vacuum_queries"
       autoload :RowCountProber,       "gitlab_monitor/database/row_count"
     end
   end

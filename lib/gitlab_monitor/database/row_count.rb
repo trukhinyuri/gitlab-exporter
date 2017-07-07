@@ -56,7 +56,7 @@ module GitLab
 
           results = @collector.run
           results.each do |key, value|
-            @metrics.add("db_rows_count", value.to_i, query_name: key.to_s)
+            @metrics.add("gitlab_database_rows", value.to_i, query_name: key.to_s)
           end
 
           self

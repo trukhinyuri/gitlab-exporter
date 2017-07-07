@@ -1,7 +1,7 @@
 module GitLab
   module Monitor
     module Database
-      # A helper class to collect blocked queries
+      # A helper class to collect CI builds metrics.
       class CiBuildsCollector < Base # rubocop:disable ClassLength
         BUILDS_QUERY =
           <<~SQL.freeze
