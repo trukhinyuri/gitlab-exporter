@@ -178,7 +178,9 @@ module GitLab
         end
 
         def stale_builds
-          connection.exec(STALE_BUILDS_QUERY)[0]["count"].to_i
+          connection_pool.with do |conn|
+            conn.exec(STALE_BUILDS_QUERY)[0]["count"].to_i
+          end
         rescue PG::UndefinedTable, PG::UndefinedColumn
           0
         end
@@ -219,16 +221,20 @@ module GitLab
         end
 
         def exec_query_with_custom_random_page_cost(query)
-          connection.transaction do |conn|
-            conn.exec(SET_RANDOM_PAGE_COST)
-            conn.exec(query)
+          connection_pool.with do |conn|
+            conn.transaction do |trans|
+              trans.exec(SET_RANDOM_PAGE_COST)
+              trans.exec(query)
+            end
           end
         end
 
         def mirror_column?
           @mirror_column ||=
             begin
-              connection.exec(MIRROR_COLUMN_QUERY)[0]["exists"] == "t"
+              connection_pool.with do |conn|
+                conn.exec(MIRROR_COLUMN_QUERY)[0]["exists"] == "t"
+              end
             rescue PG::UndefinedColumn
               false
             end
@@ -243,8 +249,6 @@ module GitLab
         end
 
         def probe_db
-          return self unless @collector.connected?
-
           @results = @collector.run
 
           ci_builds_metrics(@results[:pending_builds], "ci_pending_builds")
@@ -252,6 +256,8 @@ module GitLab
           ci_stale_builds_metrics
           metrics_per_runner
 
+          self
+        rescue PG::ConnectionBad
           self
         end
 

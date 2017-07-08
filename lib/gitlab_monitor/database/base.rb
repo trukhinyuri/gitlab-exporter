@@ -1,4 +1,5 @@
 require "pg"
+require "connection_pool"
 
 module GitLab
   module Monitor
@@ -7,6 +8,14 @@ module GitLab
       #
       # It takes a connection string (e.g. "dbname=test port=5432")
       class Base
+        def self.connection_pool
+          @connection_pool ||= Hash.new do |h, connection_string|
+            h[connection_string] = ConnectionPool.new(size: 3, timeout: 5) do
+              PG.connect(connection_string)
+            end
+          end
+        end
+
         def initialize(args)
           @connection_string = args[:connection_string]
         end
@@ -15,16 +24,8 @@ module GitLab
           fail NotImplemented
         end
 
-        def connected?
-          !connection.nil?
-        end
-
-        private
-
-        def connection
-          @connection ||= PG.connect(@connection_string)
-        rescue PG::ConnectionBad # rubocop:disable Lint/HandleExceptions
-          # Do nothing, we could be on the slave machine
+        def connection_pool
+          self.class.connection_pool[@connection_string]
         end
       end
     end

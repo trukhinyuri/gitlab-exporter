@@ -15,8 +15,10 @@ module GitLab
         SQL
 
         def run
-          connection.exec(QUERY).each.with_object({}) do |row, stats|
-            stats[row.delete("relname")] = row
+          connection_pool.with do |conn|
+            conn.exec(QUERY).each.with_object({}) do |row, stats|
+              stats[row.delete("relname")] = row
+            end
           end
         end
       end
@@ -29,8 +31,6 @@ module GitLab
         end
 
         def probe_db
-          return self unless @collector.connected?
-
           result = @collector.run
 
           result.each do |table_name, tuple_stats|
@@ -39,6 +39,8 @@ module GitLab
             end
           end
 
+          self
+        rescue PG::ConnectionBad
           self
         end
 
