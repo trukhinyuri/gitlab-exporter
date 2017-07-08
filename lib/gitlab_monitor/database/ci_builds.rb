@@ -2,37 +2,69 @@ module GitLab
   module Monitor
     module Database
       # A helper class to collect CI builds metrics.
-      class CiBuildsCollector < Base # rubocop:disable ClassLength
-        BUILDS_QUERY =
+      class CiBuildsCollector < Base # rubocop:disable Metrics/ClassLength
+        SET_RANDOM_PAGE_COST = "SET LOCAL random_page_cost TO 1".freeze
+
+        BUILDS_QUERY_EE =
+          <<~SQL.freeze
+            SELECT
+              projects.namespace_id,
+              ci_builds.status,
+              projects.shared_runners_enabled,
+              (COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) = 0 OR
+                 COALESCE(namespace_statistics.shared_runners_seconds, 0) < COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) * 60) as has_minutes,
+              COUNT(*) AS count
+            FROM ci_builds
+            JOIN projects
+              ON projects.id = ci_builds.project_id
+            JOIN namespaces
+              ON namespaces.id = projects.namespace_id
+            LEFT JOIN namespace_statistics
+              ON namespace_statistics.namespace_id = namespaces.id
+            JOIN application_settings
+              ON application_settings.id = 1
+            WHERE ci_builds.type = 'Ci::Build'
+              AND ci_builds.status IN ('created', 'pending')
+              AND projects.pending_delete = 'f'
+            GROUP BY
+              projects.namespace_id,
+              ci_builds.status,
+              projects.shared_runners_enabled,
+              namespaces.shared_runners_minutes_limit,
+              namespace_statistics.shared_runners_seconds,
+              application_settings.shared_runners_minutes
+          SQL
+
+        BUILDS_QUERY_CE =
           <<~SQL.freeze
             SELECT
               projects.namespace_id,
               ci_builds.status,
               projects.shared_runners_enabled,
               COUNT(*) AS count
-              FROM ci_builds
-              JOIN projects
-                ON projects.id = ci_builds.project_id
-              WHERE ci_builds.type = 'Ci::Build'
-                AND ci_builds.status IN ('created', 'pending')
-                AND projects.pending_delete = 'f'
-              GROUP BY
-                projects.namespace_id,
-                ci_builds.status,
-                projects.shared_runners_enabled
+            FROM ci_builds
+            JOIN projects
+              ON projects.id = ci_builds.project_id
+            WHERE ci_builds.type = 'Ci::Build'
+              AND ci_builds.status IN ('created', 'pending')
+              AND projects.pending_delete = 'f'
+            GROUP BY
+              projects.namespace_id,
+              ci_builds.status,
+              projects.shared_runners_enabled
           SQL
 
         STALE_BUILDS_QUERY =
           <<~SQL.freeze
             SELECT
               COUNT(*) AS count
-              FROM ci_builds
-              JOIN projects
-                ON projects.id = ci_builds.project_id
-              WHERE ci_builds.type = 'Ci::Build'
-                AND ci_builds.status = 'running'
-                AND ci_builds.updated_at < NOW() - INTERVAL '1 hour'
-                AND projects.pending_delete = 'f'
+            FROM ci_builds
+            JOIN projects
+              ON projects.id = ci_builds.project_id
+            WHERE ci_builds.type = 'Ci::Build'
+              AND ci_builds.status = 'running'
+              AND ci_builds.updated_at < NOW() - INTERVAL '1 hour'
+              AND projects.pending_delete = 'f'
           SQL
 
         PER_RUNNER_QUERY_EE =
@@ -45,6 +77,8 @@ module GitLab
               projects.mirror_trigger_builds,
               ci_pipelines.pipeline_schedule_id,
               ci_builds.trigger_request_id,
+              (COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) = 0 OR
+                 COALESCE(namespace_statistics.shared_runners_seconds, 0) < COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) * 60) as has_minutes,
               COUNT(*) AS count
             FROM ci_builds
             JOIN ci_runners
@@ -53,17 +87,26 @@ module GitLab
               ON projects.id = ci_builds.project_id
             JOIN ci_pipelines
               ON ci_pipelines.id = ci_builds.commit_id
+            JOIN namespaces
+              ON namespaces.id = projects.namespace_id
+            LEFT JOIN namespace_statistics
+              ON namespace_statistics.namespace_id = namespaces.id
+            JOIN application_settings
+              ON application_settings.id = 1
             WHERE ci_builds.type = 'Ci::Build'
               AND ci_builds.status = 'running'
               AND projects.pending_delete = 'f'
             GROUP BY
               ci_builds.runner_id,
               ci_runners.is_shared,
+              projects.namespace_id,
+              projects.mirror,
+              projects.mirror_trigger_builds,
               ci_pipelines.pipeline_schedule_id,
               ci_builds.trigger_request_id,
-              projects.mirror,
-              projects.namespace_id,
-              projects.mirror_trigger_builds
+              namespaces.shared_runners_minutes_limit,
+              namespace_statistics.shared_runners_seconds,
+              application_settings.shared_runners_minutes
           SQL
 
         PER_RUNNER_QUERY_CE =
@@ -100,22 +143,20 @@ module GitLab
 
         def run
           results = {}
-          results.merge!(get_builds(BUILDS_QUERY))
-          results[:stale_builds] = get_stale_builds(STALE_BUILDS_QUERY)
-          query = mirror_column? ? PER_RUNNER_QUERY_EE : PER_RUNNER_QUERY_CE
-          results[:per_runner] = get_per_runner(query)
+          results.merge!(builds)
+          results[:stale_builds] = stale_builds
+          results[:per_runner] = per_runner_builds
           results
         end
 
         private
 
-        def get_builds(query)
+        def builds
           results = { pending_builds: [], created_builds: [] }
 
-          connection.exec(query).each do |row|
-            row_data = { namespace: row["namespace_id"].to_s,
-                         shared_runners: row["shared_runners_enabled"] == "t" ? "yes" : "no",
-                         value: row["count"].to_i }
+          query = mirror_column? ? BUILDS_QUERY_EE : BUILDS_QUERY_CE
+          exec_query_with_custom_random_page_cost(query).each do |row|
+            row_data = transform_builds_row_to_values(row)
 
             if row["status"] == "pending"
               results[:pending_builds].push(row_data)
@@ -129,17 +170,25 @@ module GitLab
           results
         end
 
-        def get_stale_builds(query)
-          connection.exec(query)[0]["count"].to_i
+        def transform_builds_row_to_values(row)
+          values = { namespace: row["namespace_id"].to_s,
+                     shared_runners: row["shared_runners_enabled"] == "t" ? "yes" : "no",
+                     value: row["count"].to_i }
+          include_ee_fields(values, row)
+        end
+
+        def stale_builds
+          connection.exec(STALE_BUILDS_QUERY)[0]["count"].to_i
         rescue PG::UndefinedTable, PG::UndefinedColumn
           0
         end
 
-        def get_per_runner(query)
+        def per_runner_builds
           results = []
 
-          connection.exec(query).each do |row|
-            results << transform_row_to_values(row)
+          query = mirror_column? ? PER_RUNNER_QUERY_EE : PER_RUNNER_QUERY_CE
+          exec_query_with_custom_random_page_cost(query).each do |row|
+            results << transform_per_runners_builds_row_to_values(row)
           end
 
           results
@@ -147,21 +196,33 @@ module GitLab
           []
         end
 
-        def transform_row_to_values(row)
+        def transform_per_runners_builds_row_to_values(row)
           values = { runner: row["runner_id"].to_s,
                      shared_runner: row["is_shared"] == "t" ? "yes" : "no",
                      namespace: row["namespace_id"].to_s,
                      scheduled: row["pipeline_schedule_id"] ? "yes" : "no",
                      triggered: row["trigger_request_id"] ? "yes" : "no",
                      value: row["count"].to_i }
-          include_mirror_fields(values, row)
+          include_ee_fields(values, row)
         end
 
-        def include_mirror_fields(values, row)
-          values[:mirror] = row["mirror"] == "t" ? "yes" : "no" if row["mirror"]
-          values[:mirror_trigger_builds] =
-            row["mirror_trigger_builds"] == "t" ? "yes" : "no" if row["mirror_trigger_builds"]
+        def include_ee_fields(values, row)
+          values.merge!(include_bool_if_row_defined(row, :mirror))
+          values.merge!(include_bool_if_row_defined(row, :mirror_trigger_builds))
+          values.merge!(include_bool_if_row_defined(row, :has_minutes))
           values
+        end
+
+        def include_bool_if_row_defined(row, field)
+          return {} unless row[field.to_s]
+          { field => row[field.to_s] == "t" ? "yes" : "no" }
+        end
+
+        def exec_query_with_custom_random_page_cost(query)
+          connection.transaction do |conn|
+            conn.exec(SET_RANDOM_PAGE_COST)
+            conn.exec(query)
+          end
         end
 
         def mirror_column?
@@ -207,6 +268,8 @@ module GitLab
             # If we have a low value, put the value into an "other" bucket.
             if metric[:value] < 10
               key = { shared_runners: metric[:shared_runners] }
+              key[:has_minutes] = metric[:has_minutes] if metric[:has_minutes]
+
               other_values[key] ||= 0
               other_values[key] += metric[:value]
             else
@@ -220,7 +283,7 @@ module GitLab
 
         def add_ci_created_pending_builds(metric_name, value, labels)
           add_metric_with_namespace_label(metric_name,
-                                          [:namespace, :shared_runners],
+                                          [:namespace, :shared_runners, :has_minutes],
                                           value,
                                           labels)
         end
@@ -239,6 +302,7 @@ module GitLab
                       scheduled: metric[:scheduled], triggered: metric[:triggered] }
               key[:mirror] = metric[:mirror] if metric[:mirror]
               key[:mirror_trigger_builds] = metric[:mirror_trigger_builds] if metric[:mirror_trigger_builds]
+              key[:has_minutes] = metric[:has_minutes] if metric[:has_minutes]
 
               other_values[key] ||= 0
               other_values[key] += metric[:value]
@@ -254,7 +318,8 @@ module GitLab
         def add_ci_running_builds(value, labels)
           add_metric_with_namespace_label(
             "ci_running_builds",
-            [:runner, :namespace, :shared_runner, :scheduled, :triggered, :mirror, :mirror_trigger_builds],
+            [:runner, :namespace, :shared_runner, :scheduled,
+             :triggered, :mirror, :mirror_trigger_builds, :has_minutes],
             value,
             labels
           )
