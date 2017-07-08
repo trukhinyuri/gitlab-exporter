@@ -30,7 +30,9 @@ module GitLab
         private
 
         def execute(query)
-          connection.exec(construct_query(query))[0]["count"]
+          connection_pool.with do |conn|
+            conn.exec(construct_query(query))[0]["count"]
+          end
         rescue PG::UndefinedTable, PG::UndefinedColumn
           0
         end
@@ -52,13 +54,13 @@ module GitLab
         end
 
         def probe_db
-          return self unless @collector.connected?
-
           results = @collector.run
           results.each do |key, value|
             @metrics.add("gitlab_database_rows", value.to_i, query_name: key.to_s)
           end
 
+          self
+        rescue PG::ConnectionBad
           self
         end
 

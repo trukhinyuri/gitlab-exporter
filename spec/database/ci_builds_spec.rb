@@ -10,6 +10,7 @@ describe GitLab::Monitor::Database do
   let(:per_runner_query_ee) { "SELECT ALL RUNNING PER RUNNER EE" }
   let(:per_runner_query_ce) { "SELECT ALL RUNNING PER RUNNER CE" }
   let(:mirror_column_query) { "SELECT DOES MIRROR COLUMN EXISTS" }
+  let(:connection_pool) { double("connection pool") }
   let(:connection) { double("connection") }
 
   def stub_ee
@@ -63,7 +64,8 @@ describe GitLab::Monitor::Database do
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::PER_RUNNER_QUERY_CE", per_runner_query_ce)
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::MIRROR_COLUMN_QUERY", mirror_column_query)
 
-    allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:connection).and_return(connection)
+    allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:connection_pool).and_return(connection_pool)
+    allow(connection_pool).to receive(:with).and_yield(connection)
 
     allow(connection).to receive(:transaction).and_yield(connection)
     allow(connection).to receive(:exec).with(set_random_page_cost_query)
