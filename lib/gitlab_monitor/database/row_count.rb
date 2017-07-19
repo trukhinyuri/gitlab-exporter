@@ -30,7 +30,7 @@ module GitLab
         private
 
         def execute(query)
-          connection_pool.with do |conn|
+          with_connection_pool do |conn|
             conn.exec(construct_query(query))[0]["count"]
           end
         rescue PG::UndefinedTable, PG::UndefinedColumn

@@ -178,7 +178,7 @@ module GitLab
         end
 
         def stale_builds
-          connection_pool.with do |conn|
+          with_connection_pool do |conn|
             conn.exec(STALE_BUILDS_QUERY)[0]["count"].to_i
           end
         rescue PG::UndefinedTable, PG::UndefinedColumn
@@ -221,7 +221,7 @@ module GitLab
         end
 
         def exec_query_with_custom_random_page_cost(query)
-          connection_pool.with do |conn|
+          with_connection_pool do |conn|
             conn.transaction do |trans|
               trans.exec(SET_RANDOM_PAGE_COST)
               trans.exec(query)
@@ -232,7 +232,7 @@ module GitLab
         def mirror_column?
           @mirror_column ||=
             begin
-              connection_pool.with do |conn|
+              with_connection_pool do |conn|
                 conn.exec(MIRROR_COLUMN_QUERY)[0]["exists"] == "t"
               end
             rescue PG::UndefinedColumn

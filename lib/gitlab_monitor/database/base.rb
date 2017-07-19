@@ -27,6 +27,17 @@ module GitLab
         def connection_pool
           self.class.connection_pool[@connection_string]
         end
+
+        def with_connection_pool(&block)
+          connection_pool.with do |conn|
+            begin
+              yield conn
+            rescue PG::UnableToSend => e
+              conn.reset
+              raise e
+            end
+          end
+        end
       end
     end
   end

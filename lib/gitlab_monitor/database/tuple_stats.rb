@@ -15,7 +15,7 @@ module GitLab
         SQL
 
         def run
-          connection_pool.with do |conn|
+          with_connection_pool do |conn|
             conn.exec(QUERY).each.with_object({}) do |row, stats|
               stats[row.delete("relname")] = row
             end
