@@ -8,6 +8,14 @@ module GitLab
       # #construct_query
       class RowCountCollector < Base
         QUERIES = {
+          ## EE only
+          mirrors_ready_to_sync: {
+            select: :projects,
+            joins: "INNER JOIN project_mirror_data ON project_mirror_data.project_id = projects.id",
+            where: "projects.mirror = 't' AND "\
+                   "projects.import_status NOT IN ('scheduled', 'started') AND "\
+                   "next_execution_timestamp <= NOW()"
+          },
           soft_deleted_projects: { select: :projects, where: "pending_delete=true" },
           orphaned_projects: {
             select: :projects,
