@@ -1,9 +1,10 @@
 ## Contributor license agreement
 
-By submitting code as an individual you agree to the
-[individual contributor license agreement](doc/legal/individual_contributor_license_agreement.md).
-By submitting code as an entity you agree to the
-[corporate contributor license agreement](doc/legal/corporate_contributor_license_agreement.md).
+By submitting code as an individual you agree to the [individual contributor
+license agreement][individual-agreement].
+
+By submitting code as an entity you agree to the [corporate contributor license
+agreement][corporate-agreement].
 
 _This notice should stay as the first item in the CONTRIBUTING.MD file._
 
@@ -642,6 +643,8 @@ available at [http://contributor-covenant.org/version/1/1/0/](http://contributor
 [GitLab Inc engineering workflow]: https://about.gitlab.com/handbook/engineering/workflow/#labelling-issues
 [polling-etag]: https://docs.gitlab.com/ce/development/polling.html
 [testing]: doc/development/testing.md
+[individual-agreement]: https://docs.gitlab.com/ee/legal/individual_contributor_license_agreement.html
+[corporate-agreement]: https://docs.gitlab.com/ee/legal/corporate_contributor_license_agreement.html
 
 [^1]: Please note that specs other than JavaScript specs are considered backend
       code.
