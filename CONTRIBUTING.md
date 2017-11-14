@@ -1,12 +1,15 @@
-## Contributor license agreement
+## Developer Certificate of Origin + License
 
-By submitting code as an individual you agree to the [individual contributor
-license agreement][individual-agreement].
+By contributing to GitLab B.V., You accept and agree to the following terms and
+conditions for Your present and future Contributions submitted to GitLab B.V.
+Except for the license granted herein to GitLab B.V. and recipients of software
+distributed by GitLab B.V., You reserve all right, title, and interest in and to
+Your Contributions. All Contributions are subject to the following DCO + License
+terms.
 
-By submitting code as an entity you agree to the [corporate contributor license
-agreement][corporate-agreement].
+[DCO + License](https://gitlab.com/gitlab-org/dco/blob/master/README.md)
 
-_This notice should stay as the first item in the CONTRIBUTING.MD file._
+_This notice should stay as the first item in the CONTRIBUTING.md file._
 
 ---
 
@@ -643,8 +646,6 @@ available at [http://contributor-covenant.org/version/1/1/0/](http://contributor
 [GitLab Inc engineering workflow]: https://about.gitlab.com/handbook/engineering/workflow/#labelling-issues
 [polling-etag]: https://docs.gitlab.com/ce/development/polling.html
 [testing]: doc/development/testing.md
-[individual-agreement]: https://docs.gitlab.com/ee/legal/individual_contributor_license_agreement.html
-[corporate-agreement]: https://docs.gitlab.com/ee/legal/corporate_contributor_license_agreement.html
 
 [^1]: Please note that specs other than JavaScript specs are considered backend
       code.
