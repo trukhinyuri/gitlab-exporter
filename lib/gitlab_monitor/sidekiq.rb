@@ -124,8 +124,10 @@ module GitLab
         return unless connected?
 
         Sidekiq.redis do |conn|
-          next if conn.script(:exists, QUEUE_JOB_STATS_SHA)
-          conn.script(:load, QUEUE_JOB_STATS_SCRIPT)
+          # Using administrative commands on conn directly (which is a Redis::Namespace)
+          # will be removed in redis-namespace 2.0.
+          next if conn.redis.script(:exists, QUEUE_JOB_STATS_SHA)
+          conn.redis.script(:load, QUEUE_JOB_STATS_SCRIPT)
         end
       end
     end
