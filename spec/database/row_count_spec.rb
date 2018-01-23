@@ -11,7 +11,7 @@ describe GitLab::Monitor::Database::RowCountCollector do
     end
 
     it "executes the query" do
-      allow(collector).to receive(:execute).with(query[:project_1]).and_return(3)
+      allow(collector).to receive(:count_from_query_hash).with(query[:project_1]).and_return(3)
 
       expect(collector.run).to eq(project_1: 3)
     end

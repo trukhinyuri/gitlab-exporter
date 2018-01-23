@@ -13,7 +13,8 @@ module GitLab
             joins: "INNER JOIN project_mirror_data ON project_mirror_data.project_id = projects.id",
             where: "projects.mirror = 't' AND " \
                    "projects.import_status NOT IN ('scheduled', 'started') AND " \
-                   "next_execution_timestamp <= NOW()"
+                   "next_execution_timestamp <= NOW()",
+            check: "SELECT 1 FROM information_schema.tables WHERE table_name='project_mirror_data'"
           },
           soft_deleted_projects: { select: :projects, where: "pending_delete=true" },
           orphaned_projects: {
@@ -27,8 +28,10 @@ module GitLab
         def run
           results = Hash.new(0)
 
-          QUERIES.each do |key, query|
-            results[key] = execute(query)
+          QUERIES.each do |key, query_hash|
+            next if query_hash[:check] && !successful_check?(query_hash[:check])
+
+            results[key] = count_from_query_hash(query_hash)
           end
 
           results
@@ -36,12 +39,26 @@ module GitLab
 
         private
 
+        def count_from_query_hash(query_hash)
+          result = execute(construct_query(query_hash))
+          return 0 unless result
+
+          result[0]["count"]
+        end
+
+        def successful_check?(query)
+          result = execute("SELECT EXISTS (#{query})")
+          return unless result
+
+          result[0]["exists"] == "t"
+        end
+
         def execute(query)
           with_connection_pool do |conn|
-            conn.exec(construct_query(query))[0]["count"]
+            conn.exec(query)
           end
         rescue PG::UndefinedTable, PG::UndefinedColumn
-          0
+          nil
         end
 
         # Not private so I can test it without meta programming tricks
