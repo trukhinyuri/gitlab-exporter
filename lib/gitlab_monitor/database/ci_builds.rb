@@ -144,58 +144,92 @@ module GitLab
         REPEATED_COMMANDS_QUERY_EE =
           <<~SQL.freeze
             SELECT
-              projects.namespace_id,
-              projects.shared_runners_enabled,
-              ci_builds.project_id,
-              ci_builds.status,
-              (COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) = 0 OR
-                 COALESCE(namespace_statistics.shared_runners_seconds, 0) < COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) * 60) as has_minutes,
-              COUNT(*) AS count
-            FROM ci_builds
-            JOIN projects
-              ON projects.id = ci_builds.project_id
-            JOIN namespaces
-              ON namespaces.id = projects.namespace_id
-            LEFT JOIN namespace_statistics
-              ON namespace_statistics.namespace_id = namespaces.id
-            JOIN application_settings
-              ON application_settings.id = 1
-            WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status IN ('running', 'pending')
+              subquery.namespace_id,
+              subquery.shared_runners_enabled,
+              subquery.project_id,
+              subquery.status,
+              subquery.has_minutes,
+              MAX(subquery.count) as count
+            FROM (
+              SELECT
+                projects.namespace_id,
+                projects.shared_runners_enabled,
+                ci_builds.project_id,
+                ci_builds.commit_id,
+                ci_builds.status,
+                (COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) = 0 OR
+                   COALESCE(namespace_statistics.shared_runners_seconds, 0) < COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) * 60) as has_minutes,
+                COUNT(*) AS count
+              FROM ci_builds
+              JOIN projects
+                ON projects.id = ci_builds.project_id
+              JOIN namespaces
+                ON namespaces.id = projects.namespace_id
+              LEFT JOIN namespace_statistics
+                ON namespace_statistics.namespace_id = namespaces.id
+              JOIN application_settings
+                ON application_settings.id = 1
+              WHERE ci_builds.type = 'Ci::Build'
+                AND ci_builds.status IN ('running', 'pending')
+              GROUP BY
+                projects.namespace_id,
+                projects.shared_runners_enabled,
+                ci_builds.project_id,
+                ci_builds.commit_id,
+                ci_builds.status,
+                ci_builds.commands,
+                namespaces.shared_runners_minutes_limit,
+                namespace_statistics.shared_runners_seconds,
+                application_settings.shared_runners_minutes
+              HAVING COUNT(*) > %d
+            ) AS subquery
             GROUP BY
-              projects.namespace_id,
-              projects.shared_runners_enabled,
-              ci_builds.project_id,
-              ci_builds.status,
-              ci_builds.commands,
-              namespaces.shared_runners_minutes_limit,
-              namespace_statistics.shared_runners_seconds,
-              application_settings.shared_runners_minutes
-            HAVING COUNT(*) > %d
+              subquery.namespace_id,
+              subquery.shared_runners_enabled,
+              subquery.project_id,
+              subquery.commit_id,
+              subquery.status,
+              subquery.has_minutes
           SQL
 
         REPEATED_COMMANDS_QUERY_CE =
           <<~SQL.freeze
             SELECT
-              projects.namespace_id,
-              projects.shared_runners_enabled,
-              ci_builds.project_id,
-              ci_builds.status,
-              COUNT(*) AS count
-            FROM ci_builds
-            JOIN projects
-              ON projects.id = ci_builds.project_id
-            JOIN namespaces
-              ON namespaces.id = projects.namespace_id
-            WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status IN ('running', 'pending')
+              subquery.namespace_id,
+              subquery.shared_runners_enabled,
+              subquery.project_id,
+              subquery.status,
+              MAX(subquery.count) as count
+            FROM (
+              SELECT
+                projects.namespace_id,
+                projects.shared_runners_enabled,
+                ci_builds.project_id,
+                ci_builds.commit_id,
+                ci_builds.status,
+                COUNT(*) AS count
+              FROM ci_builds
+              JOIN projects
+                ON projects.id = ci_builds.project_id
+              JOIN namespaces
+                ON namespaces.id = projects.namespace_id
+              WHERE ci_builds.type = 'Ci::Build'
+                AND ci_builds.status IN ('running', 'pending')
+              GROUP BY
+                projects.namespace_id,
+                projects.shared_runners_enabled,
+                ci_builds.project_id,
+                ci_builds.commit_id,
+                ci_builds.status,
+                ci_builds.commands
+              HAVING COUNT(*) > %d
+            ) AS subquery
             GROUP BY
-              projects.namespace_id,
-              projects.shared_runners_enabled,
-              ci_builds.project_id,
-              ci_builds.status,
-              ci_builds.commands,
-            HAVING COUNT(*) > %d
+              subquery.namespace_id,
+              subquery.shared_runners_enabled,
+              subquery.project_id,
+              subquery.commit_id,
+              subquery.status
           SQL
 
         def initialize(opts)
