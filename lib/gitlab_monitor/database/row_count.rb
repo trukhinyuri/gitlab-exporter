@@ -1,3 +1,5 @@
+require "set"
+
 module GitLab
   module Monitor
     module Database
@@ -25,11 +27,18 @@ module GitLab
           uploads: { select: :uploads }
         }.freeze
 
+        def initialize(args)
+          super(args)
+
+          @selected_queries = Set.new(args[:selected_queries].map(&:to_sym)) unless args[:selected_queries].nil?
+        end
+
         def run
           results = Hash.new(0)
 
           QUERIES.each do |key, query_hash|
             next if query_hash[:check] && !successful_check?(query_hash[:check])
+            next if !@selected_queries.nil? && !@selected_queries.include?(key)
 
             results[key] = count_from_query_hash(query_hash)
           end
@@ -74,7 +83,10 @@ module GitLab
       class RowCountProber
         def initialize(opts, metrics: PrometheusMetrics.new)
           @metrics = metrics
-          @collector = RowCountCollector.new(connection_string: opts[:connection_string])
+          @collector = RowCountCollector.new(
+            connection_string: opts[:connection_string],
+            selected_queries: opts[:selected_queries]
+          )
         end
 
         def probe_db

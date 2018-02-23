@@ -46,6 +46,12 @@ probes:
     rows_count:
       class_name: Database::RowCountProber
       <<: *db_common
+      opts:
+        <<: *db_common_opts
+        selected_queries:
+        - soft_deleted_projects
+        - orphaned_projects
+        - uploads
 
   process:
     methods:
