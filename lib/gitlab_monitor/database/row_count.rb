@@ -19,7 +19,7 @@ module GitLab
             INNER JOIN project_mirror_data ON project_mirror_data.project_id = projects.id
             INNER JOIN namespaces ON projects.namespace_id = namespaces.id
             LEFT JOIN plans ON namespaces.plan_id = plans.id
-          SQL,
+          SQL
           check: "SELECT 1 FROM information_schema.tables WHERE table_name='project_mirror_data'"
         }
 
