@@ -7,7 +7,7 @@ module GitLab
       # queries in the QUERIES constant. If in doubt how these work, read
       # #construct_query
       class RowCountCollector < Base
-        WHERE_MIRROR_ENABLED = <<~SQL
+        WHERE_MIRROR_ENABLED = <<~SQL.freeze
           projects.mirror = true
           AND project_mirror_data.retry_count <= 14
           AND (projects.visibility_level = 20 OR plans.name IN ('early_adopter', 'bronze', 'silver', 'gold'));
@@ -21,7 +21,7 @@ module GitLab
             LEFT JOIN plans ON namespaces.plan_id = plans.id
           SQL
           check: "SELECT 1 FROM information_schema.tables WHERE table_name='project_mirror_data'"
-        }
+        }.freeze
 
         QUERIES = {
           mirrors_ready_to_sync: MIRROR_QUERY.merge( # EE only

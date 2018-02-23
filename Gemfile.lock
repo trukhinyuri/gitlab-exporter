@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-monitor (2.6.0)
+    gitlab-monitor (2.7.0)
       connection_pool (~> 2.2.1)
       pg (~> 0.18.4)
       quantile (~> 0.2.0)
@@ -25,7 +25,7 @@ GEM
     rack-protection (1.5.3)
       rack
     rainbow (2.1.0)
-    redis (3.3.3)
+    redis (3.3.5)
     redis-namespace (1.5.3)
       redis (~> 3.0, >= 3.0.4)
     rspec (3.5.0)
@@ -69,4 +69,4 @@ DEPENDENCIES
   rubocop (~> 0.42)
 
 BUNDLED WITH
-   1.13.2
+   1.16.1
