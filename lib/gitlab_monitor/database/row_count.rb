@@ -36,6 +36,7 @@ module GitLab
           mirrors_not_updated_recently: MIRROR_QUERY.merge( # EE only
             where: <<~SQL
               projects.import_status NOT IN ('scheduled', 'started')
+              AND (project_mirror_data.next_execution_timestamp - projects.mirror_last_update_at) <= '1 hour'::interval
               AND projects.mirror_last_update_at < NOW() - '1 hour'::interval
               AND #{WHERE_MIRROR_ENABLED}
             SQL
