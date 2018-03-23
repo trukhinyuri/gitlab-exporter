@@ -12,7 +12,7 @@ module GitLab
         WHERE_MIRROR_ENABLED = <<~SQL.freeze
           projects.mirror = true
           AND project_mirror_data.retry_count <= 14
-          AND (projects.visibility_level = 20 OR plans.name IN ('early_adopter', 'bronze', 'silver', 'gold'));
+          AND (projects.visibility_level = 20 OR plans.name IN ('early_adopter', 'bronze', 'silver', 'gold'))
         SQL
 
         MIRROR_QUERY = {
