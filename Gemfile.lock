@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-monitor (2.13.0)
+    gitlab-monitor (2.14.0)
       connection_pool (~> 2.2.1)
       pg (~> 0.18.4)
       quantile (~> 0.2.0)
@@ -21,7 +21,7 @@ GEM
     pg (0.18.4)
     powerpack (0.1.1)
     quantile (0.2.0)
-    rack (1.6.9)
+    rack (1.6.10)
     rack-protection (1.5.5)
       rack
     rainbow (2.1.0)
