@@ -29,48 +29,48 @@ module GitLab
           mirrors_ready_to_sync: MIRROR_QUERY.merge( # EE only
             where: <<~SQL
               #{WHERE_MIRROR_ENABLED}
-              AND projects.import_status NOT IN ('scheduled', 'started')
+              AND project_mirror_data.status NOT IN ('scheduled', 'started')
               AND project_mirror_data.next_execution_timestamp <= NOW()
             SQL
           ),
           mirrors_not_updated_recently: MIRROR_QUERY.merge( # EE only
             where: <<~SQL
               #{WHERE_MIRROR_ENABLED}
-              AND projects.import_status NOT IN ('scheduled', 'started')
-              AND (project_mirror_data.next_execution_timestamp - projects.mirror_last_update_at) <= '30 minutes'::interval
-              AND projects.mirror_last_update_at < NOW() - '30 minutes'::interval
+              AND project_mirror_data.status NOT IN ('scheduled', 'started')
+              AND (project_mirror_data.next_execution_timestamp - project_mirror_data.last_update_at) <= '30 minutes'::interval
+              AND project_mirror_data.last_update_at < NOW() - '30 minutes'::interval
             SQL
           ),
           mirrors_updated_very_recently: MIRROR_QUERY.merge( # EE only
             where: <<~SQL
               #{WHERE_MIRROR_ENABLED}
-              AND projects.import_status NOT IN ('scheduled', 'started')
-              AND projects.mirror_last_update_at >= NOW() - '30 seconds'::interval
+              AND project_mirror_data.status NOT IN ('scheduled', 'started')
+              AND project_mirror_data.last_update_at >= NOW() - '30 seconds'::interval
             SQL
           ),
           mirrors_behind_schedule: MIRROR_QUERY.merge( # EE only
             where: <<~SQL
               #{WHERE_MIRROR_ENABLED}
-              AND projects.import_status NOT IN ('scheduled', 'started')
+              AND project_mirror_data.status NOT IN ('scheduled', 'started')
               AND project_mirror_data.next_execution_timestamp <= NOW() - '10 seconds'::interval
             SQL
           ),
           mirrors_scheduled_or_started: MIRROR_QUERY.merge( # EE only
             where: <<~SQL
               #{WHERE_MIRROR_ENABLED}
-              AND projects.import_status IN ('scheduled', 'started')
+              AND project_mirror_data.status IN ('scheduled', 'started')
             SQL
           ),
           mirrors_scheduled: MIRROR_QUERY.merge( # EE only
             where: <<~SQL
               #{WHERE_MIRROR_ENABLED}
-              AND projects.import_status = 'scheduled'
+              AND project_mirror_data.status = 'scheduled'
             SQL
           ),
           mirrors_started: MIRROR_QUERY.merge( # EE only
             where: <<~SQL
               #{WHERE_MIRROR_ENABLED}
-              AND projects.import_status = 'started'
+              AND project_mirror_data.status = 'started'
             SQL
           ),
           soft_deleted_projects: { select: :projects, where: "pending_delete=true" },
