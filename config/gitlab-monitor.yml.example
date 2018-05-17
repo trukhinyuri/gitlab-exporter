@@ -8,6 +8,8 @@ db_common: &db_common
 server:
   listen_address: 0.0.0.0
   listen_port: 9168
+  # Maximum amount of memory to use in megabytes, after which the process is killed
+  memory_threshold: 1024
 
 # Probes config
 probes:
