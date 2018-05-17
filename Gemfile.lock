@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-monitor (2.14.0)
+    gitlab-monitor (2.15.0)
       connection_pool (~> 2.2.1)
       pg (~> 0.18.4)
       quantile (~> 0.2.0)
