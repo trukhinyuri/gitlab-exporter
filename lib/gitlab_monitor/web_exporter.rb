@@ -1,13 +1,46 @@
 require "sinatra/base"
+require "English"
 
 module GitLab
   module Monitor
     # Metrics web exporter
     class WebExporter < Sinatra::Base
+      # A middleware to kill the process if we exceeded a certain threshold
+      class MemoryKillerMiddleware
+        def initialize(app, memory_threshold)
+          @app = app
+          @memory_threshold = memory_threshold.to_i * 1024
+        end
+
+        def call(env)
+          if memory_usage > @memory_threshold
+            puts "Memory usage of #{memory_usage} exceeded threshold of #{@memory_threshold}, signalling KILL"
+            Process.kill("KILL", $PID)
+          end
+
+          @app.call(env)
+        end
+
+        private
+
+        def memory_usage
+          io = IO.popen(%W(ps -o rss= -p #{$PID}))
+
+          mem = io.read
+          io.close
+
+          return 0 unless $CHILD_STATUS.to_i.zero?
+
+          mem.to_i
+        end
+      end
+
       class << self
         def setup(config)
           setup_server(config[:server])
           setup_probes(config[:probes])
+
+          use MemoryKillerMiddleware, config[:server][:memory_threshold] || 1024
         end
 
         def setup_server(config)
