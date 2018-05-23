@@ -22,7 +22,7 @@ module GitLab
             INNER JOIN namespaces ON projects.namespace_id = namespaces.id
             LEFT JOIN plans ON namespaces.plan_id = plans.id
           SQL
-          check: "SELECT 1 FROM information_schema.tables WHERE table_name='project_mirror_data'"
+          check: "SELECT 1 FROM information_schema.tables WHERE table_name='plans'"
         }.freeze
 
         QUERIES = {
