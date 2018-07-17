@@ -60,6 +60,7 @@ module GitLab
               end
 
             get "/#{probe_name}" do
+              content_type "text/plain; version=0.0.4"
               prober = Prober.new(opts, metrics: PrometheusMetrics.new(include_timestamp: false))
 
               prober.probe_all
