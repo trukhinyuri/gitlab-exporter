@@ -25,7 +25,7 @@ probes:
     opts:
       source: /home/git/repo
 
-  git_process:
+  git_process: &git_process
     class_name: GitProcessProber # `class_name` is redundant here
     methods:
     - probe_git
@@ -55,7 +55,7 @@ probes:
         - orphaned_projects
         - uploads
 
-  process:
+  process: &process
     methods:
       - probe_memory
       - probe_age
@@ -69,7 +69,7 @@ probes:
         name: git_upload_pack
         quantiles: true
 
-  sidekiq:
+  sidekiq: &sidekiq
     methods:
       - probe_queues
       - probe_jobs
@@ -78,3 +78,22 @@ probes:
       - probe_dead
     opts:
       redis_url: "redis://localhost:6379"
+
+  metrics:
+    multiple: true
+    git_process:
+      <<: *git_process
+    process:
+      <<: *process
+    sidekiq:
+      <<: *sidekiq
+    ci_builds:
+      class_name: Database::CiBuildsProber
+      <<: *db_common
+    tuple_stats:
+      class_name: Database::TuplesProber
+      <<: *db_common
+    rows_count:
+      class_name: Database::RowCountProber
+      <<: *db_common
+                     
