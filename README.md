@@ -64,9 +64,10 @@ bin/gitlab-mon web -c config/gitlab-monitor.yml
 Once running, you can point your browser or curl to the following URLs:
 
 * http://localhost:9168/database
-* http://localhost:9168/git
+* http://localhost:9168/git_process
 * http://localhost:9168/process
 * http://localhost:9168/sidekiq
+* http://localhost:9168/metrics (to get all of the above combined)
 
 ## Contributing
 
