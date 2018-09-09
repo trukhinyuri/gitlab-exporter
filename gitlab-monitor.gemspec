@@ -23,7 +23,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "pg", "~> 0.18.4"
   s.add_runtime_dependency "sinatra", "~> 1.4.7"
   s.add_runtime_dependency "quantile", "~> 0.2.0"
-  s.add_runtime_dependency "sidekiq", "~> 5.1"
+  s.add_runtime_dependency "sidekiq", "~> 5.2.1"
   s.add_runtime_dependency "redis-namespace", "~> 1.5.2"
   s.add_runtime_dependency "connection_pool", "~> 2.2.1"
 
