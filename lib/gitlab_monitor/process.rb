@@ -10,10 +10,8 @@ module GitLab
     # It takes a pid
     class ProcessStats
       def initialize(pid)
-        @pid   = pid
-
-        @user_hertz = Process.clock_getres(:TIMES_BASED_CLOCK_PROCESS_CPUTIME_ID, :hertz)
-
+        @pid = pid
+        @user_hertz = retrieve_user_hertz
         @stats = populate_info
       end
 
@@ -46,6 +44,12 @@ module GitLab
         [""].concat(File.read("/proc/#{@pid}/stat").split(" "))
       rescue Errno::ENOENT
         nil
+      end
+
+      def retrieve_user_hertz
+        Process.clock_getres(:TIMES_BASED_CLOCK_PROCESS_CPUTIME_ID, :hertz)
+      rescue Errno::EINVAL
+        100.0
       end
     end
 
