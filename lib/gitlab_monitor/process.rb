@@ -11,11 +11,10 @@ module GitLab
     class ProcessStats
       def initialize(pid)
         @pid   = pid
-        @stats = nil
 
         @user_hertz = Process.clock_getres(:TIMES_BASED_CLOCK_PROCESS_CPUTIME_ID, :hertz)
 
-        populate_info
+        @stats = populate_info
       end
 
       def valid?
@@ -44,7 +43,7 @@ module GitLab
 
       def populate_info
         # Pad the array by one element to make field numbers match the man page.
-        @stats = [""].concat(File.read("/proc/#{@pid}/stat").split(" "))
+        [""].concat(File.read("/proc/#{@pid}/stat").split(" "))
       rescue Errno::ENOENT
         nil
       end
