@@ -18,9 +18,9 @@ metrics.
 
 1. Database
     * [Per-table tuple stats](lib/gitlab_monitor/database/tuple_stats.rb) --
-      `pg_stat_table_*`
+      `gitlab_database_stat_table_*`
     * [Row count queries](lib/gitlab_monitor/database/row_count.rb) --
-      `db_rows_count`
+      `gitlab_database_rows`
     * [CI builds](lib/gitlab_monitor/database/ci_builds.rb) --
       `ci_pending_builds`, `ci_created_builds`, `ci_stale_builds`,
       `ci_running_builds`
