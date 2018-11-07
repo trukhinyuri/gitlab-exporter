@@ -33,8 +33,8 @@ metrics.
     * Count -- `process_count`
     * Memory usage -- `process_memory_bytes`
 1. [Sidekiq](lib/gitlab_monitor/sidekiq.rb) -- `sidekiq_queue_size`,
-   `sidekiq_queue_latency`, `sidekiq_enqueued_jobs_count`,
-   `sidekiq_running_jobs_count`, `sidekiq_jobs_to_be_retried_count`
+   `sidekiq_queue_latency`, `sidekiq_enqueued_jobs`, `sidekiq_dead_jobs`,
+   `sidekiq_running_jobs`, `sidekiq_to_be_retried_jobs`
 
 ### Setup with GitLab Development Kit
 
