@@ -2,46 +2,18 @@ module GitLab
   module Monitor
     # A helper class to extract memory info from /proc/<pid>/status
     #
-    # It takes a pid
-    class ProcessMemory
-      def initialize(pid)
-        @pid  = pid
-        @info = {}
-
-        populate_info
-      end
-
-      def [](field)
-        @info[field]
-      end
-
-      private
-
-      def populate_info
-        status = File.read("/proc/#{@pid}/status")
-
-        status.each_line do |line|
-          line.strip!
-
-          next unless line.end_with?("kB") # We're only interested in sizes
-
-          match = line.match(/(\w+):\s*(\d+) kB/)
-          next unless match
-
-          @info[match[1]] = match[2].to_i * 1024
-        end
-      rescue Errno::ENOENT
-        nil
-      end
-    end
 
     # A helper class to stats from /proc/<pid>/stat
+    #
+    # See: man 5 proc
     #
     # It takes a pid
     class ProcessStats
       def initialize(pid)
         @pid   = pid
         @stats = nil
+
+        @user_hertz = Process.clock_getres(:TIMES_BASED_CLOCK_PROCESS_CPUTIME_ID, :hertz)
 
         populate_info
       end
@@ -50,14 +22,29 @@ module GitLab
         !@stats.nil?
       end
 
-      def age
-        Utils.system_uptime - (@stats[21].to_i / Process.clock_getres(:TIMES_BASED_CLOCK_PROCESS_CPUTIME_ID, :hertz))
+      def cpu_time
+        (@stats[14].to_i + @stats[15].to_i) / @user_hertz
+      end
+
+      def start_time
+        @stats[22].to_i / @user_hertz
+      end
+
+      def vsize
+        # Virtual memory size in bytes.
+        @stats[23].to_i
+      end
+
+      def rss
+        # Resident Set Size: number of pages the process has in real memory.
+        @stats[24].to_i * 4096
       end
 
       private
 
       def populate_info
-        @stats = File.read("/proc/#{@pid}/stat").split(" ")
+        # Pad the array by one element to make field numbers match the man page.
+        @stats = [""].concat(File.read("/proc/#{@pid}/stat").split(" "))
       rescue Errno::ENOENT
         nil
       end
@@ -65,8 +52,6 @@ module GitLab
 
     # Probes a process for info then writes metrics to a target
     class ProcessProber
-      MEMORY_FIELDS = %w(RssFile RssAnon VmRSS VmData).freeze
-
       def initialize(options, metrics: PrometheusMetrics.new)
         @metrics = metrics
         @name    = options[:name]
@@ -78,25 +63,7 @@ module GitLab
         @use_quantiles = options.fetch(:quantiles, false)
       end
 
-      def probe_memory
-        @pids.each do |pid|
-          memory = ProcessMemory.new(pid)
-
-          MEMORY_FIELDS.each do |field|
-            value = memory[field]
-            next unless value
-
-            labels = { name: @name.downcase, field: field }
-            labels[:pid] = pid unless @use_quantiles
-
-            @metrics.add("process_memory_bytes", value, @use_quantiles, **labels)
-          end
-        end
-
-        self
-      end
-
-      def probe_age
+      def probe_stat
         @pids.each do |pid|
           stats = ProcessStats.new(pid)
           next unless stats.valid?
@@ -104,7 +71,10 @@ module GitLab
           labels = { name: @name.downcase }
           labels[:pid] = pid unless @use_quantiles
 
-          @metrics.add("process_age_seconds", stats.age, @use_quantiles, **labels)
+          @metrics.add("process_cpu_seconds_total", stats.cpu_time, @use_quantiles, **labels)
+          @metrics.add("process_resident_memory_bytes", stats.rss, @use_quantiles, **labels)
+          @metrics.add("process_virtual_memory_bytes", stats.vsize, @use_quantiles, **labels)
+          @metrics.add("process_start_time_seconds", stats.start_time, @use_quantiles, **labels)
         end
 
         self
