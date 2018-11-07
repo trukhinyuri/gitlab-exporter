@@ -32,6 +32,7 @@ module GitLab
         Sidekiq::Queue.all.each do |queue|
           @metrics.add("sidekiq_queue_size", queue.size, name: queue.name)
           @metrics.add("sidekiq_queue_latency_seconds", queue.latency, name: queue.name)
+          @metrics.add("sidekiq_queue_paused", queue.paused? ? 1 : 0, name: queue.name)
         end
 
         self
