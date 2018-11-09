@@ -29,9 +29,10 @@ metrics.
       `git_pull_time_milliseconds`, `git_push_time_milliseconds`
     * git processes stats (see Process below)
 1. [Process](lib/gitlab_monitor/process.rb)
-    * Age -- `process_age_seconds`
+    * CPU time -- `process_cpu_seconds_total`
+    * Start time -- `process_start_time_seconds`
     * Count -- `process_count`
-    * Memory usage -- `process_memory_bytes`
+    * Memory usage -- `process_resident_memory_bytes`, `process_virtual_memory_bytes`
 1. [Sidekiq](lib/gitlab_monitor/sidekiq.rb) -- `sidekiq_queue_size`, `sidekiq_queue_paused`,
    `sidekiq_queue_latency_seconds`, `sidekiq_enqueued_jobs`, `sidekiq_dead_jobs`,
    `sidekiq_running_jobs`, `sidekiq_to_be_retried_jobs`

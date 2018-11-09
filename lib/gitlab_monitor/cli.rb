@@ -236,8 +236,7 @@ module GitLab
 
         def run
           ::GitLab::Monitor::ProcessProber.new(pid_or_pattern: @pid || @pattern, name: @name, quantiles: @quantiles)
-                                          .probe_memory
-                                          .probe_age
+                                          .probe_stat
                                           .probe_count
                                           .write_to(@target)
         end

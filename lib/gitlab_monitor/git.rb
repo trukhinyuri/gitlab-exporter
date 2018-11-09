@@ -115,8 +115,7 @@ module GitLab
           )
 
           prober
-            .probe_memory
-            .probe_age
+            .probe_stat
         end
 
         counts.each do |name, count|

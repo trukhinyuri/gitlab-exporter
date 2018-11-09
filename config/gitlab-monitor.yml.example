@@ -57,8 +57,7 @@ probes:
 
   process: &process
     methods:
-      - probe_memory
-      - probe_age
+      - probe_stat
       - probe_count
     opts:
       - pid_or_pattern: "sidekiq .* \\[.*?\\]"
