@@ -31,7 +31,8 @@ module GitLab
 
         Sidekiq::Queue.all.each do |queue|
           @metrics.add("sidekiq_queue_size", queue.size, name: queue.name)
-          @metrics.add("sidekiq_queue_latency", queue.latency, name: queue.name)
+          @metrics.add("sidekiq_queue_latency_seconds", queue.latency, name: queue.name)
+          @metrics.add("sidekiq_queue_paused", queue.paused? ? 1 : 0, name: queue.name)
         end
 
         self
@@ -55,7 +56,7 @@ module GitLab
         end
 
         job_stats.each do |class_name, count|
-          @metrics.add("sidekiq_enqueued_jobs_count", count, name: class_name)
+          @metrics.add("sidekiq_enqueued_jobs", count, name: class_name)
         end
 
         self
@@ -73,7 +74,7 @@ module GitLab
         end
 
         worker_stats.each do |class_name, count|
-          @metrics.add("sidekiq_running_jobs_count", count, name: class_name)
+          @metrics.add("sidekiq_running_jobs", count, name: class_name)
         end
 
         self
@@ -89,7 +90,7 @@ module GitLab
         end
 
         retry_stats.each do |class_name, count|
-          @metrics.add("sidekiq_jobs_to_be_retried_count", count, name: class_name)
+          @metrics.add("sidekiq_to_be_retried_jobs", count, name: class_name)
         end
 
         self
@@ -98,7 +99,7 @@ module GitLab
       def probe_dead
         return self unless connected?
 
-        @metrics.add("sidekiq_dead_jobs_total", Sidekiq::Stats.new.dead_size)
+        @metrics.add("sidekiq_dead_jobs", Sidekiq::Stats.new.dead_size)
 
         self
       end
