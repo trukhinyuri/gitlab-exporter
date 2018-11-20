@@ -27,5 +27,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "redis-namespace", "~> 1.5.2"
   s.add_runtime_dependency "connection_pool", "~> 2.2.1"
 
-  s.add_development_dependency "rspec", "~> 3.3"
+  s.add_development_dependency "rspec", "~> 3.7.0"
+  s.add_development_dependency "rspec-expectations", "~> 3.7.0"
 end

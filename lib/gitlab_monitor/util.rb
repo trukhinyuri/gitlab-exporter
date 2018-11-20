@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module GitLab
   module Monitor
     # Simple time wrapper that provides a to_i and wraps the execution result
@@ -48,9 +50,18 @@ module GitLab
       module_function :deep_transform_keys_in_object
 
       def pgrep(pattern)
-        `pgrep -f "#{pattern}"`.split("\n")
+        # pgrep will include the PID of the shell, so strip that out
+        exec_pgrep(pattern).split("\n").each_with_object([]) do |line, arr|
+          pid, name = line.split(" ")
+          arr << pid if name != "sh"
+        end
       end
       module_function :pgrep
+
+      def exec_pgrep(pattern)
+        `pgrep -fl "#{pattern}"`
+      end
+      module_function :exec_pgrep
 
       def system_uptime
         File.read("/proc/uptime").split(" ")[0].to_f
