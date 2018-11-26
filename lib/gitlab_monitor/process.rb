@@ -1,3 +1,5 @@
+require_relative "memstats"
+
 module GitLab
   module Monitor
     # A helper class to extract memory info from /proc/<pid>/status
@@ -85,6 +87,27 @@ module GitLab
 
       def probe_count
         @metrics.add("process_count", @pids.count, name: @name.downcase)
+
+        self
+      end
+
+      def probe_smaps
+        @pids.each do |pid|
+          stats = ::GitLab::Monitor::MemStats::Aggregator.new(pid)
+
+          next unless stats.valid?
+
+          labels = { name: @name.downcase }
+          labels[:pid] = pid unless @use_quantiles
+
+          ::GitLab::Monitor::MemStats::Mapping::FIELDS.each do |field|
+            value = stats.totals[field]
+
+            if value >= 0
+              @metrics.add("process_smaps_#{field}_bytes", value * 1024, @use_quantiles, **labels)
+            end
+          end
+        end
 
         self
       end

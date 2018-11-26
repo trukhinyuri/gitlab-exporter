@@ -32,7 +32,19 @@ metrics.
     * CPU time -- `process_cpu_seconds_total`
     * Start time -- `process_start_time_seconds`
     * Count -- `process_count`
-    * Memory usage -- `process_resident_memory_bytes`, `process_virtual_memory_bytes`
+    * Memory usage
+      * Data from /proc/<pid>/cmdline:
+        * `process_resident_memory_bytes`
+        * `process_virtual_memory_bytes`
+      * Data from /proc/<pid>/smaps:
+        * `process_smaps_size_bytes`
+        * `process_smaps_rss_bytes`
+        * `process_smaps_shared_clean_bytes`
+        * `process_smaps_shared_dirty_bytes`
+        * `process_smaps_private_clean_bytes`
+        * `process_smaps_private_dirty_bytes`
+        * `process_smaps_swap_bytes`
+        * `process_smaps_pss_bytes`
 1. [Sidekiq](lib/gitlab_monitor/sidekiq.rb) -- `sidekiq_queue_size`, `sidekiq_queue_paused`,
    `sidekiq_queue_latency_seconds`, `sidekiq_enqueued_jobs`, `sidekiq_dead_jobs`,
    `sidekiq_running_jobs`, `sidekiq_to_be_retried_jobs`
