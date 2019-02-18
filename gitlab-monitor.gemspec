@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
   s.homepage      = "http://gitlab.com"
   s.license       = "MIT"
 
-  s.add_runtime_dependency "pg", "~> 0.18.4"
+  s.add_runtime_dependency "pg", "~> 1.1"
   s.add_runtime_dependency "sinatra", "~> 2.0.4"
   s.add_runtime_dependency "quantile", "~> 0.2.0"
   s.add_runtime_dependency "sidekiq", "~> 5.2.1"
