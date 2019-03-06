@@ -15,12 +15,7 @@ module GitLab
         @metrics = metrics
 
         Sidekiq.configure_client do |config|
-          config.redis = {
-            url: opts[:redis_url],
-            namespace: "resque:gitlab",
-            connect_timeout: 1,
-            reconnect_attempts: 0
-          }
+          config.redis = redis_options
         end
 
         ensure_queue_job_stats_script_loaded
@@ -109,6 +104,24 @@ module GitLab
       end
 
       private
+
+      def redis_options
+        options = {
+          url: @opts[:redis_url],
+          namespace: "resque:gitlab",
+          connect_timeout: 1,
+          reconnect_attempts: 0
+        }
+
+        options[:id] = nil unless redis_enable_client?
+        options
+      end
+
+      def redis_enable_client?
+        return true if @opts[:redis_enable_client].nil?
+
+        @opts[:redis_enable_client]
+      end
 
       def connected?
         @connected ||= begin
