@@ -42,7 +42,7 @@ describe GitLab::Monitor::Database::BloatProber do
     }
   end
 
-  describe"#probe_db" do
+  describe "#probe_db" do
     subject { described_class.new(opts, metrics: metrics, collector: collector).probe_db }
 
     it "invokes the collector for each bloat type" do
@@ -85,7 +85,7 @@ describe GitLab::Monitor::Database::BloatProber do
     end
   end
 
-  context "#write_to" do
+  describe "#write_to" do
     let(:target) { double }
     let(:metrics) { double("PrometheusMetrics", to_s: double) }
     subject { described_class.new(opts, metrics: metrics).write_to(target) }
