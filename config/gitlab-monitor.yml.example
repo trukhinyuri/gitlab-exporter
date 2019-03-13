@@ -32,6 +32,10 @@ probes:
     opts:
       quantiles: true
 
+  database_bloat:
+    class_name: Database::BloatProber
+    <<: *db_common
+
   # We can group multiple probes under a single endpoint by setting the `multiple` key to `true`, followed
   # by probe definitions as usual.
   database:

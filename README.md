@@ -24,6 +24,9 @@ metrics.
     * [CI builds](lib/gitlab_monitor/database/ci_builds.rb) --
       `ci_pending_builds`, `ci_created_builds`, `ci_stale_builds`,
       `ci_running_builds`
+    * [Bloat](lib/gitlab_monitor/database/bloat.rb) --
+      `gitlab_database_bloat_$type_$key` with type `btree` (index bloat) or `table`
+      (table bloat) and keys `bloat_ratio bloat_size extra_size real_size` (see below)
 1. Git
     * [git pull/push timings](lib/gitlab_monitor/git.rb) --
       `git_pull_time_milliseconds`, `git_push_time_milliseconds`
@@ -81,6 +84,21 @@ Once running, you can point your browser or curl to the following URLs:
 * http://localhost:9168/process
 * http://localhost:9168/sidekiq
 * http://localhost:9168/metrics (to get all of the above combined)
+
+### Database Bloat Metrics
+
+Database bloat is measured for indexes (`btree`) and/or tables
+(`table`). Returned metrics contain:
+
+* `bloat_ratio`: estimated ratio of the real size used by bloat_size.
+* `bloat_size`: estimated size of the bloat without the extra space kept for the fillfactor.
+* `extra_size`: estimated extra size not used/needed by the index. This extra size is composed by the fillfactor, bloat and alignment padding spaces.
+* `real_size`: real size of the index
+
+Also see the [original documentation](https://github.com/ioguix/pgsql-bloat-estimation/blob/master/README.md).
+
+Note that all metrics returned are estimates without an upper bound for
+the error.
 
 ## Contributing
 

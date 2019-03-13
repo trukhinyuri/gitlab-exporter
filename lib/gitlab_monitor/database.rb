@@ -6,6 +6,7 @@ module GitLab
       autoload :CiBuildsProber,       "gitlab_monitor/database/ci_builds"
       autoload :TuplesProber,         "gitlab_monitor/database/tuple_stats"
       autoload :RowCountProber,       "gitlab_monitor/database/row_count"
+      autoload :BloatProber,          "gitlab_monitor/database/bloat"
     end
   end
 end
