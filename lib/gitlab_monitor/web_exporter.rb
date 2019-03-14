@@ -40,7 +40,8 @@ module GitLab
           setup_server(config[:server])
           setup_probes(config[:probes])
 
-          use MemoryKillerMiddleware, config[:server][:memory_threshold] || 1024
+          memory_threshold = ( config[:server] && config[:server][:memory_threshold] ) || 1024
+          use MemoryKillerMiddleware, memory_threshold
         end
 
         def setup_server(config)
