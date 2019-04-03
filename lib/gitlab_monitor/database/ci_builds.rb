@@ -24,7 +24,7 @@ module GitLab
             JOIN application_settings
               ON application_settings.id = 1
             WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status IN ('created', 'pending')
+              AND ci_builds.status = '%s'
               AND projects.pending_delete = 'f'
             GROUP BY
               projects.namespace_id,
@@ -46,7 +46,7 @@ module GitLab
             JOIN projects
               ON projects.id = ci_builds.project_id
             WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status IN ('created', 'pending')
+              AND ci_builds.status = '%s'
               AND projects.pending_delete = 'f'
             GROUP BY
               projects.namespace_id,
@@ -232,15 +232,20 @@ module GitLab
               subquery.status
           SQL
 
+        STATUS_CREATED = "created".freeze
+        STATUS_PENDING = "pending".freeze
+
         def initialize(opts)
           super(opts)
 
           @allowed_repeated_commands_count = opts[:allowed_repeated_commands_count]
+          @count_created_builds = opts[:count_created_builds]
         end
 
         def run
           results = {}
-          results.merge!(builds)
+          results[:created_builds] = builds(STATUS_CREATED) if @count_created_builds
+          results[:pending_builds] = builds(STATUS_PENDING)
           results[:stale_builds] = stale_builds
           results[:per_runner] = per_runner_builds
           results[:repeated_commands] = repeated_commands
@@ -249,18 +254,13 @@ module GitLab
 
         private
 
-        def builds
-          results = { pending_builds: [], created_builds: [] }
+        def builds(status)
+          results = []
 
           query = mirror_column? ? BUILDS_QUERY_EE : BUILDS_QUERY_CE
+          query = query % [status] # rubocop:disable Style/FormatString
           exec_query_with_custom_random_page_cost(query).each do |row|
-            row_data = transform_builds_row_to_values(row)
-
-            if row["status"] == "pending"
-              results[:pending_builds].push(row_data)
-            elsif row["status"] == "created"
-              results[:created_builds].push(row_data)
-            end
+            results << transform_builds_row_to_values(row)
           end
 
           results
@@ -377,15 +377,16 @@ module GitLab
           @metrics = metrics
 
           collector_opts = { connection_string: opts[:connection_string],
-                             allowed_repeated_commands_count: opts[:allowed_repeated_commands_count] }
+                             allowed_repeated_commands_count: opts[:allowed_repeated_commands_count],
+                             count_created_builds: opts[:count_created_builds] }
           @collector = CiBuildsCollector.new(collector_opts)
         end
 
         def probe_db
           @results = @collector.run
 
+          ci_builds_metrics(@results[:created_builds], "ci_created_builds") if @results[:created_builds]
           ci_builds_metrics(@results[:pending_builds], "ci_pending_builds")
-          ci_builds_metrics(@results[:created_builds], "ci_created_builds")
           ci_stale_builds_metrics
           metrics_per_runner
           repeated_commands_metrics
