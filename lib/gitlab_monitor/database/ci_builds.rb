@@ -239,12 +239,12 @@ module GitLab
           super(opts)
 
           @allowed_repeated_commands_count = opts[:allowed_repeated_commands_count]
-          @count_created_builds = opts[:count_created_builds]
+          @created_builds_counting_disabled = opts[:created_builds_counting_disabled]
         end
 
         def run
           results = {}
-          results[:created_builds] = builds(STATUS_CREATED) if @count_created_builds
+          results[:created_builds] = builds(STATUS_CREATED) unless @created_builds_counting_disabled
           results[:pending_builds] = builds(STATUS_PENDING)
           results[:stale_builds] = stale_builds
           results[:per_runner] = per_runner_builds
@@ -378,7 +378,7 @@ module GitLab
 
           collector_opts = { connection_string: opts[:connection_string],
                              allowed_repeated_commands_count: opts[:allowed_repeated_commands_count],
-                             count_created_builds: opts[:count_created_builds] }
+                             created_builds_counting_disabled: opts[:created_builds_counting_disabled] }
           @collector = CiBuildsCollector.new(collector_opts)
         end
 
