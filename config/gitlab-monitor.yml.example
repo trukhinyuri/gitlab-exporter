@@ -46,6 +46,7 @@ probes:
       opts:
         <<: *db_common_opts
         allowed_repeated_commands_count: 2
+        created_builds_counting_disabled: true
     tuple_stats:
       class_name: Database::TuplesProber
       <<: *db_common
@@ -101,4 +102,4 @@ probes:
     rows_count:
       class_name: Database::RowCountProber
       <<: *db_common
-                     
+

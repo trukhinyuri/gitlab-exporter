@@ -15,6 +15,7 @@ describe GitLab::Monitor::Database do
   let(:connection_pool) { double("connection pool") }
   let(:connection) { double("connection") }
   let(:allowed_repeated_commands_count) { 5 }
+  let(:created_builds_counting_disabled) { true }
 
   def stub_ee
     allow(connection).to receive(:exec).with(mirror_column_query).and_return([{ "exists" => "t" }])
@@ -142,7 +143,11 @@ describe GitLab::Monitor::Database do
   end
 
   describe GitLab::Monitor::Database::CiBuildsCollector do
-    let(:collector) { described_class.new(connection_string: "host=localhost", allowed_repeated_commands_count: allowed_repeated_commands_count) }
+    let(:collector) do
+      described_class.new(connection_string: "host=localhost",
+                          allowed_repeated_commands_count: allowed_repeated_commands_count,
+                          created_builds_counting_disabled: created_builds_counting_disabled)
+    end
     let(:expected_stale_builds) { 2 }
 
     shared_examples "data collector" do
@@ -156,8 +161,21 @@ describe GitLab::Monitor::Database do
         expect(subject[:pending_builds]).to include(*expected_pending_builds)
       end
 
-      it "returns raw created_builds data" do
-        expect(subject[:created_builds]).to include(*expected_created_builds)
+      context "when created_builds_counting_disabled is set to false" do
+        let(:created_builds_counting_disabled) { false }
+
+        it "returns raw created_builds data" do
+          expect(subject).to have_key(:created_builds)
+          expect(subject[:created_builds]).to include(*expected_created_builds)
+        end
+      end
+
+      context "when created_builds_counting_disabled is set to true" do
+        let(:created_builds_counting_disabled) { true }
+
+        it "doesn't return raw created_builds data" do
+          expect(subject).not_to have_key(:created_builds)
+        end
       end
 
       it "returns raw stale_builds data" do
@@ -238,7 +256,8 @@ describe GitLab::Monitor::Database do
     let(:writer) { StringIO.new }
     let(:prober) do
       opts = { connection_string: "host=localhost",
-               allowed_repeated_commands_count: allowed_repeated_commands_count }
+               allowed_repeated_commands_count: allowed_repeated_commands_count,
+               created_builds_counting_disabled: created_builds_counting_disabled }
       described_class.new(opts,
                           metrics: GitLab::Monitor::PrometheusMetrics.new(include_timestamp: false))
     end
@@ -255,9 +274,23 @@ describe GitLab::Monitor::Database do
       end
 
       context "when PG exceptions aren't raised" do
-        it "responds with created builds Prometheus metrics" do
-          ci_created_builds_expected_lines.each do |expected_line|
-            expect(subject).to match(Regexp.new("^#{expected_line}$", Regexp::MULTILINE))
+        context "when created_builds_counting_disabled is set to false" do
+          let(:created_builds_counting_disabled) { false }
+
+          it "responds with created builds Prometheus metrics" do
+            ci_created_builds_expected_lines.each do |expected_line|
+              expect(subject).to match(Regexp.new("^#{expected_line}$", Regexp::MULTILINE))
+            end
+          end
+        end
+
+        context "when created_builds_counting_disabled is set to true" do
+          let(:created_builds_counting_disabled) { true }
+
+          it "doesn't respond with created builds Prometheus metrics" do
+            ci_created_builds_expected_lines.each do |expected_line|
+              expect(subject).not_to match(Regexp.new("^#{expected_line}$", Regexp::MULTILINE))
+            end
           end
         end
 
