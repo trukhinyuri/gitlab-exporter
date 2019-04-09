@@ -12,10 +12,14 @@ describe GitLab::Monitor::Database do
   let(:mirror_column_query) { "SELECT DOES MIRROR COLUMN EXISTS" }
   let(:repeated_commands_query_ee) { "SELECT EE REPEATED COMNANDS %d" }
   let(:repeated_commands_query_ce) { "SELECT CE REPEATED COMNANDS %d" }
+  let(:unarchived_traces_query) { "SELECT UNARCHIVED TRACES %s LIST" }
   let(:connection_pool) { double("connection pool") }
   let(:connection) { double("connection") }
   let(:allowed_repeated_commands_count) { 5 }
   let(:created_builds_counting_disabled) { true }
+  let(:time_now) { Time.new(2019, 4, 9, 6, 30, 0) }
+  let(:unarchived_traces_query_time) { "2019-04-09 05:30:00" }
+  let(:unarchived_traces_offset_minutes) { 60 }
 
   def stub_ee
     allow(connection).to receive(:exec).with(mirror_column_query).and_return([{ "exists" => "t" }])
@@ -85,12 +89,15 @@ describe GitLab::Monitor::Database do
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::MIRROR_COLUMN_QUERY", mirror_column_query)
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_EE", repeated_commands_query_ee)
     stub_const("GitLab::Monitor::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_CE", repeated_commands_query_ce)
+    stub_const("GitLab::Monitor::Database::CiBuildsCollector::UNARCHIVED_TRACES_QUERY", unarchived_traces_query)
 
     allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:connection_pool).and_return(connection_pool)
     allow(connection_pool).to receive(:with).and_yield(connection)
 
     allow(connection).to receive(:transaction).and_yield(connection)
     allow(connection).to receive(:exec).with(set_random_page_cost_query)
+
+    allow(Time).to receive(:now).and_return(time_now)
 
     allow(connection).to receive(:exec).with(builds_query_ee)
       .and_return([builds_query_row_ee("f", "created", "1", "f", 10),
@@ -140,15 +147,21 @@ describe GitLab::Monitor::Database do
                    repeated_commands_query_row_ce(2, "f", 2, "running", 20),
                    repeated_commands_query_row_ce(1, "f", 3, "pending", 30),
                    repeated_commands_query_row_ce(2, "t", 4, "running", 40)])
+
+    unarchived_traces_query_with_time = unarchived_traces_query % [unarchived_traces_query_time] # rubocop:disable Style/FormatString
+
+    allow(connection).to receive(:exec).with(unarchived_traces_query_with_time).and_return([{ "count" => 10 }])
   end
 
   describe GitLab::Monitor::Database::CiBuildsCollector do
     let(:collector) do
       described_class.new(connection_string: "host=localhost",
                           allowed_repeated_commands_count: allowed_repeated_commands_count,
-                          created_builds_counting_disabled: created_builds_counting_disabled)
+                          created_builds_counting_disabled: created_builds_counting_disabled,
+                          unarchived_traces_offset_minutes: unarchived_traces_offset_minutes)
     end
     let(:expected_stale_builds) { 2 }
+    let(:expected_unarchived_traces) { 10 }
 
     shared_examples "data collector" do
       subject { collector.run }
@@ -184,6 +197,10 @@ describe GitLab::Monitor::Database do
 
       it "returns raw repeated_commands data" do
         expect(subject[:repeated_commands]).to include(*expected_repeated_commands)
+      end
+
+      it "returns raw unarchived_traces data" do
+        expect(subject[:unarchived_traces]).to eq(expected_unarchived_traces)
       end
     end
 
@@ -257,7 +274,8 @@ describe GitLab::Monitor::Database do
     let(:prober) do
       opts = { connection_string: "host=localhost",
                allowed_repeated_commands_count: allowed_repeated_commands_count,
-               created_builds_counting_disabled: created_builds_counting_disabled }
+               created_builds_counting_disabled: created_builds_counting_disabled,
+               unarchived_traces_offset_minutes: unarchived_traces_offset_minutes }
       described_class.new(opts,
                           metrics: GitLab::Monitor::PrometheusMetrics.new(include_timestamp: false))
     end
@@ -314,6 +332,10 @@ describe GitLab::Monitor::Database do
 
         it "responds with stale builds Prometheus metrics" do
           expect(subject).to match(/^ci_stale_builds 2$/m)
+        end
+
+        it "responds with unarchived traces Prometheus metrics" do
+          expect(subject).to match(/^ci_unarchived_traces 10$/m)
         end
       end
 
