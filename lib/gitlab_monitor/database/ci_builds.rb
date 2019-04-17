@@ -232,14 +232,33 @@ module GitLab
               subquery.status
           SQL
 
+        UNARCHIVED_TRACES_QUERY =
+          <<~SQL.freeze
+            SELECT
+              COUNT(*) as count
+            FROM ci_builds
+            JOIN ci_build_trace_chunks
+              ON ci_build_trace_chunks.build_id = ci_builds.id
+            LEFT JOIN ci_job_artifacts
+              ON ci_job_artifacts.job_id = ci_builds.id
+              AND ci_job_artifacts.file_type = 3
+            WHERE ci_builds.type = 'Ci::Build'
+              AND ci_builds.status IN ('success', 'failed', 'canceled')
+              AND ci_builds.finished_at < '%s'
+              AND ci_job_artifacts.job_id IS NULL
+          SQL
+
         STATUS_CREATED = "created".freeze
         STATUS_PENDING = "pending".freeze
+
+        DEFAULT_UNARCHIVED_TRACES_OFFSET_MINUTES = 1440
 
         def initialize(opts)
           super(opts)
 
           @allowed_repeated_commands_count = opts[:allowed_repeated_commands_count]
           @created_builds_counting_disabled = opts[:created_builds_counting_disabled]
+          @unarchived_traces_offset_minutes = opts[:unarchived_traces_offset_minutes]
         end
 
         def run
@@ -249,6 +268,7 @@ module GitLab
           results[:stale_builds] = stale_builds
           results[:per_runner] = per_runner_builds
           results[:repeated_commands] = repeated_commands
+          results[:unarchived_traces] = unarchived_traces
           results
         end
 
@@ -334,6 +354,21 @@ module GitLab
           include_has_minutes_field(values, row)
         end
 
+        def unarchived_traces
+          time = Time.now - (unarchived_traces_offset_minutes * 60)
+          query = UNARCHIVED_TRACES_QUERY % [time.strftime("%F %T")] # rubocop:disable Style/FormatString
+
+          with_connection_pool do |conn|
+            conn.exec(query)[0]["count"].to_i
+          end
+        rescue PG::UndefinedTable, PG::UndefinedColumn
+          0
+        end
+
+        def unarchived_traces_offset_minutes
+          @unarchived_traces_offset_minutes ||= DEFAULT_UNARCHIVED_TRACES_OFFSET_MINUTES
+        end
+
         def include_ee_fields(values, row)
           values.merge!(include_bool_if_row_defined(row, :mirror))
           values.merge!(include_bool_if_row_defined(row, :mirror_trigger_builds))
@@ -378,7 +413,8 @@ module GitLab
 
           collector_opts = { connection_string: opts[:connection_string],
                              allowed_repeated_commands_count: opts[:allowed_repeated_commands_count],
-                             created_builds_counting_disabled: opts[:created_builds_counting_disabled] }
+                             created_builds_counting_disabled: opts[:created_builds_counting_disabled],
+                             unarchived_traces_offset_minutes: opts[:unarchived_traces_offset_minutes] }
           @collector = CiBuildsCollector.new(collector_opts)
         end
 
@@ -390,6 +426,7 @@ module GitLab
           ci_stale_builds_metrics
           metrics_per_runner
           repeated_commands_metrics
+          unarchived_traces_metrics
 
           self
         rescue PG::ConnectionBad
@@ -479,6 +516,10 @@ module GitLab
 
             @metrics.add("ci_repeated_commands_builds", value, metric)
           end
+        end
+
+        def unarchived_traces_metrics
+          @metrics.add("ci_unarchived_traces", @results[:unarchived_traces])
         end
       end
     end
