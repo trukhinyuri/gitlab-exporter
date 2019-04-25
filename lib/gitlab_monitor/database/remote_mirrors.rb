@@ -4,7 +4,9 @@ module GitLab
       # A helper class to collect remote mirrors metrics.
       class RemoteMirrorsCollector < Base
         QUERY = <<~SQL.freeze
-          SELECT project_id, url, EXTRACT(EPOCH FROM last_successful_update_at) AS last_successful_update_at
+          SELECT project_id, url,
+          EXTRACT(EPOCH FROM last_successful_update_at) AS last_successful_update_at,
+          EXTRACT(EPOCH FROM last_update_at) AS last_update_at
           FROM remote_mirrors WHERE project_id IN (%s) AND enabled = 't'
         SQL
 
@@ -41,14 +43,18 @@ module GitLab
           )
         end
 
-        def probe_db
+        def probe_db # rubocop:disable Metrics/MethodLength
           results = @collector.run
           results.to_a.each do |row|
-            last_successful_update_at = row.delete("last_successful_update_at").to_i
-
             @metrics.add(
               "project_remote_mirror_last_successful_update_time_seconds",
-              last_successful_update_at,
+              row["last_successful_update_at"].to_i,
+              project_id: row["project_id"],
+              url: row["url"]
+            )
+            @metrics.add(
+              "project_remote_mirror_last_update_time_seconds",
+              row["last_update_at"].to_i,
               project_id: row["project_id"],
               url: row["url"]
             )
