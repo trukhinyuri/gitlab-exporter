@@ -60,6 +60,13 @@ probes:
         - soft_deleted_projects
         - orphaned_projects
         - uploads
+    remote_mirrors:
+      class_name: Database::RemoteMirrors
+      <<: *db_common
+      opts:
+        <<: *db_common_opts
+        project_ids:
+        - 1
 
   process: &process
     methods:
