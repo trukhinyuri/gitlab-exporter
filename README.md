@@ -28,7 +28,7 @@ metrics.
       `gitlab_database_bloat_$type_$key` with type `btree` (index bloat) or `table`
       (table bloat) and keys `bloat_ratio bloat_size extra_size real_size` (see below)
     * [Remote mirrors](lib/gitlab_monitor/database/remote_mirrors.rb) --
-      `project_remote_mirror_last_successful_update_time_seconds`
+      `project_remote_mirror_last_successful_update_time_seconds`, `project_remote_mirror_last_update_time_seconds`
 1. Git
     * [git pull/push timings](lib/gitlab_monitor/git.rb) --
       `git_pull_time_milliseconds`, `git_push_time_milliseconds`
