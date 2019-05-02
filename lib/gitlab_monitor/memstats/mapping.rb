@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module GitLab
   module Monitor
     module MemStats
@@ -56,7 +58,9 @@ module GitLab
         end
 
         def parse_first_line(line)
-          parts = line.strip.split
+          line.strip!
+
+          parts = line.split
           @address_start, @address_end = parts[0].split("-")
           @perms = parts[1]
           @offset = parts[2]
@@ -66,8 +70,15 @@ module GitLab
         end
 
         def parse_field_line(line)
-          parts = line.strip.split
-          field = parts[0].downcase.sub(":", "")
+          line.strip!
+
+          parts = line.split
+
+          return unless parts
+
+          parts[0].downcase!
+          parts[0].sub!(":", "")
+          field = parts[0]
 
           return unless respond_to? "#{field}="
 

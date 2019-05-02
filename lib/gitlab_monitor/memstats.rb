@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative "memstats/mapping"
 
 # Ported from https://github.com/discourse/discourse/blob/master/script/memstats.rb
