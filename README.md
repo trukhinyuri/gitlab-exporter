@@ -41,7 +41,7 @@ metrics.
       * Data from /proc/<pid>/cmdline:
         * `process_resident_memory_bytes`
         * `process_virtual_memory_bytes`
-      * Data from /proc/<pid>/smaps:
+      * Data from /proc/<pid>/smaps -- `probe_smaps` (off by default):
         * `process_smaps_size_bytes`
         * `process_smaps_rss_bytes`
         * `process_smaps_shared_clean_bytes`
