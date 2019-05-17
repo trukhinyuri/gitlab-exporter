@@ -83,11 +83,11 @@ probes:
 
   sidekiq: &sidekiq
     methods:
+      - probe_stats
       - probe_queues
       - probe_jobs
       - probe_workers
       - probe_retries
-      - probe_dead
     opts:
       redis_url: "redis://localhost:6379"
       redis_enable_client: true
