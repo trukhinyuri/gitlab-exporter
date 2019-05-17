@@ -61,7 +61,7 @@ probes:
         - orphaned_projects
         - uploads
     remote_mirrors:
-      class_name: Database::RemoteMirrors
+      class_name: Database::RemoteMirrorsProber
       <<: *db_common
       opts:
         <<: *db_common_opts
