@@ -50,9 +50,25 @@ metrics.
         * `process_smaps_private_dirty_bytes`
         * `process_smaps_swap_bytes`
         * `process_smaps_pss_bytes`
-1. [Sidekiq](lib/gitlab_monitor/sidekiq.rb) -- `sidekiq_queue_size`, `sidekiq_queue_paused`,
-   `sidekiq_queue_latency_seconds`, `sidekiq_enqueued_jobs`, `sidekiq_dead_jobs`,
-   `sidekiq_running_jobs`, `sidekiq_to_be_retried_jobs`
+1. [Sidekiq](lib/gitlab_monitor/sidekiq.rb)
+	* Stats
+	  * `sidekiq_jobs_processed_total`
+	  * `sidekiq_jobs_failed_total`
+	  * `sidekiq_jobs_enqueued_size`
+	  * `sidekiq_jobs_scheduled_size`
+	  * `sidekiq_jobs_retry_size`
+	  * `sidekiq_jobs_dead_size`
+	  * `sidekiq_default_queue_latency_seconds`
+	  * `sidekiq_processes_size`
+	  * `sidekiq_workers_size`
+	* Queues
+	  * `sidekiq_queue_size`
+	  * `sidekiq_queue_paused`
+	  * `sidekiq_queue_latency_seconds`
+	* Jobs
+	  * `sidekiq_enqueued_jobs`
+	  * `sidekiq_running_jobs`
+	  * `sidekiq_to_be_retried_jobs`
 
 ### Setup with GitLab Development Kit
 

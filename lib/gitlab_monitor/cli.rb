@@ -274,6 +274,7 @@ module GitLab
           validate!
 
           ::GitLab::Monitor::SidekiqProber.new(redis_url: @redis_url)
+                                          .probe_stats
                                           .probe_queues
                                           .probe_jobs
                                           .probe_workers

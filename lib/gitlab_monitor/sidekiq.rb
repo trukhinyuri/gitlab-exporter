@@ -21,6 +21,25 @@ module GitLab
         ensure_queue_job_stats_script_loaded
       end
 
+      def probe_stats
+        return self unless connected?
+
+        stats = Sidekiq::Stats.new
+
+        @metrics.add("sidekiq_jobs_processed_total", stats.processed)
+        @metrics.add("sidekiq_jobs_failed_total", stats.failed)
+        @metrics.add("sidekiq_jobs_enqueued_size", stats.enqueued)
+        @metrics.add("sidekiq_jobs_scheduled_size", stats.scheduled_size)
+        @metrics.add("sidekiq_jobs_retry_size", stats.retry_size)
+        @metrics.add("sidekiq_jobs_dead_size", stats.dead_size)
+
+        @metrics.add("sidekiq_default_queue_latency_seconds", stats.default_queue_latency)
+        @metrics.add("sidekiq_processes_size", stats.processes_size)
+        @metrics.add("sidekiq_workers_size", stats.workers_size)
+
+        self
+      end
+
       def probe_queues
         return self unless connected?
 
@@ -92,6 +111,9 @@ module GitLab
       end
 
       def probe_dead
+        puts "[DEPRECATED] probe_dead is now considered obsolete and will be removed in future major versions,"\
+             " please use probe_stats instead"
+
         return self unless connected?
 
         @metrics.add("sidekiq_dead_jobs", Sidekiq::Stats.new.dead_size)
