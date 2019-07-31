@@ -85,7 +85,6 @@ probes:
     methods:
       - probe_stats
       - probe_queues
-      - probe_jobs
       - probe_workers
       - probe_retries
     opts:
