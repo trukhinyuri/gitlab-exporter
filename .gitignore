@@ -1,2 +1,2 @@
 .bundle
-config/gitlab-monitor*.yml
+config/gitlab-exporter*.yml

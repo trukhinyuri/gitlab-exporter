@@ -1,5 +1,5 @@
 require "rspec"
-require "gitlab_monitor"
+require "gitlab_exporter"
 
 require "open3"
 require "tmpdir"

@@ -1,14 +1,14 @@
 require "yaml"
 
 module GitLab
-  module Monitor
+  module Exporter
     # Stores runner classes in a single place
     #
     # The entry point is the module method "for" which takes the name of a runner.
     # In case the runner is invalid it will return a NullRunner which fails with an
     # InvalidCLICommand error, which contains the general application usage instructions.
     module CLI
-      EXECUTABLE_NAME = "gitlab-mon".freeze
+      EXECUTABLE_NAME = "gitlab-exporter".freeze
 
       def self.for(name)
         commands.fetch(name, NullRunner)
@@ -24,7 +24,7 @@ module GitLab
 
         def run
           fail InvalidCLICommand.new("Usage: #{EXECUTABLE_NAME} <command> [options] [arguments...]\n\n"\
-                                     "Available commands are: #{GitLab::Monitor::CLI.commands.keys.join(', ')}")
+                                     "Available commands are: #{GitLab::Exporter::CLI.commands.keys.join(', ')}")
         end
       end
 
@@ -50,10 +50,10 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Monitor::GitProber.new(labels: labels, source: source)
-                                      .probe_pull
-                                      .probe_push
-                                      .write_to(@target)
+          ::GitLab::Exporter::GitProber.new(labels: labels, source: source)
+                                       .probe_pull
+                                       .probe_push
+                                       .write_to(@target)
         end
 
         def options(args)
@@ -106,9 +106,9 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Monitor::Database::TuplesProber.new(connection_string: @db_connection_string)
-                                                   .probe_db
-                                                   .write_to(@target)
+          ::GitLab::Exporter::Database::TuplesProber.new(connection_string: @db_connection_string)
+                                                    .probe_db
+                                                    .write_to(@target)
         end
 
         private
@@ -148,9 +148,9 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Monitor::Database::RowCountProber.new(connection_string: @db_connection_string)
-                                                     .probe_db
-                                                     .write_to(@target)
+          ::GitLab::Exporter::Database::RowCountProber.new(connection_string: @db_connection_string)
+                                                      .probe_db
+                                                      .write_to(@target)
         end
 
         private
@@ -235,11 +235,11 @@ module GitLab
         end
 
         def run
-          ::GitLab::Monitor::ProcessProber.new(pid_or_pattern: @pid || @pattern, name: @name, quantiles: @quantiles)
-                                          .probe_stat
-                                          .probe_count
-                                          .probe_smaps
-                                          .write_to(@target)
+          ::GitLab::Exporter::ProcessProber.new(pid_or_pattern: @pid || @pattern, name: @name, quantiles: @quantiles)
+                                           .probe_stat
+                                           .probe_count
+                                           .probe_smaps
+                                           .write_to(@target)
         end
       end
 
@@ -273,13 +273,13 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Monitor::SidekiqProber.new(redis_url: @redis_url)
-                                          .probe_stats
-                                          .probe_queues
-                                          .probe_jobs
-                                          .probe_workers
-                                          .probe_retries
-                                          .write_to(@target)
+          ::GitLab::Exporter::SidekiqProber.new(redis_url: @redis_url)
+                                           .probe_stats
+                                           .probe_queues
+                                           .probe_jobs
+                                           .probe_workers
+                                           .probe_retries
+                                           .write_to(@target)
         end
 
         private
@@ -317,9 +317,9 @@ module GitLab
         end
 
         def run
-          ::GitLab::Monitor::GitProcessProber.new(quantiles: @quantiles)
-                                             .probe_git
-                                             .write_to(@target)
+          ::GitLab::Exporter::GitProcessProber.new(quantiles: @quantiles)
+                                              .probe_git
+                                              .write_to(@target)
         end
       end
 

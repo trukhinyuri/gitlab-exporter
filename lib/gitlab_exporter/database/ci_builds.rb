@@ -1,5 +1,5 @@
 module GitLab
-  module Monitor
+  module Exporter
     module Database
       # A helper class to collect CI builds metrics.
       class CiBuildsCollector < Base # rubocop:disable Metrics/ClassLength

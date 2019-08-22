@@ -1,5 +1,5 @@
 module GitLab
-  module Monitor
+  module Exporter
     module Database
       # Helper to collect bloat metrics.
       class BloatCollector < Base

@@ -1,11 +1,11 @@
 ## Introduction
 
-gitlab-monitor is a [Prometheus Web exporter] that does the following:
+gitlab-exporter is a [Prometheus Web exporter] that does the following:
 
 1. Collects GitLab production metrics via custom probes defined in a [YAML
-   configuration file](config/gitlab-monitor.yml.example).
+   configuration file](config/gitlab-exporter.yml.example).
 2. Custom probes gather measurements in the form of key/value pairs.
-3. For each probe, gitlab-monitor creates an HTTP endpoint `/<probe_name>`
+3. For each probe, gitlab-exporter creates an HTTP endpoint `/<probe_name>`
    (by default on port 9168) that delivers these metrics to a Prometheus scraper.
 
 A central Prometheus process is configured to poll exporters at a specified
@@ -17,23 +17,23 @@ Below is a list of probes added by this exporter, and their corresponding
 metrics.
 
 1. Database
-    * [Per-table tuple stats](lib/gitlab_monitor/database/tuple_stats.rb) --
+    * [Per-table tuple stats](lib/gitlab_exporter/database/tuple_stats.rb) --
       `gitlab_database_stat_table_*`
-    * [Row count queries](lib/gitlab_monitor/database/row_count.rb) --
+    * [Row count queries](lib/gitlab_exporter/database/row_count.rb) --
       `gitlab_database_rows`
-    * [CI builds](lib/gitlab_monitor/database/ci_builds.rb) --
+    * [CI builds](lib/gitlab_exporter/database/ci_builds.rb) --
       `ci_pending_builds`, `ci_created_builds`, `ci_stale_builds`,
       `ci_running_builds`
-    * [Bloat](lib/gitlab_monitor/database/bloat.rb) --
+    * [Bloat](lib/gitlab_exporter/database/bloat.rb) --
       `gitlab_database_bloat_$type_$key` with type `btree` (index bloat) or `table`
       (table bloat) and keys `bloat_ratio bloat_size extra_size real_size` (see below)
-    * [Remote mirrors](lib/gitlab_monitor/database/remote_mirrors.rb) --
+    * [Remote mirrors](lib/gitlab_exporter/database/remote_mirrors.rb) --
       `project_remote_mirror_last_successful_update_time_seconds`, `project_remote_mirror_last_update_time_seconds`
 1. Git
-    * [git pull/push timings](lib/gitlab_monitor/git.rb) --
+    * [git pull/push timings](lib/gitlab_exporter/git.rb) --
       `git_pull_time_milliseconds`, `git_push_time_milliseconds`
     * git processes stats (see Process below)
-1. [Process](lib/gitlab_monitor/process.rb)
+1. [Process](lib/gitlab_exporter/process.rb)
     * CPU time -- `process_cpu_seconds_total`
     * Start time -- `process_start_time_seconds`
     * Count -- `process_count`
@@ -50,7 +50,7 @@ metrics.
         * `process_smaps_private_dirty_bytes`
         * `process_smaps_swap_bytes`
         * `process_smaps_pss_bytes`
-1. [Sidekiq](lib/gitlab_monitor/sidekiq.rb)
+1. [Sidekiq](lib/gitlab_exporter/sidekiq.rb)
 	* Stats
 	  * `sidekiq_jobs_processed_total`
 	  * `sidekiq_jobs_failed_total`
@@ -72,19 +72,19 @@ metrics.
 
 ### Setup with GitLab Development Kit
 
-gitlab-monitor can be setup with the [GitLab Development Kit] for development.
-When using the gitlab-monitor CLI, you'll need to set the `--db-conn` flag to
+gitlab-exporter can be setup with the [GitLab Development Kit] for development.
+When using the gitlab-exporter CLI, you'll need to set the `--db-conn` flag to
 connect to the PostgreSQL instance in your GDK folder. For example:
 
 ```
-bin/gitlab-mon row-counts --db-conn="dbname=gitlabhq_development host=/Users/<user>/gitlab-development-kit/postgresql"
+bin/gitlab-exporter row-counts --db-conn="dbname=gitlabhq_development host=/Users/<user>/gitlab-development-kit/postgresql"
 ```
 
-### Running gitlab-monitor as a Web exporter
+### Running gitlab-exporter as a Web exporter
 
 When serving the pages on `localhost`, you'll need to edit the YAML
 configuration file. An example can be found under
-[`config/gitlab-monitor.yml.example`](config/gitlab-monitor.yml.example). For
+[`config/gitlab-exporter.yml.example`](config/gitlab-exporter.yml.example). For
 each probe that has to connect to the database, set the `connection_string` to
 `dbname=gitlabhq_development
 host=/Users/<user>/gitlab-development-kit/postgresql`
@@ -92,7 +92,7 @@ host=/Users/<user>/gitlab-development-kit/postgresql`
 Once you have this configured, you can then run:
 
 ```
-bin/gitlab-mon web -c config/gitlab-monitor.yml
+bin/gitlab-exporter web -c config/gitlab-exporter.yml
 ```
 
 Once running, you can point your browser or curl to the following URLs:
@@ -120,7 +120,7 @@ the error.
 
 ## Contributing
 
-gitlab-monitor is an open source project and we are very happy to accept community contributions. Please refer to [CONTRIBUTING.md](/CONTRIBUTING.md) for details.
+gitlab-exporter is an open source project and we are very happy to accept community contributions. Please refer to [CONTRIBUTING.md](/CONTRIBUTING.md) for details.
 
 [Prometheus Web exporter]: https://prometheus.io/docs/instrumenting/exporters/
 [GitLab Development Kit]: https://gitlab.com/gitlab-org/gitlab-development-kit

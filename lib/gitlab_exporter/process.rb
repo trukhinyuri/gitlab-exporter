@@ -3,7 +3,7 @@
 require_relative "memstats"
 
 module GitLab
-  module Monitor
+  module Exporter
     # A helper class to extract memory info from /proc/<pid>/status
     #
 
@@ -95,14 +95,14 @@ module GitLab
 
       def probe_smaps
         @pids.each do |pid|
-          stats = ::GitLab::Monitor::MemStats::Aggregator.new(pid)
+          stats = ::GitLab::Exporter::MemStats::Aggregator.new(pid)
 
           next unless stats.valid?
 
           labels = { name: @name.downcase }
           labels[:pid] = pid unless @use_quantiles
 
-          ::GitLab::Monitor::MemStats::Mapping::FIELDS.each do |field|
+          ::GitLab::Exporter::MemStats::Mapping::FIELDS.each do |field|
             value = stats.totals[field]
 
             if value >= 0

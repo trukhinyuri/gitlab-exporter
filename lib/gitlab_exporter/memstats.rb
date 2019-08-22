@@ -26,7 +26,7 @@ require_relative "memstats/mapping"
 #     size                  149,281,668 kB
 #     swap                    1,719,792 kB
 module GitLab
-  module Monitor
+  module Exporter
     module MemStats
       # Aggregates all metrics for a single PID in /proc/<pid>/smaps
       class Aggregator

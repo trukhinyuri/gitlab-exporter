@@ -1,7 +1,7 @@
 require "spec_helper"
-require "gitlab_monitor/database/row_count"
+require "gitlab_exporter/database/row_count"
 
-describe GitLab::Monitor::Database::RowCountCollector do
+describe GitLab::Exporter::Database::RowCountCollector do
   let(:query) {
     { project_1: { select: :projects, where: "id=1" },
       project_2: { select: :projects, where: "id=2" } }
@@ -10,7 +10,7 @@ describe GitLab::Monitor::Database::RowCountCollector do
 
   describe "#run" do
     before do
-      stub_const("GitLab::Monitor::Database::RowCountCollector::QUERIES", query)
+      stub_const("GitLab::Exporter::Database::RowCountCollector::QUERIES", query)
 
       allow(collector).to receive(:count_from_query_hash).with(query[:project_1]).and_return(3)
       allow(collector).to receive(:count_from_query_hash).with(query[:project_2]).and_return(6)

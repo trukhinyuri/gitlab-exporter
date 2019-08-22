@@ -1,7 +1,7 @@
 require "spec_helper"
-require "gitlab_monitor/memstats"
+require "gitlab_exporter/memstats"
 
-describe GitLab::Monitor::MemStats do
+describe GitLab::Exporter::MemStats do
   let(:pid) { 100 }
   let(:smaps_data) { File.open("spec/fixtures/smaps/sample.txt") }
 

@@ -1,5 +1,5 @@
 require "spec_helper"
-require "gitlab_monitor/cli"
+require "gitlab_exporter/cli"
 
 context "With valid pair of repositories" do
   let(:repos) { GitRepoBuilder.new }
@@ -8,21 +8,21 @@ context "With valid pair of repositories" do
     repos.cleanup
   end
 
-  describe GitLab::Monitor::CLI do
+  describe GitLab::Exporter::CLI do
     it "returns the rigth parser" do
-      expect(GitLab::Monitor::CLI.for("git")).to be(GitLab::Monitor::CLI::GIT)
+      expect(GitLab::Exporter::CLI.for("git")).to be(GitLab::Exporter::CLI::GIT)
     end
 
     it "returns a null parser if it is not found" do
-      expect(GitLab::Monitor::CLI.for("invalid")).to be(GitLab::Monitor::CLI::NullRunner)
+      expect(GitLab::Exporter::CLI.for("invalid")).to be(GitLab::Exporter::CLI::NullRunner)
     end
   end
 
-  describe GitLab::Monitor::CLI::GIT do
+  describe GitLab::Exporter::CLI::GIT do
     let(:output) { StringIO.new }
     it "works end to end" do
       args = CLIArgs.new([repos.cloned_repo, output])
-      ssh = GitLab::Monitor::CLI::GIT.new(args)
+      ssh = GitLab::Exporter::CLI::GIT.new(args)
       ssh.run
       output.rewind
       expect(output.read).to match(/git_push_time_milliseconds \d+ \d+/)

@@ -1,7 +1,7 @@
 require "spec_helper"
-require "gitlab_monitor/database/bloat"
+require "gitlab_exporter/database/bloat"
 
-describe GitLab::Monitor::Database::BloatCollector do
+describe GitLab::Exporter::Database::BloatCollector do
   let(:connection_pool) { double("connection pool") }
   let(:connection) { double("connection") }
 
@@ -25,7 +25,7 @@ describe GitLab::Monitor::Database::BloatCollector do
   end
 end
 
-describe GitLab::Monitor::Database::BloatProber do
+describe GitLab::Exporter::Database::BloatProber do
   let(:opts) { { bloat_types: %i(btree table) } }
   let(:metrics) { double("PrometheusMetrics", add: nil) }
   let(:collector) { double("BloatCollector", run: data) }

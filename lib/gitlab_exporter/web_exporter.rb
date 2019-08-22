@@ -2,7 +2,7 @@ require "sinatra/base"
 require "English"
 
 module GitLab
-  module Monitor
+  module Exporter
     # Metrics web exporter
     class WebExporter < Sinatra::Base
       # A middleware to kill the process if we exceeded a certain threshold

@@ -1,7 +1,7 @@
 require "quantile"
 
 module GitLab
-  module Monitor
+  module Exporter
     # Prometheus metrics container
     #
     # Provides a simple API to `add` metrics and then turn them `to_s` which will just

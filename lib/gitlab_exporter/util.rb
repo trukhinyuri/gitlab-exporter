@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module GitLab
-  module Monitor
+  module Exporter
     # Simple time wrapper that provides a to_i and wraps the execution result
     TrackedResult = Struct.new(:result, :time) do
       def to_i
