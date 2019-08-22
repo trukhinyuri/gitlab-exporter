@@ -2,7 +2,7 @@ require "sidekiq/api"
 require "digest"
 
 module GitLab
-  module Monitor
+  module Exporter
     # A prober for Sidekiq queues
     #
     # It takes the Redis URL Sidekiq is connected to

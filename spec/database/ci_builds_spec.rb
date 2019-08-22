@@ -1,8 +1,8 @@
 require "spec_helper"
-require "gitlab_monitor/database/ci_builds"
+require "gitlab_exporter/database/ci_builds"
 
 # rubocop:disable Metrics/LineLength
-describe GitLab::Monitor::Database do
+describe GitLab::Exporter::Database do
   let(:set_random_page_cost_query) { "SET random_page_cost" }
   let(:builds_query_ee) { "SELECT BUILDS EE" }
   let(:builds_query_ce) { "SELECT BUILDS CE" }
@@ -80,18 +80,18 @@ describe GitLab::Monitor::Database do
   end
 
   before do
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::SET_RANDOM_PAGE_COST", set_random_page_cost_query)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::BUILDS_QUERY_EE", builds_query_ee)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::BUILDS_QUERY_CE", builds_query_ce)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::STALE_BUILDS_QUERY", stale_builds_query)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::PER_RUNNER_QUERY_EE", per_runner_query_ee)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::PER_RUNNER_QUERY_CE", per_runner_query_ce)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::MIRROR_COLUMN_QUERY", mirror_column_query)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_EE", repeated_commands_query_ee)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_CE", repeated_commands_query_ce)
-    stub_const("GitLab::Monitor::Database::CiBuildsCollector::UNARCHIVED_TRACES_QUERY", unarchived_traces_query)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::SET_RANDOM_PAGE_COST", set_random_page_cost_query)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::BUILDS_QUERY_EE", builds_query_ee)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::BUILDS_QUERY_CE", builds_query_ce)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::STALE_BUILDS_QUERY", stale_builds_query)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::PER_RUNNER_QUERY_EE", per_runner_query_ee)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::PER_RUNNER_QUERY_CE", per_runner_query_ce)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::MIRROR_COLUMN_QUERY", mirror_column_query)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_EE", repeated_commands_query_ee)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_CE", repeated_commands_query_ce)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::UNARCHIVED_TRACES_QUERY", unarchived_traces_query)
 
-    allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:connection_pool).and_return(connection_pool)
+    allow_any_instance_of(GitLab::Exporter::Database::CiBuildsCollector).to receive(:connection_pool).and_return(connection_pool)
     allow(connection_pool).to receive(:with).and_yield(connection)
 
     allow(connection).to receive(:transaction).and_yield(connection)
@@ -153,7 +153,7 @@ describe GitLab::Monitor::Database do
     allow(connection).to receive(:exec).with(unarchived_traces_query_with_time).and_return([{ "count" => 10 }])
   end
 
-  describe GitLab::Monitor::Database::CiBuildsCollector do
+  describe GitLab::Exporter::Database::CiBuildsCollector do
     let(:collector) do
       described_class.new(connection_string: "host=localhost",
                           allowed_repeated_commands_count: allowed_repeated_commands_count,
@@ -269,7 +269,7 @@ describe GitLab::Monitor::Database do
     end
   end
 
-  describe GitLab::Monitor::Database::CiBuildsProber do
+  describe GitLab::Exporter::Database::CiBuildsProber do
     let(:writer) { StringIO.new }
     let(:prober) do
       opts = { connection_string: "host=localhost",
@@ -277,11 +277,11 @@ describe GitLab::Monitor::Database do
                created_builds_counting_disabled: created_builds_counting_disabled,
                unarchived_traces_offset_minutes: unarchived_traces_offset_minutes }
       described_class.new(opts,
-                          metrics: GitLab::Monitor::PrometheusMetrics.new(include_timestamp: false))
+                          metrics: GitLab::Exporter::PrometheusMetrics.new(include_timestamp: false))
     end
 
     before do
-      allow_any_instance_of(GitLab::Monitor::Database::CiBuildsCollector).to receive(:connected?).and_return(true)
+      allow_any_instance_of(GitLab::Exporter::Database::CiBuildsCollector).to receive(:connected?).and_return(true)
     end
 
     shared_examples "metrics server" do

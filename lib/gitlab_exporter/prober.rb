@@ -1,5 +1,5 @@
 module GitLab
-  module Monitor
+  module Exporter
     # A class to combine multiple probers into one
     class Prober
       def initialize(prober_opts, metrics: PrometheusMetrics.new)
@@ -30,7 +30,7 @@ module GitLab
         @prober_opts.each do |probe_name, params|
           prober_class_name = params[:class_name] || Utils.camel_case_string("#{probe_name}_prober")
 
-          klass = prober_class_name.split("::").reduce(GitLab::Monitor) { |a, e| a.const_get(e) }
+          klass = prober_class_name.split("::").reduce(GitLab::Exporter) { |a, e| a.const_get(e) }
 
           params[:class] = klass
         end

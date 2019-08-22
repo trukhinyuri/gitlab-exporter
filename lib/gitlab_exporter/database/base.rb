@@ -2,7 +2,7 @@ require "pg"
 require "connection_pool"
 
 module GitLab
-  module Monitor
+  module Exporter
     module Database
       # An abstract class for interacting with DB
       #

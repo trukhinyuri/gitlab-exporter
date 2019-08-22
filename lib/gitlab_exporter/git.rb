@@ -1,7 +1,7 @@
 require "open3"
 
 module GitLab
-  module Monitor
+  module Exporter
     # Git monitoring helping class
     #
     # Takes a repository path for construction and provides 2 main methods:

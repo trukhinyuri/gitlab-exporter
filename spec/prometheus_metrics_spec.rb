@@ -1,6 +1,6 @@
 require "spec_helper"
 
-describe GitLab::Monitor::PrometheusMetrics do
+describe GitLab::Exporter::PrometheusMetrics do
   it "supports simple metrics" do
     expect(subject.add("mymetric", 1.1).to_s).to match(/mymetric 1.1 \d*$/)
   end

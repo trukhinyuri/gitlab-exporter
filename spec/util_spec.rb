@@ -1,12 +1,12 @@
 require "spec_helper"
 
-describe GitLab::Monitor::TimeTracker do
+describe GitLab::Exporter::TimeTracker do
   it "tracks execution time" do
     expect(subject.track { sleep 0.1 }.time).to satisfy { |v| v >= 0.1 }
   end
 end
 
-describe GitLab::Monitor::Utils do
+describe GitLab::Exporter::Utils do
   it "excludes extraneous PIDs" do
     allow(described_class).to receive(:exec_pgrep).and_return("12345 my-process\n98765 sh\n")
 

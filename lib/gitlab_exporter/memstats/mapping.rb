@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module GitLab
-  module Monitor
+  module Exporter
     module MemStats
       # Parses one entry in /proc/[pid]/smaps. For example:
       #

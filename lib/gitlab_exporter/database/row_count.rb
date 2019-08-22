@@ -1,7 +1,7 @@
 require "set"
 
 module GitLab
-  module Monitor
+  module Exporter
     module Database
       # A helper class that executes the query its given and returns an int of
       # the row count

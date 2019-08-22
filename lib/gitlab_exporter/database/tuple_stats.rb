@@ -1,5 +1,5 @@
 module GitLab
-  module Monitor
+  module Exporter
     module Database
       # A helper class to collect tuple stats from the database
       #
