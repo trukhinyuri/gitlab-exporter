@@ -49,6 +49,8 @@ module GitLab
               ON projects.id = ci_builds.project_id
             WHERE ci_builds.type = 'Ci::Build'
               AND ci_builds.status = '%s'
+              -- The created_at filter has been introduced for performance reasons only
+              AND ci_builds.created_at > NOW() - INTERVAL '7 days'
               AND projects.pending_delete = 'f'
             GROUP BY
               projects.namespace_id,
@@ -131,6 +133,8 @@ module GitLab
               ON ci_pipelines.id = ci_builds.commit_id
             WHERE ci_builds.type = 'Ci::Build'
               AND ci_builds.status = 'running'
+              -- The created_at filter has been introduced for performance reasons only
+              AND ci_builds.created_at > NOW() - INTERVAL '7 days'
               AND projects.pending_delete = 'f'
             GROUP BY
               ci_builds.runner_id,
@@ -221,6 +225,8 @@ module GitLab
                 ON namespaces.id = projects.namespace_id
               WHERE ci_builds.type = 'Ci::Build'
                 AND ci_builds.status IN ('running', 'pending')
+              -- The created_at filter has been introduced for performance reasons only
+              AND ci_builds.created_at > NOW() - INTERVAL '7 days'
               GROUP BY
                 projects.namespace_id,
                 projects.shared_runners_enabled,
