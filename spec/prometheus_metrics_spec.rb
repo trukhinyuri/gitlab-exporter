@@ -14,4 +14,13 @@ describe GitLab::Exporter::PrometheusMetrics do
       /mymetric{mylabel="x",myotherlabel="y"} 1.3 \d*$/
     )
   end
+
+  it "fails to add a non-numeric metric value" do
+    expect {
+      subject.add("mymetric", "1.4", mylabel: "x", myotherlabel: "y").to_s
+    }.to raise_error(RuntimeError)
+    expect {
+      subject.add("mymetric", "invalid", mylabel: "x", myotherlabel: "y").to_s
+    }.to raise_error(RuntimeError)
+  end
 end
