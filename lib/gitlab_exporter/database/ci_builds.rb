@@ -463,7 +463,7 @@ module GitLab
               other_values[key] ||= 0
               other_values[key] += metric[:value]
             else
-              add_ci_created_pending_builds(metric_name, metric[:value], metric)
+              add_ci_created_pending_builds(metric_name, metric[:value].to_f, metric)
             end
           end
 
@@ -479,7 +479,7 @@ module GitLab
         end
 
         def ci_stale_builds_metrics
-          @metrics.add("ci_stale_builds", @results[:stale_builds])
+          @metrics.add("ci_stale_builds", @results[:stale_builds].to_f)
         end
 
         def metrics_per_runner
@@ -519,19 +519,19 @@ module GitLab
           labels[:namespace] = "" unless labels[:namespace]
 
           selected_labels = labels.select { |k, _| allowed_labels.include?(k) }.sort.to_h
-          @metrics.add(metric_name, value, selected_labels)
+          @metrics.add(metric_name, value.to_f, selected_labels)
         end
 
         def repeated_commands_metrics
           @results[:repeated_commands].each do |metric|
             value = metric.delete(:value)
 
-            @metrics.add("ci_repeated_commands_builds", value, metric)
+            @metrics.add("ci_repeated_commands_builds", value.to_f, metric)
           end
         end
 
         def unarchived_traces_metrics
-          @metrics.add("ci_unarchived_traces", @results[:unarchived_traces])
+          @metrics.add("ci_unarchived_traces", @results[:unarchived_traces].to_f)
         end
       end
     end

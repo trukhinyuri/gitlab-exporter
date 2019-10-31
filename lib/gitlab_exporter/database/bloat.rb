@@ -60,7 +60,7 @@ module GitLab
         def probe_for_type(type)
           collector.run(type).each do |query_name, data|
             METRIC_KEYS.each do |key|
-              metrics.add("gitlab_database_bloat_#{type}_#{key}", data[key], query_name: query_name)
+              metrics.add("gitlab_database_bloat_#{type}_#{key}", data[key].to_f, query_name: query_name)
             end
           end
 
