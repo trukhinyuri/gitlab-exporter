@@ -206,27 +206,27 @@ describe GitLab::Exporter::Database do
 
     context "when executed on EE" do
       let(:expected_pending_builds) do
-        [{ namespace: "1", shared_runners: "yes", has_minutes: "yes", value: 30 },
-         { namespace: "2", shared_runners: "yes", has_minutes: "yes", value: 50 },
-         { namespace: "3", shared_runners: "yes", has_minutes: "no", value: 1 },
-         { namespace: "4", shared_runners: "yes", has_minutes: "yes", value: 2 },
-         { namespace: "5", shared_runners: "no", has_minutes: "no", value: 2 }]
+        [{ namespace: "1", shared_runners: "yes", has_minutes: "yes", value: 30.0 },
+         { namespace: "2", shared_runners: "yes", has_minutes: "yes", value: 50.0 },
+         { namespace: "3", shared_runners: "yes", has_minutes: "no", value: 1.0 },
+         { namespace: "4", shared_runners: "yes", has_minutes: "yes", value: 2.0 },
+         { namespace: "5", shared_runners: "no", has_minutes: "no", value: 2.0 }]
       end
       let(:expected_created_builds) do
-        [{ namespace: "1", shared_runners: "no", has_minutes: "no", value: 10 },
-         { namespace: "2", shared_runners: "no", has_minutes: "no", value: 20 }]
+        [{ namespace: "1", shared_runners: "no", has_minutes: "no", value: 10.0 },
+         { namespace: "2", shared_runners: "no", has_minutes: "no", value: 20.0 }]
       end
       let(:expected_per_runner) do
-        [{ runner: "1", shared_runner: "yes", namespace: "1", mirror: "no", mirror_trigger_builds: "no", scheduled: "yes", triggered: "no", has_minutes: "yes", value: 15 },
-         { runner: "2", shared_runner: "no", namespace: "2", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5 },
-         { runner: "2", shared_runner: "no", namespace: "3", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "yes", value: 5 },
-         { runner: "3", shared_runner: "no", namespace: "4", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5 }]
+        [{ runner: "1", shared_runner: "yes", namespace: "1", mirror: "no", mirror_trigger_builds: "no", scheduled: "yes", triggered: "no", has_minutes: "yes", value: 15.0 },
+         { runner: "2", shared_runner: "no", namespace: "2", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5.0 },
+         { runner: "2", shared_runner: "no", namespace: "3", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "yes", value: 5.0 },
+         { runner: "3", shared_runner: "no", namespace: "4", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5.0 }]
       end
       let(:expected_repeated_commands) do
-        [{ namespace: "1", project: "1", shared_runners: "yes", status: "pending", has_minutes: "yes", value: 10 },
-         { namespace: "2", project: "2", shared_runners: "no", status: "running", has_minutes: "no", value: 20 },
-         { namespace: "1", project: "3", shared_runners: "no", status: "pending", has_minutes: "yes", value: 30 },
-         { namespace: "2", project: "4", shared_runners: "yes", status: "running", has_minutes: "no", value: 40 }]
+        [{ namespace: "1", project: "1", shared_runners: "yes", status: "pending", has_minutes: "yes", value: 10.0 },
+         { namespace: "2", project: "2", shared_runners: "no", status: "running", has_minutes: "no", value: 20.0 },
+         { namespace: "1", project: "3", shared_runners: "no", status: "pending", has_minutes: "yes", value: 30.0 },
+         { namespace: "2", project: "4", shared_runners: "yes", status: "running", has_minutes: "no", value: 40.0 }]
       end
 
       before do
@@ -331,11 +331,11 @@ describe GitLab::Exporter::Database do
         end
 
         it "responds with stale builds Prometheus metrics" do
-          expect(subject).to match(/^ci_stale_builds 2$/m)
+          expect(subject).to match(/^ci_stale_builds 2.0$/m)
         end
 
         it "responds with unarchived traces Prometheus metrics" do
-          expect(subject).to match(/^ci_unarchived_traces 10$/m)
+          expect(subject).to match(/^ci_unarchived_traces 10.0$/m)
         end
       end
 
@@ -349,34 +349,34 @@ describe GitLab::Exporter::Database do
           prober.write_to(writer)
           output = writer.string
 
-          expect(output).to match(/^ci_stale_builds 0$/m)
+          expect(output).to match(/^ci_stale_builds 0.0$/m)
         end
       end
     end
 
     context "when executed on EE" do
       let(:ci_created_builds_expected_lines) do
-        ['ci_created_builds\{has_minutes="no",namespace="1",shared_runners="no"\} 10',
-         'ci_created_builds\{has_minutes="no",namespace="2",shared_runners="no"\} 20']
+        ['ci_created_builds\{has_minutes="no",namespace="1",shared_runners="no"\} 10.0',
+         'ci_created_builds\{has_minutes="no",namespace="2",shared_runners="no"\} 20.0']
       end
       let(:ci_pending_builds_expected_lines) do
-        ['ci_pending_builds\{has_minutes="yes",namespace="1",shared_runners="yes"\} 30',
-         'ci_pending_builds\{has_minutes="yes",namespace="2",shared_runners="yes"\} 50',
-         'ci_pending_builds\{has_minutes="no",namespace="",shared_runners="yes"\} 1',
-         'ci_pending_builds\{has_minutes="yes",namespace="",shared_runners="yes"\} 2',
-         'ci_pending_builds\{has_minutes="no",namespace="",shared_runners="no"\} 2']
+        ['ci_pending_builds\{has_minutes="yes",namespace="1",shared_runners="yes"\} 30.0',
+         'ci_pending_builds\{has_minutes="yes",namespace="2",shared_runners="yes"\} 50.0',
+         'ci_pending_builds\{has_minutes="no",namespace="",shared_runners="yes"\} 1.0',
+         'ci_pending_builds\{has_minutes="yes",namespace="",shared_runners="yes"\} 2.0',
+         'ci_pending_builds\{has_minutes="no",namespace="",shared_runners="no"\} 2.0']
       end
       let(:ci_running_builds_expected_lines) do
-        ['ci_running_builds\{has_minutes="yes",mirror="no",mirror_trigger_builds="no",namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15',
-         'ci_running_builds\{has_minutes="no",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 5',
-         'ci_running_builds\{has_minutes="yes",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 5',
-         'ci_running_builds\{has_minutes="no",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5']
+        ['ci_running_builds\{has_minutes="yes",mirror="no",mirror_trigger_builds="no",namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15.0',
+         'ci_running_builds\{has_minutes="no",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 5.0',
+         'ci_running_builds\{has_minutes="yes",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 5.0',
+         'ci_running_builds\{has_minutes="no",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5.0']
       end
       let(:ci_repeated_commands_builds_lines) do
-        ['ci_repeated_commands_builds\{namespace="1",project="1",shared_runners="yes",status="pending",has_minutes="yes"\} 10',
-         'ci_repeated_commands_builds\{namespace="2",project="2",shared_runners="no",status="running",has_minutes="no"\} 20',
-         'ci_repeated_commands_builds\{namespace="1",project="3",shared_runners="no",status="pending",has_minutes="yes"\} 30',
-         'ci_repeated_commands_builds\{namespace="2",project="4",shared_runners="yes",status="running",has_minutes="no"\} 40']
+        ['ci_repeated_commands_builds\{namespace="1",project="1",shared_runners="yes",status="pending",has_minutes="yes"\} 10.0',
+         'ci_repeated_commands_builds\{namespace="2",project="2",shared_runners="no",status="running",has_minutes="no"\} 20.0',
+         'ci_repeated_commands_builds\{namespace="1",project="3",shared_runners="no",status="pending",has_minutes="yes"\} 30.0',
+         'ci_repeated_commands_builds\{namespace="2",project="4",shared_runners="yes",status="running",has_minutes="no"\} 40.0']
       end
       let(:namespace_out_of_limit) { 2 }
 
@@ -389,25 +389,25 @@ describe GitLab::Exporter::Database do
 
     context "when executed on CE" do
       let(:ci_created_builds_expected_lines) do
-        ['ci_created_builds\{namespace="1",shared_runners="no"\} 10',
-         'ci_created_builds\{namespace="2",shared_runners="no"\} 20']
+        ['ci_created_builds\{namespace="1",shared_runners="no"\} 10.0',
+         'ci_created_builds\{namespace="2",shared_runners="no"\} 20.0']
       end
       let(:ci_pending_builds_expected_lines) do
-        ['ci_pending_builds\{namespace="1",shared_runners="yes"\} 30',
-         'ci_pending_builds\{namespace="2",shared_runners="yes"\} 50',
-         'ci_pending_builds\{namespace="",shared_runners="yes"\} 3',
-         'ci_pending_builds\{namespace="",shared_runners="no"\} 2']
+        ['ci_pending_builds\{namespace="1",shared_runners="yes"\} 30.0',
+         'ci_pending_builds\{namespace="2",shared_runners="yes"\} 50.0',
+         'ci_pending_builds\{namespace="",shared_runners="yes"\} 3.0',
+         'ci_pending_builds\{namespace="",shared_runners="no"\} 2.0']
       end
       let(:ci_running_builds_expected_lines) do
-        ['ci_running_builds\{namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15',
-         'ci_running_builds\{namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 10',
-         'ci_running_builds\{namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5']
+        ['ci_running_builds\{namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15.0',
+         'ci_running_builds\{namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 10.0',
+         'ci_running_builds\{namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5.0']
       end
       let(:ci_repeated_commands_builds_lines) do
-        ['ci_repeated_commands_builds\{namespace="1",project="1",shared_runners="yes",status="pending"\} 10',
-         'ci_repeated_commands_builds\{namespace="2",project="2",shared_runners="no",status="running"\} 20',
-         'ci_repeated_commands_builds\{namespace="1",project="3",shared_runners="no",status="pending"\} 30',
-         'ci_repeated_commands_builds\{namespace="2",project="4",shared_runners="yes",status="running"\} 40']
+        ['ci_repeated_commands_builds\{namespace="1",project="1",shared_runners="yes",status="pending"\} 10.0',
+         'ci_repeated_commands_builds\{namespace="2",project="2",shared_runners="no",status="running"\} 20.0',
+         'ci_repeated_commands_builds\{namespace="1",project="3",shared_runners="no",status="pending"\} 30.0',
+         'ci_repeated_commands_builds\{namespace="2",project="4",shared_runners="yes",status="running"\} 40.0']
       end
       let(:namespace_out_of_limit) { 0 }
 
