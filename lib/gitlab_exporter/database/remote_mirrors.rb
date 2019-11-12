@@ -48,13 +48,13 @@ module GitLab
           results.to_a.each do |row|
             @metrics.add(
               "project_remote_mirror_last_successful_update_time_seconds",
-              row["last_successful_update_at"].to_i,
+              row["last_successful_update_at"].to_f,
               project_id: row["project_id"],
               url: row["url"]
             )
             @metrics.add(
               "project_remote_mirror_last_update_time_seconds",
-              row["last_update_at"].to_i,
+              row["last_update_at"].to_f,
               project_id: row["project_id"],
               url: row["url"]
             )

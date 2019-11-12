@@ -16,6 +16,8 @@ module GitLab
       end
 
       def add(name, value, quantile = false, **labels)
+        fail "value '#{value}' must be a number" unless value.is_a?(Numeric)
+
         if quantile
           @quantiles[{ name: name, labels: labels }] << value
         else

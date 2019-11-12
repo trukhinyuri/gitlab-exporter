@@ -147,7 +147,7 @@ module GitLab
         def probe_db
           results = @collector.run
           results.each do |key, value|
-            @metrics.add("gitlab_database_rows", value.to_i, query_name: key.to_s)
+            @metrics.add("gitlab_database_rows", value.to_f, query_name: key.to_s)
           end
 
           self
