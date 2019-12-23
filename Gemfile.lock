@@ -60,7 +60,7 @@ GEM
       rack-protection (= 2.0.7)
       tilt (~> 2.0)
     tilt (2.0.9)
-    unicode-display_width (1.1.0)
+    unicode-display_width (1.6.0)
 
 PLATFORMS
   ruby
