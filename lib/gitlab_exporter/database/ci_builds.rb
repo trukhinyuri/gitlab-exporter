@@ -75,7 +75,7 @@ module GitLab
           <<~SQL.freeze
             SELECT
               ci_builds.runner_id,
-              ci_runners.is_shared,
+              ci_runners.runner_type,
               projects.namespace_id,
               projects.mirror,
               projects.mirror_trigger_builds,
@@ -104,7 +104,7 @@ module GitLab
               AND projects.pending_delete = 'f'
             GROUP BY
               ci_builds.runner_id,
-              ci_runners.is_shared,
+              ci_runners.runner_type,
               projects.namespace_id,
               projects.mirror,
               projects.mirror_trigger_builds,
@@ -119,7 +119,7 @@ module GitLab
           <<~SQL.freeze
             SELECT
               ci_builds.runner_id,
-              ci_runners.is_shared,
+              ci_runners.runner_type,
               projects.namespace_id,
               ci_pipelines.pipeline_schedule_id,
               ci_builds.trigger_request_id,
@@ -138,7 +138,7 @@ module GitLab
               AND projects.pending_delete = 'f'
             GROUP BY
               ci_builds.runner_id,
-              ci_runners.is_shared,
+              ci_runners.runner_type,
               projects.namespace_id,
               ci_pipelines.pipeline_schedule_id,
               ci_builds.trigger_request_id
@@ -330,7 +330,7 @@ module GitLab
 
         def transform_per_runners_builds_row_to_values(row)
           values = { runner: row["runner_id"].to_s,
-                     shared_runner: row["is_shared"] == "t" ? "yes" : "no",
+                     runner_type: row["runner_type"],
                      namespace: row["namespace_id"].to_s,
                      scheduled: row["pipeline_schedule_id"] ? "yes" : "no",
                      triggered: row["trigger_request_id"] ? "yes" : "no",
@@ -488,7 +488,7 @@ module GitLab
           @results[:per_runner].each do |metric|
             # If we have a low value, put the value into an "other" bucket.
             if metric[:value] < 10
-              key = { runner: metric[:runner], shared_runner: metric[:shared_runner],
+              key = { runner: metric[:runner], runner_type: metric[:runner_type],
                       scheduled: metric[:scheduled], triggered: metric[:triggered] }
               key[:mirror] = metric[:mirror] if metric[:mirror]
               key[:mirror_trigger_builds] = metric[:mirror_trigger_builds] if metric[:mirror_trigger_builds]
@@ -508,7 +508,7 @@ module GitLab
         def add_ci_running_builds(value, labels)
           add_metric_with_namespace_label(
             "ci_running_builds",
-            [:runner, :namespace, :shared_runner, :scheduled,
+            [:runner, :namespace, :runner_type, :scheduled,
              :triggered, :mirror, :mirror_trigger_builds, :has_minutes],
             value,
             labels

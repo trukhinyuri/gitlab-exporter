@@ -43,8 +43,8 @@ describe GitLab::Exporter::Database do
   end
 
   # rubocop:disable Metrics/ParameterLists
-  def per_runner_query_row_ee(runner_id, is_shared, namespace_id, mirror, mirror_trigger_builds, pipeline_schedule_id, trigger_request_id, has_minutes, count)
-    row = per_runner_query_row_ce(runner_id, is_shared, namespace_id, pipeline_schedule_id, trigger_request_id, count)
+  def per_runner_query_row_ee(runner_id, runner_type, namespace_id, mirror, mirror_trigger_builds, pipeline_schedule_id, trigger_request_id, has_minutes, count)
+    row = per_runner_query_row_ce(runner_id, runner_type, namespace_id, pipeline_schedule_id, trigger_request_id, count)
     row["mirror"] = mirror
     row["mirror_trigger_builds"] = mirror_trigger_builds
     row["has_minutes"] = has_minutes
@@ -53,9 +53,9 @@ describe GitLab::Exporter::Database do
   # rubocop:enable Metrics/ParameterLists
 
   # rubocop:disable Metrics/ParameterLists
-  def per_runner_query_row_ce(runner_id, is_shared, namespace_id, pipeline_schedule_id, trigger_request_id, count)
+  def per_runner_query_row_ce(runner_id, runner_type, namespace_id, pipeline_schedule_id, trigger_request_id, count)
     { "runner_id" => runner_id,
-      "is_shared" => is_shared,
+      "runner_type" => runner_type,
       "namespace_id" => namespace_id,
       "pipeline_schedule_id" => pipeline_schedule_id,
       "trigger_request_id" => trigger_request_id,
@@ -119,16 +119,16 @@ describe GitLab::Exporter::Database do
     allow(connection).to receive(:exec).with(stale_builds_query).and_return([{ "count" => 2 }])
 
     allow(connection).to receive(:exec).with(per_runner_query_ee)
-      .and_return([per_runner_query_row_ee(1, "t", 1, "f", "f", 1, nil, "t", 15),
-                   per_runner_query_row_ee(2, "f", 2, "t", "t", nil, 3, "f", 5),
-                   per_runner_query_row_ee(2, "f", 3, "t", "t", nil, 3, "t", 5),
-                   per_runner_query_row_ee(3, "f", 4, "t", "t", nil, 3, "f", 5)])
+      .and_return([per_runner_query_row_ee(1, "instance_type", 1, "f", "f", 1, nil, "t", 15),
+                   per_runner_query_row_ee(2, "project_type", 2, "t", "t", nil, 3, "f", 5),
+                   per_runner_query_row_ee(2, "project_type", 3, "t", "t", nil, 3, "t", 5),
+                   per_runner_query_row_ee(3, "project_type", 4, "t", "t", nil, 3, "f", 5)])
 
     allow(connection).to receive(:exec).with(per_runner_query_ce)
-      .and_return([per_runner_query_row_ce(1, "t", 1, 1, nil, 15),
-                   per_runner_query_row_ce(2, "f", 2, nil, 3, 5),
-                   per_runner_query_row_ce(2, "f", 3, nil, 3, 5),
-                   per_runner_query_row_ce(3, "f", 4, nil, 3, 5)])
+      .and_return([per_runner_query_row_ce(1, "instance_type", 1, 1, nil, 15),
+                   per_runner_query_row_ce(2, "project_type", 2, nil, 3, 5),
+                   per_runner_query_row_ce(2, "project_type", 3, nil, 3, 5),
+                   per_runner_query_row_ce(3, "project_type", 4, nil, 3, 5)])
 
     # rubocop:disable Style/FormatString
     repeated_commands_query_ee_with_limit = repeated_commands_query_ee % [allowed_repeated_commands_count]
@@ -217,10 +217,10 @@ describe GitLab::Exporter::Database do
          { namespace: "2", shared_runners: "no", has_minutes: "no", value: 20.0 }]
       end
       let(:expected_per_runner) do
-        [{ runner: "1", shared_runner: "yes", namespace: "1", mirror: "no", mirror_trigger_builds: "no", scheduled: "yes", triggered: "no", has_minutes: "yes", value: 15.0 },
-         { runner: "2", shared_runner: "no", namespace: "2", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5.0 },
-         { runner: "2", shared_runner: "no", namespace: "3", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "yes", value: 5.0 },
-         { runner: "3", shared_runner: "no", namespace: "4", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5.0 }]
+        [{ runner: "1", runner_type: "instance_type", namespace: "1", mirror: "no", mirror_trigger_builds: "no", scheduled: "yes", triggered: "no", has_minutes: "yes", value: 15.0 },
+         { runner: "2", runner_type: "project_type", namespace: "2", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5.0 },
+         { runner: "2", runner_type: "project_type", namespace: "3", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "yes", value: 5.0 },
+         { runner: "3", runner_type: "project_type", namespace: "4", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5.0 }]
       end
       let(:expected_repeated_commands) do
         [{ namespace: "1", project: "1", shared_runners: "yes", status: "pending", has_minutes: "yes", value: 10.0 },
@@ -249,10 +249,10 @@ describe GitLab::Exporter::Database do
          { namespace: "2", shared_runners: "no", value: 20 }]
       end
       let(:expected_per_runner) do
-        [{ runner: "1", shared_runner: "yes", namespace: "1", scheduled: "yes", triggered: "no", value: 15 },
-         { runner: "2", shared_runner: "no", namespace: "2", scheduled: "no", triggered: "yes", value: 5 },
-         { runner: "2", shared_runner: "no", namespace: "3", scheduled: "no", triggered: "yes", value: 5 },
-         { runner: "3", shared_runner: "no", namespace: "4", scheduled: "no", triggered: "yes", value: 5 }]
+        [{ runner: "1", runner_type: "instance_type", namespace: "1", scheduled: "yes", triggered: "no", value: 15 },
+         { runner: "2", runner_type: "project_type", namespace: "2", scheduled: "no", triggered: "yes", value: 5 },
+         { runner: "2", runner_type: "project_type", namespace: "3", scheduled: "no", triggered: "yes", value: 5 },
+         { runner: "3", runner_type: "project_type", namespace: "4", scheduled: "no", triggered: "yes", value: 5 }]
       end
       let(:expected_repeated_commands) do
         [{ namespace: "1", project: "1", shared_runners: "yes", status: "pending", value: 10 },
@@ -367,10 +367,10 @@ describe GitLab::Exporter::Database do
          'ci_pending_builds\{has_minutes="no",namespace="",shared_runners="no"\} 2.0']
       end
       let(:ci_running_builds_expected_lines) do
-        ['ci_running_builds\{has_minutes="yes",mirror="no",mirror_trigger_builds="no",namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15.0',
-         'ci_running_builds\{has_minutes="no",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 5.0',
-         'ci_running_builds\{has_minutes="yes",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 5.0',
-         'ci_running_builds\{has_minutes="no",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5.0']
+        ['ci_running_builds\{has_minutes="yes",mirror="no",mirror_trigger_builds="no",namespace="1",runner="1",runner_type="instance_type",scheduled="yes",triggered="no"\} 15.0',
+         'ci_running_builds\{has_minutes="no",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",runner_type="project_type",scheduled="no",triggered="yes"\} 5.0',
+         'ci_running_builds\{has_minutes="yes",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",runner_type="project_type",scheduled="no",triggered="yes"\} 5.0',
+         'ci_running_builds\{has_minutes="no",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="3",runner_type="project_type",scheduled="no",triggered="yes"\} 5.0']
       end
       let(:ci_repeated_commands_builds_lines) do
         ['ci_repeated_commands_builds\{namespace="1",project="1",shared_runners="yes",status="pending",has_minutes="yes"\} 10.0',
@@ -399,9 +399,9 @@ describe GitLab::Exporter::Database do
          'ci_pending_builds\{namespace="",shared_runners="no"\} 2.0']
       end
       let(:ci_running_builds_expected_lines) do
-        ['ci_running_builds\{namespace="1",runner="1",scheduled="yes",shared_runner="yes",triggered="no"\} 15.0',
-         'ci_running_builds\{namespace="",runner="2",scheduled="no",shared_runner="no",triggered="yes"\} 10.0',
-         'ci_running_builds\{namespace="",runner="3",scheduled="no",shared_runner="no",triggered="yes"\} 5.0']
+        ['ci_running_builds\{namespace="1",runner="1",runner_type="instance_type",scheduled="yes",triggered="no"\} 15.0',
+         'ci_running_builds\{namespace="",runner="2",runner_type="project_type",scheduled="no",triggered="yes"\} 10.0',
+         'ci_running_builds\{namespace="",runner="3",runner_type="project_type",scheduled="no",triggered="yes"\} 5.0']
       end
       let(:ci_repeated_commands_builds_lines) do
         ['ci_repeated_commands_builds\{namespace="1",project="1",shared_runners="yes",status="pending"\} 10.0',
