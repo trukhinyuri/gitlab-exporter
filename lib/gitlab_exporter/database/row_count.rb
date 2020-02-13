@@ -79,7 +79,40 @@ module GitLab
             joins: "LEFT JOIN namespaces ON projects.namespace_id = namespaces.id",
             where: "namespaces.id IS NULL"
           },
-          uploads: { select: :uploads }
+          uploads: { select: :uploads },
+          users: {
+            select: :users,
+            joins: "LEFT JOIN
+              (
+                SELECT
+                  members.user_id,
+                  MAX(access_level) as access_level
+                FROM members
+                GROUP BY members.user_id
+              ) AS u
+              ON users.id = u.user_id",
+            where: "ghost IS NULL AND bot_type IS NULL",
+            fields: {
+              admin:        {},
+              external:     {},
+              state:        {},
+              access_level: { definition: "COALESCE(u.access_level, 0)" }
+            }
+          },
+          projects: {
+            select: :projects,
+            fields: {
+              visibility_level: {},
+              archived:         {}
+            }
+          },
+          groups: {
+            select: :namespaces,
+            fields: {
+              visibility_level: {},
+              root:             { definition: "(parent_id IS NULL)" }
+            }
+          }
         }.freeze
 
         def initialize(args)
@@ -105,21 +138,37 @@ module GitLab
 
         def count_from_query_hash(query_hash)
           result = execute(construct_query(query_hash))
-          return 0 unless result
+          return [{ "count": 0, "labels": {} }] unless result
 
-          result[0]["count"]
+          result.map do |row|
+            labels = {}
+            (query_hash[:fields] || []).each do |key, _| labels[key] = row[key.to_s] end
+            { "count": row["count"], "labels": labels }
+          end
         end
 
         def successful_check?(query)
           result = execute("SELECT EXISTS (#{query})")
           return unless result
 
-          result[0]["exists"] == "t"
+          result[0]["exists"]
         end
 
         def execute(query)
           with_connection_pool do |conn|
-            conn.exec(query)
+            tm = PG::BasicTypeMapForResults.new(conn)
+
+            # Remove warning message:
+            # Warning: no type cast defined for type "name" with oid 19.
+            # Please cast this type explicitly to TEXT to be safe for future changes.
+            # Warning: no type cast defined for type "regproc" with oid 24.
+            # Please cast this type explicitly to TEXT to be safe for future changes.
+            [{ "type": "text", "oid": 19 }, { "type": "int4", "oid": 24 }].each do |value|
+              old_coder = tm.coders.find { |c| c.name == value[:type] }
+              tm.add_coder(old_coder.dup.tap { |c| c.oid = value[:oid] })
+            end
+
+            conn.exec(query).map_types!(tm)
           end
         rescue PG::UndefinedTable, PG::UndefinedColumn
           nil
@@ -127,9 +176,16 @@ module GitLab
 
         # Not private so I can test it without meta programming tricks
         def construct_query(query)
-          query_string = "SELECT COUNT(*) FROM #{query[:select]} "
-          query_string << "#{query[:joins]} "       if query[:joins]
-          query_string << "WHERE #{query[:where]}"  if query[:where]
+          query_string = "SELECT COUNT(*)"
+          (query[:fields] || []).each do |key, value|
+            query_string << ", "
+            query_string << "(#{value[:definition]}) AS " if value[:definition]
+            query_string << key.to_s
+          end
+          query_string << " FROM #{query[:select]}"
+          query_string << " #{query[:joins]}"       if query[:joins]
+          query_string << " WHERE #{query[:where]}" if query[:where]
+          query_string << " GROUP BY " + query[:fields].keys.join(", ") if query[:fields]
           query_string << ";"
         end
       end
@@ -146,8 +202,11 @@ module GitLab
 
         def probe_db
           results = @collector.run
-          results.each do |key, value|
-            @metrics.add("gitlab_database_rows", value.to_f, query_name: key.to_s)
+          results.each do |query_name, result|
+            labels = { query_name: query_name.to_s }
+            result.each do |row|
+              @metrics.add("gitlab_database_rows", row[:count].to_f, **labels, **row[:labels])
+            end
           end
 
           self
