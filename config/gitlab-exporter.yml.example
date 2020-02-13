@@ -60,6 +60,9 @@ probes:
         - soft_deleted_projects
         - orphaned_projects
         - uploads
+        - users
+        - projects
+        - groups
     remote_mirrors:
       class_name: Database::RemoteMirrorsProber
       <<: *db_common
