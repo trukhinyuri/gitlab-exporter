@@ -8,6 +8,7 @@ module GitLab
       # This class works under the assumption you do COUNT(*) queries, define
       # queries in the QUERIES constant. If in doubt how these work, read
       # #construct_query
+      # rubocop:disable Metrics/ClassLength
       class RowCountCollector < Base
         WHERE_MIRROR_ENABLED = <<~SQL.freeze
           projects.mirror = true
@@ -19,8 +20,15 @@ module GitLab
           select: :projects,
           joins:  <<~SQL,
             INNER JOIN project_mirror_data ON project_mirror_data.project_id = projects.id
-            INNER JOIN namespaces ON projects.namespace_id = namespaces.id
-            LEFT JOIN plans ON namespaces.plan_id = plans.id
+            INNER JOIN namespaces AS root_namespaces ON root_namespaces.id = (
+              WITH RECURSIVE "base_and_ancestors" AS (
+                (SELECT "namespaces".* FROM "namespaces" WHERE "namespaces"."id" = projects.namespace_id)
+                UNION
+                (SELECT "namespaces".* FROM "namespaces", "base_and_ancestors" WHERE "namespaces"."id" = "base_and_ancestors"."parent_id")
+              ) SELECT "namespaces".id FROM "base_and_ancestors" AS "namespaces" WHERE "namespaces"."parent_id" IS NULL
+            )
+            LEFT JOIN gitlab_subscriptions ON gitlab_subscriptions.namespace_id = root_namespaces.id
+            LEFT JOIN plans ON plans.id = gitlab_subscriptions.hosted_plan_id
           SQL
           check: "SELECT 1 FROM information_schema.tables WHERE table_name='plans'"
         }.freeze
@@ -189,6 +197,7 @@ module GitLab
           query_string << ";"
         end
       end
+      # rubocop:enable Metrics/ClassLength
 
       # The prober which is called when gathering metrics
       class RowCountProber
