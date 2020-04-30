@@ -10,6 +10,11 @@ module GitLab
       # #construct_query
       # rubocop:disable Metrics/ClassLength
       class RowCountCollector < Base
+        # We ignore mirrors with a next_execution_timestamp before
+        # 2020-03-28 because this is when we stopped processing mirrors
+        # for private projects on the free plan. Skipping those can
+        # significantly improve query performance:
+        # https://gitlab.com/gitlab-org/gitlab/-/issues/216252#note_334514544
         WHERE_MIRROR_ENABLED = <<~SQL.freeze
           projects.mirror = true
           AND projects.archived = false
@@ -19,6 +24,7 @@ module GitLab
             OR
             plans.name IN ('early_adopter', 'bronze', 'silver', 'gold')
           )
+          AND project_mirror_data.next_execution_timestamp > '2020-03-28'
         SQL
 
         MIRROR_QUERY = {
