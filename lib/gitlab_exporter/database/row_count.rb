@@ -110,7 +110,7 @@ module GitLab
                 GROUP BY members.user_id
               ) AS u
               ON users.id = u.user_id",
-            where: "ghost IS NULL AND bot_type IS NULL",
+            where: "ghost IS NULL AND user_type IS NULL",
             fields: {
               admin:        {},
               external:     {},
