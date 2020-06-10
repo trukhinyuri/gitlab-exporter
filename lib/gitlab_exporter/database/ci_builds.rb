@@ -144,9 +144,9 @@ module GitLab
               ci_builds.trigger_request_id
           SQL
 
-        MIRROR_COLUMN_QUERY =
+        EE_CHECK_QUERY =
           <<~SQL.freeze
-            SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='projects' AND column_name='mirror')
+            SELECT COUNT(*) FROM licenses
           SQL
 
         REPEATED_COMMANDS_QUERY_EE =
@@ -289,7 +289,7 @@ module GitLab
         def builds(status)
           results = []
 
-          query = mirror_column? ? BUILDS_QUERY_EE : BUILDS_QUERY_CE
+          query = ee? ? BUILDS_QUERY_EE : BUILDS_QUERY_CE
           query = query % [status] # rubocop:disable Style/FormatString
           exec_query_with_custom_random_page_cost(query).each do |row|
             results << transform_builds_row_to_values(row)
@@ -318,7 +318,7 @@ module GitLab
         def per_runner_builds
           results = []
 
-          query = mirror_column? ? PER_RUNNER_QUERY_EE : PER_RUNNER_QUERY_CE
+          query = ee? ? PER_RUNNER_QUERY_EE : PER_RUNNER_QUERY_CE
           exec_query_with_custom_random_page_cost(query).each do |row|
             results << transform_per_runners_builds_row_to_values(row)
           end
@@ -341,7 +341,7 @@ module GitLab
         def repeated_commands
           results = []
 
-          query = mirror_column? ? REPEATED_COMMANDS_QUERY_EE : REPEATED_COMMANDS_QUERY_CE
+          query = ee? ? REPEATED_COMMANDS_QUERY_EE : REPEATED_COMMANDS_QUERY_CE
           query = query % [allowed_repeated_commands_count] # rubocop:disable Style/FormatString
           exec_query_with_custom_random_page_cost(query).each do |row|
             results << transform_repeated_commands_row_to_values(row)
@@ -406,11 +406,11 @@ module GitLab
           end
         end
 
-        def mirror_column?
-          @mirror_column ||=
+        def ee?
+          @ee ||=
             begin
               with_connection_pool do |conn|
-                conn.exec(MIRROR_COLUMN_QUERY)[0]["exists"] == "t"
+                conn.exec(EE_CHECK_QUERY)[0]["count"].to_i > 0 # rubocop:disable Style/NumericPredicate
               end
             rescue PG::UndefinedColumn
               false

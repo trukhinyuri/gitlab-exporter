@@ -9,7 +9,7 @@ describe GitLab::Exporter::Database do
   let(:stale_builds_query) { "SELECT NOT UPDATED RUNNING" }
   let(:per_runner_query_ee) { "SELECT ALL RUNNING PER RUNNER EE" }
   let(:per_runner_query_ce) { "SELECT ALL RUNNING PER RUNNER CE" }
-  let(:mirror_column_query) { "SELECT DOES MIRROR COLUMN EXISTS" }
+  let(:ee_check_query) { "SELECT COUNT(*) FROM licenses" }
   let(:repeated_commands_query_ee) { "SELECT EE REPEATED COMNANDS %d" }
   let(:repeated_commands_query_ce) { "SELECT CE REPEATED COMNANDS %d" }
   let(:unarchived_traces_query) { "SELECT UNARCHIVED TRACES %s LIST" }
@@ -22,11 +22,11 @@ describe GitLab::Exporter::Database do
   let(:unarchived_traces_offset_minutes) { 60 }
 
   def stub_ee
-    allow(connection).to receive(:exec).with(mirror_column_query).and_return([{ "exists" => "t" }])
+    allow(connection).to receive(:exec).with(ee_check_query).and_return([{ "count" => 1 }])
   end
 
   def stub_ce
-    allow(connection).to receive(:exec).with(mirror_column_query).and_return([{ "exists" => "f" }])
+    allow(connection).to receive(:exec).with(ee_check_query).and_return([{ "count" => 0 }])
   end
 
   def builds_query_row_ee(shared_runners_enabled, status, namespace_id, has_minutes, count)
@@ -86,7 +86,7 @@ describe GitLab::Exporter::Database do
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::STALE_BUILDS_QUERY", stale_builds_query)
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::PER_RUNNER_QUERY_EE", per_runner_query_ee)
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::PER_RUNNER_QUERY_CE", per_runner_query_ce)
-    stub_const("GitLab::Exporter::Database::CiBuildsCollector::MIRROR_COLUMN_QUERY", mirror_column_query)
+    stub_const("GitLab::Exporter::Database::CiBuildsCollector::EE_CHECK_QUERY", ee_check_query)
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_EE", repeated_commands_query_ee)
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_CE", repeated_commands_query_ce)
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::UNARCHIVED_TRACES_QUERY", unarchived_traces_query)
