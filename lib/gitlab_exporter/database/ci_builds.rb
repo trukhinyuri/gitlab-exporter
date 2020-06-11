@@ -21,8 +21,7 @@ module GitLab
               ON namespaces.id = projects.namespace_id
             LEFT JOIN namespace_statistics
               ON namespace_statistics.namespace_id = namespaces.id
-            JOIN application_settings
-              ON application_settings.id = 1
+            JOIN application_settings ON (TRUE)
             WHERE ci_builds.type = 'Ci::Build'
               AND ci_builds.status = '%s'
               -- The created_at filter has been introduced for performance reasons only
@@ -95,8 +94,7 @@ module GitLab
               ON namespaces.id = projects.namespace_id
             LEFT JOIN namespace_statistics
               ON namespace_statistics.namespace_id = namespaces.id
-            JOIN application_settings
-              ON application_settings.id = 1
+            JOIN application_settings ON (TRUE)
             WHERE ci_builds.type = 'Ci::Build'
               AND ci_builds.status = 'running'
               -- The created_at filter has been introduced for performance reasons only
@@ -175,8 +173,7 @@ module GitLab
                 ON namespaces.id = projects.namespace_id
               LEFT JOIN namespace_statistics
                 ON namespace_statistics.namespace_id = namespaces.id
-              JOIN application_settings
-                ON application_settings.id = 1
+              JOIN application_settings ON (TRUE)
               WHERE ci_builds.type = 'Ci::Build'
                 AND ci_builds.status IN ('running', 'pending')
                 -- The created_at filter has been introduced for performance reasons only
