@@ -212,7 +212,7 @@ module GitLab
 
       # The prober which is called when gathering metrics
       class RowCountProber
-        def initialize(opts, metrics: PrometheusMetrics.new)
+        def initialize(opts, metrics: PrometheusMetrics.new, logger: nil)
           @metrics = metrics
           @collector = RowCountCollector.new(
             connection_string: opts[:connection_string],

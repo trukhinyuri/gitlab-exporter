@@ -262,8 +262,8 @@ module GitLab
 
         DEFAULT_UNARCHIVED_TRACES_OFFSET_MINUTES = 1440
 
-        def initialize(opts)
-          super(opts)
+        def initialize(opts, logger: nil)
+          super(opts, logger: logger)
 
           @allowed_repeated_commands_count = opts[:allowed_repeated_commands_count]
           @created_builds_counting_disabled = opts[:created_builds_counting_disabled]
@@ -417,14 +417,14 @@ module GitLab
 
       # The prober which is called when gathering metrics
       class CiBuildsProber
-        def initialize(opts, metrics: PrometheusMetrics.new)
+        def initialize(opts, metrics: PrometheusMetrics.new, logger: nil)
           @metrics = metrics
 
           collector_opts = { connection_string: opts[:connection_string],
                              allowed_repeated_commands_count: opts[:allowed_repeated_commands_count],
                              created_builds_counting_disabled: opts[:created_builds_counting_disabled],
                              unarchived_traces_offset_minutes: opts[:unarchived_traces_offset_minutes] }
-          @collector = CiBuildsCollector.new(collector_opts)
+          @collector = CiBuildsCollector.new(collector_opts, logger: logger)
         end
 
         def probe_db
