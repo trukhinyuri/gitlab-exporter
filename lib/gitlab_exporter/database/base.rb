@@ -16,8 +16,9 @@ module GitLab
           end
         end
 
-        def initialize(args)
+        def initialize(args, logger: nil)
           @connection_string = args[:connection_string]
+          @logger = logger
         end
 
         def run
@@ -33,10 +34,14 @@ module GitLab
             begin
               yield conn
             rescue PG::UnableToSend => e
+              @logger.warn "Error sending to the database: #{e}" if @logger
               conn.reset
               raise e
             end
           end
+        rescue PG::Error => e
+          @logger.error "Error connecting to the database: #{e}" if @logger
+          raise e
         end
       end
     end

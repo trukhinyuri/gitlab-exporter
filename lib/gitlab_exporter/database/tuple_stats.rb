@@ -25,9 +25,9 @@ module GitLab
 
       # Probes the DB specified by opts[:connection_string] for tuple stats, then converts them to metrics
       class TuplesProber
-        def initialize(opts, metrics: PrometheusMetrics.new)
+        def initialize(opts, metrics: PrometheusMetrics.new, logger: nil)
           @metrics   = metrics
-          @collector = TupleStatsCollector.new(connection_string: opts[:connection_string])
+          @collector = TupleStatsCollector.new(connection_string: opts[:connection_string], logger: logger)
         end
 
         def probe_db

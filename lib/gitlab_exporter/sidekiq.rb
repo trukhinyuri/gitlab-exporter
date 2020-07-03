@@ -10,9 +10,10 @@ module GitLab
       QUEUE_JOB_STATS_SCRIPT = File.read(File.expand_path("#{__FILE__}/../sidekiq_queue_job_stats.lua")).freeze
       QUEUE_JOB_STATS_SHA    = Digest::SHA1.hexdigest(QUEUE_JOB_STATS_SCRIPT).freeze
 
-      def initialize(opts, metrics: PrometheusMetrics.new)
+      def initialize(opts, metrics: PrometheusMetrics.new, logger: nil)
         @opts    = opts
         @metrics = metrics
+        @logger  = logger
 
         Sidekiq.configure_client do |config|
           config.redis = redis_options

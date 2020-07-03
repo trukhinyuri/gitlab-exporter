@@ -62,7 +62,7 @@ module GitLab
     # Optionally takes a metrics object which by default is a PrometheusMetrics, useful to change the
     # metrics writer to something else.
     class GitProber
-      def initialize(opts, metrics: PrometheusMetrics.new)
+      def initialize(opts, metrics: PrometheusMetrics.new, logger: nil) # rubocop:disable Lint/UnusedMethodArgument
         @metrics = metrics
         @labels = opts[:labels] || {}
         @git = Git.new(opts[:source])
@@ -85,7 +85,7 @@ module GitLab
 
     # A special prober for git processes
     class GitProcessProber
-      def initialize(opts, metrics: PrometheusMetrics.new)
+      def initialize(opts, metrics: PrometheusMetrics.new, logger: nil) # rubocop:disable Lint/UnusedMethodArgument
         @opts    = opts
         @metrics = metrics
       end

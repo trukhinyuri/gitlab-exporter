@@ -2,9 +2,10 @@ module GitLab
   module Exporter
     # A class to combine multiple probers into one
     class Prober
-      def initialize(prober_opts, metrics: PrometheusMetrics.new)
+      def initialize(prober_opts, metrics: PrometheusMetrics.new, logger: nil)
         @prober_opts = prober_opts
         @metrics     = metrics
+        @logger      = logger
 
         resolve_prober_classes
       end
@@ -12,7 +13,7 @@ module GitLab
       def probe_all
         @prober_opts.each do |_probe_name, params|
           Utils.wrap_in_array(params[:opts]).each do |opts|
-            prober = params[:class].new(opts, metrics: @metrics)
+            prober = params[:class].new(opts, metrics: @metrics, logger: @logger)
             params[:methods].each do |meth|
               prober.send(meth)
             end

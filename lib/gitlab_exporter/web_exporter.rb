@@ -42,6 +42,11 @@ module GitLab
 
           memory_threshold = (config[:server] && config[:server][:memory_threshold]) || 1024
           use MemoryKillerMiddleware, memory_threshold
+          use Rack::Logger
+        end
+
+        def logger
+          request.logger
         end
 
         def setup_server(config)
@@ -62,7 +67,7 @@ module GitLab
 
             get "/#{probe_name}" do
               content_type "text/plain; version=0.0.4"
-              prober = Prober.new(opts, metrics: PrometheusMetrics.new(include_timestamp: false))
+              prober = Prober.new(opts, metrics: PrometheusMetrics.new(include_timestamp: false), logger: logger)
 
               prober.probe_all
               prober.write_to(response)
