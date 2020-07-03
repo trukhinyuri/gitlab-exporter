@@ -35,7 +35,7 @@ module GitLab
 
       # The prober which is called when gathering metrics
       class RemoteMirrorsProber
-        def initialize(opts, metrics: PrometheusMetrics.new, logger: nil)
+        def initialize(opts, metrics: PrometheusMetrics.new, logger: nil) # rubocop:disable Lint/UnusedMethodArgument
           @metrics = metrics
           @collector = RemoteMirrorsCollector.new(
             connection_string: opts[:connection_string],
