@@ -175,6 +175,14 @@ module GitLab
 
         def execute(query)
           with_connection_pool do |conn|
+            conn.exec(query).map_types!(type_map_for_results(conn))
+          end
+        rescue PG::UndefinedTable, PG::UndefinedColumn
+          nil
+        end
+
+        def type_map_for_results(conn)
+          @type_map_for_results ||= begin
             tm = PG::BasicTypeMapForResults.new(conn)
 
             # Remove warning message:
@@ -187,10 +195,8 @@ module GitLab
               tm.add_coder(old_coder.dup.tap { |c| c.oid = value[:oid] })
             end
 
-            conn.exec(query).map_types!(tm)
+            tm
           end
-        rescue PG::UndefinedTable, PG::UndefinedColumn
-          nil
         end
 
         # Not private so I can test it without meta programming tricks
