@@ -3,6 +3,8 @@ module GitLab
     module Database
       # Helper to collect bloat metrics.
       class BloatCollector < Base
+        attr_writer :logger
+
         def run(type = :btree)
           execute(self.class.query_for(type)).each_with_object({}) do |row, h|
             h[row["object_name"]] = row
@@ -39,9 +41,11 @@ module GitLab
 
         def initialize(opts,
                        metrics: PrometheusMetrics.new,
-                       collector: BloatCollector.new(connection_string: opts[:connection_string]))
+                       collector: BloatCollector.new(connection_string: opts[:connection_string]),
+                       logger: nil)
           @metrics = metrics
           @collector = collector
+          @collector.logger = logger
           @bloat_types = opts[:bloat_types] || %i(btree table)
         end
 
