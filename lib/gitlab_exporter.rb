@@ -14,5 +14,6 @@ module GitLab
     autoload :WebExporter,       "gitlab_exporter/web_exporter"
     autoload :Prober,            "gitlab_exporter/prober"
     autoload :SidekiqProber,     "gitlab_exporter/sidekiq"
+    autoload :RubyProber,        "gitlab_exporter/ruby"
   end
 end
