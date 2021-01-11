@@ -19,8 +19,7 @@ module GitLab
       # Empty runner that will raise an InvalidCLICommand when executed to provide the usage
       # in the exception message
       class NullRunner
-        def initialize(args)
-        end
+        def initialize(args); end
 
         def run
           fail InvalidCLICommand.new("Usage: #{EXECUTABLE_NAME} <command> [options] [arguments...]\n\n"\

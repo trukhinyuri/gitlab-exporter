@@ -24,7 +24,7 @@ module GitLab
     # Helper methods, some stuff was copied from ActiveSupport
     module Utils
       def camel_case_string(str)
-        str.gsub(/(?:_|^)([a-z\d]*)/i) { $1.capitalize } # rubocop:disable PerlBackrefs
+        str.gsub(/(?:_|^)([a-z\d]*)/i) { $1.capitalize } # rubocop:disable Style/PerlBackrefs
       end
       module_function :camel_case_string
 

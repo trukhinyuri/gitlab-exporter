@@ -35,7 +35,7 @@ module GitLab
 
       # Prober class to gather bloat metrics
       class BloatProber
-        METRIC_KEYS = %w(bloat_ratio bloat_size extra_size real_size).freeze
+        METRIC_KEYS = %w[bloat_ratio bloat_size extra_size real_size].freeze
 
         attr_reader :metrics, :collector, :bloat_types
 
@@ -46,7 +46,7 @@ module GitLab
           @metrics = metrics
           @collector = collector
           @collector.logger = logger
-          @bloat_types = opts[:bloat_types] || %i(btree table)
+          @bloat_types = opts[:bloat_types] || %i[btree table]
         end
 
         def probe_db

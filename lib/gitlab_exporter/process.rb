@@ -105,9 +105,7 @@ module GitLab
           ::GitLab::Exporter::MemStats::Mapping::FIELDS.each do |field|
             value = stats.totals[field]
 
-            if value >= 0
-              @metrics.add("process_smaps_#{field}_bytes", value * 1024, @use_quantiles, **labels)
-            end
+            @metrics.add("process_smaps_#{field}_bytes", value * 1024, @use_quantiles, **labels) if value >= 0
           end
         end
 

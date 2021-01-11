@@ -51,11 +51,9 @@ class CLIArgs
     yield self
   end
 
-  def on(*args)
-  end
+  def on(*args); end
 
-  def banner=(banner)
-  end
+  def banner=(banner); end
 
   def parse!
     @arguments

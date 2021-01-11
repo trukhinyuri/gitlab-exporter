@@ -87,7 +87,7 @@ module GitLab
               end
             end
           end
-        rescue => e
+        rescue StandardError => e
           puts "Error: #{e}"
           @valid = false
           create_memstats_not_available(totals)

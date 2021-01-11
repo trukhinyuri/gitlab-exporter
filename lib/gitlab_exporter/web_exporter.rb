@@ -24,7 +24,7 @@ module GitLab
         private
 
         def memory_usage
-          io = IO.popen(%W(ps -o rss= -p #{$PID}))
+          io = IO.popen(%W[ps -o rss= -p #{$PID}])
 
           mem = io.read
           io.close

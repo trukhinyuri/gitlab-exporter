@@ -1,7 +1,7 @@
 require "spec_helper"
 require "gitlab_exporter"
 
-# rubocop:disable Metrics/LineLength
+# rubocop:disable Layout/LineLength
 describe GitLab::Exporter::GitProcessProber do
   describe ".extract_subcommand" do
     it "extract git subcommand" do

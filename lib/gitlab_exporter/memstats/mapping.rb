@@ -25,7 +25,7 @@ module GitLab
       # Locked:                0 kB
       # VmFlags: rd ex mr mw me dw sd
       class Mapping
-        FIELDS = %w(size rss shared_clean shared_dirty private_clean private_dirty swap pss).freeze
+        FIELDS = %w[size rss shared_clean shared_dirty private_clean private_dirty swap pss].freeze
 
         attr_reader :address_start
         attr_reader :address_end

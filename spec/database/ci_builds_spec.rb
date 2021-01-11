@@ -1,7 +1,7 @@
 require "spec_helper"
 require "gitlab_exporter/database/ci_builds"
 
-# rubocop:disable Metrics/LineLength
+# rubocop:disable Layout/LineLength
 describe GitLab::Exporter::Database do
   let(:set_random_page_cost_query) { "SET random_page_cost" }
   let(:builds_query_ee) { "SELECT BUILDS EE" }
@@ -100,35 +100,35 @@ describe GitLab::Exporter::Database do
     allow(Time).to receive(:now).and_return(time_now)
 
     allow(connection).to receive(:exec).with(builds_query_ee)
-      .and_return([builds_query_row_ee("f", "created", "1", "f", 10),
-                   builds_query_row_ee("t", "pending", "1", "t", 30),
-                   builds_query_row_ee("f", "created", "2", "f", 20),
-                   builds_query_row_ee("t", "pending", "2", "t", 50),
-                   builds_query_row_ee("t", "pending", "3", "f", 1),
-                   builds_query_row_ee("t", "pending", "4", "t", 2),
-                   builds_query_row_ee("f", "pending", "5", "f", 2)])
+                                       .and_return([builds_query_row_ee("f", "created", "1", "f", 10),
+                                                    builds_query_row_ee("t", "pending", "1", "t", 30),
+                                                    builds_query_row_ee("f", "created", "2", "f", 20),
+                                                    builds_query_row_ee("t", "pending", "2", "t", 50),
+                                                    builds_query_row_ee("t", "pending", "3", "f", 1),
+                                                    builds_query_row_ee("t", "pending", "4", "t", 2),
+                                                    builds_query_row_ee("f", "pending", "5", "f", 2)])
     allow(connection).to receive(:exec).with(builds_query_ce)
-      .and_return([builds_query_row_ce("f", "created", "1", 10),
-                   builds_query_row_ce("t", "pending", "1", 30),
-                   builds_query_row_ce("f", "created", "2", 20),
-                   builds_query_row_ce("t", "pending", "2", 50),
-                   builds_query_row_ce("t", "pending", "3", 1),
-                   builds_query_row_ce("t", "pending", "4", 2),
-                   builds_query_row_ce("f", "pending", "5", 2)])
+                                       .and_return([builds_query_row_ce("f", "created", "1", 10),
+                                                    builds_query_row_ce("t", "pending", "1", 30),
+                                                    builds_query_row_ce("f", "created", "2", 20),
+                                                    builds_query_row_ce("t", "pending", "2", 50),
+                                                    builds_query_row_ce("t", "pending", "3", 1),
+                                                    builds_query_row_ce("t", "pending", "4", 2),
+                                                    builds_query_row_ce("f", "pending", "5", 2)])
 
     allow(connection).to receive(:exec).with(stale_builds_query).and_return([{ "count" => 2 }])
 
     allow(connection).to receive(:exec).with(per_runner_query_ee)
-      .and_return([per_runner_query_row_ee(1, "instance_type", 1, "f", "f", 1, nil, "t", 15),
-                   per_runner_query_row_ee(2, "project_type", 2, "t", "t", nil, 3, "f", 5),
-                   per_runner_query_row_ee(2, "project_type", 3, "t", "t", nil, 3, "t", 5),
-                   per_runner_query_row_ee(3, "project_type", 4, "t", "t", nil, 3, "f", 5)])
+                                       .and_return([per_runner_query_row_ee(1, "instance_type", 1, "f", "f", 1, nil, "t", 15),
+                                                    per_runner_query_row_ee(2, "project_type", 2, "t", "t", nil, 3, "f", 5),
+                                                    per_runner_query_row_ee(2, "project_type", 3, "t", "t", nil, 3, "t", 5),
+                                                    per_runner_query_row_ee(3, "project_type", 4, "t", "t", nil, 3, "f", 5)])
 
     allow(connection).to receive(:exec).with(per_runner_query_ce)
-      .and_return([per_runner_query_row_ce(1, "instance_type", 1, 1, nil, 15),
-                   per_runner_query_row_ce(2, "project_type", 2, nil, 3, 5),
-                   per_runner_query_row_ce(2, "project_type", 3, nil, 3, 5),
-                   per_runner_query_row_ce(3, "project_type", 4, nil, 3, 5)])
+                                       .and_return([per_runner_query_row_ce(1, "instance_type", 1, 1, nil, 15),
+                                                    per_runner_query_row_ce(2, "project_type", 2, nil, 3, 5),
+                                                    per_runner_query_row_ce(2, "project_type", 3, nil, 3, 5),
+                                                    per_runner_query_row_ce(3, "project_type", 4, nil, 3, 5)])
 
     # rubocop:disable Style/FormatString
     repeated_commands_query_ee_with_limit = repeated_commands_query_ee % [allowed_repeated_commands_count]

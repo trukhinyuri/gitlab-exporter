@@ -5,7 +5,7 @@ module GitLab
       #
       # It takes a connection string (e.g. "dbname=test port=5432")
       class TupleStatsCollector < Base
-        COLUMNS = %w(relname seq_tup_read idx_tup_fetch n_tup_ins n_tup_upd n_tup_del n_tup_hot_upd n_dead_tup seq_scan)
+        COLUMNS = %w[relname seq_tup_read idx_tup_fetch n_tup_ins n_tup_upd n_tup_del n_tup_hot_upd n_dead_tup seq_scan]
                   .join(",")
         QUERY   = <<-SQL.freeze
           SELECT #{COLUMNS}
@@ -35,9 +35,11 @@ module GitLab
 
           result.each do |table_name, tuple_stats|
             tuple_stats.each do |column_name, value|
+              next if value.is_a?(Numeric)
+
               @metrics.add("gitlab_database_stat_table_#{column_name}",
                            value.to_f,
-                           table_name: table_name) unless value.is_a?(Numeric)
+                           table_name: table_name)
             end
           end
 
