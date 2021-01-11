@@ -36,6 +36,8 @@ module GitLab
       end
 
       class << self
+        DEFAULT_WEB_SERVER = "webrick".freeze
+
         def setup(config)
           setup_server(config[:server])
           setup_probes(config[:probes])
@@ -52,6 +54,7 @@ module GitLab
         def setup_server(config)
           config ||= {}
 
+          set(:server, config.fetch(:name, DEFAULT_WEB_SERVER))
           set(:bind, config.fetch(:listen_address, "0.0.0.0"))
           set(:port, config.fetch(:listen_port, 9168))
         end
