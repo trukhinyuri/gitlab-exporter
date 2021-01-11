@@ -13,6 +13,7 @@ module GitLab
     class Git
       def initialize(repo)
         fail "Repository #{repo} does not exists" unless Dir.exist? repo
+
         @repo = repo
         @tracker = TimeTracker.new
       end
@@ -35,6 +36,7 @@ module GitLab
       def execute(command)
         result = CommandResult.new(*Open3.capture2e(command, chdir: @repo))
         fail "Command #{command} failed with status #{result.status}\n#{result.stdout}" if result.failed?
+
         result
       end
     end
@@ -96,7 +98,7 @@ module GitLab
         Utils.pgrep("^git ").each do |pid|
           process_cmd = begin
                           File.read("/proc/#{pid}/cmdline")
-                        rescue
+                        rescue StandardError
                           "" # Process file is gone (race condition)
                         end
           subcommand  = self.class.extract_subcommand(process_cmd)
@@ -131,6 +133,7 @@ module GitLab
 
       def self.extract_subcommand(cmd)
         return if cmd.empty?
+
         cmd_splitted = cmd.split("\u0000") # cmdline does not return it space-separated
 
         cmd_splitted.shift # Because it's "git"

@@ -391,6 +391,7 @@ module GitLab
 
         def include_bool_if_row_defined(row, field)
           return {} unless row[field.to_s]
+
           { field => row[field.to_s] == "t" ? "yes" : "no" }
         end
 
@@ -470,7 +471,7 @@ module GitLab
 
         def add_ci_created_pending_builds(metric_name, value, labels)
           add_metric_with_namespace_label(metric_name,
-                                          [:namespace, :shared_runners, :has_minutes],
+                                          %i[namespace shared_runners has_minutes],
                                           value,
                                           labels)
         end
@@ -505,8 +506,8 @@ module GitLab
         def add_ci_running_builds(value, labels)
           add_metric_with_namespace_label(
             "ci_running_builds",
-            [:runner, :namespace, :runner_type, :scheduled,
-             :triggered, :mirror, :mirror_trigger_builds, :has_minutes],
+            %i[runner namespace runner_type scheduled
+               triggered mirror mirror_trigger_builds has_minutes],
             value,
             labels
           )

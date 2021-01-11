@@ -29,7 +29,7 @@ module GitLab
 
         MIRROR_QUERY = {
           select: :projects,
-          joins:  <<~SQL,
+          joins: <<~SQL,
             INNER JOIN project_mirror_data ON project_mirror_data.project_id = projects.id
             INNER JOIN namespaces AS root_namespaces ON root_namespaces.id = (
               WITH RECURSIVE "base_and_ancestors" AS (
@@ -112,9 +112,9 @@ module GitLab
               ON users.id = u.user_id",
             where: "user_type IS NULL",
             fields: {
-              admin:        {},
-              external:     {},
-              state:        {},
+              admin: {},
+              external: {},
+              state: {},
               access_level: { definition: "COALESCE(u.access_level, 0)" }
             }
           },
@@ -122,14 +122,14 @@ module GitLab
             select: :projects,
             fields: {
               visibility_level: {},
-              archived:         {}
+              archived: {}
             }
           },
           groups: {
             select: :namespaces,
             fields: {
               visibility_level: {},
-              root:             { definition: "(parent_id IS NULL)" }
+              root: { definition: "(parent_id IS NULL)" }
             }
           }
         }.freeze

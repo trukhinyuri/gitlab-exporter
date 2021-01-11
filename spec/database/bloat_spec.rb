@@ -26,7 +26,7 @@ describe GitLab::Exporter::Database::BloatCollector do
 end
 
 describe GitLab::Exporter::Database::BloatProber do
-  let(:opts) { { bloat_types: %i(btree table) } }
+  let(:opts) { { bloat_types: %i[btree table] } }
   let(:metrics) { double("PrometheusMetrics", add: nil) }
   let(:collector) { double("BloatCollector", run: data) }
 

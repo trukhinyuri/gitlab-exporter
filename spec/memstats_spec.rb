@@ -14,11 +14,11 @@ describe GitLab::Exporter::MemStats do
   it "parses the data properly" do
     expect(subject.valid?).to be_truthy
 
-    nonzero_fields = %w(size rss shared_clean shared_dirty private_dirty pss)
-    zero_fields = %w(private_clean swap)
+    nonzero_fields = %w[size rss shared_clean shared_dirty private_dirty pss]
+    zero_fields = %w[private_clean swap]
 
     nonzero_fields.each do |field|
-      expect(subject.totals[field]).to be > 0 # rubocop:disable Style/NumericPredicate
+      expect(subject.totals[field]).to be > 0
     end
 
     zero_fields.each do |field|

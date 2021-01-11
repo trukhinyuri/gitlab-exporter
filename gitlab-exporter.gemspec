@@ -1,4 +1,4 @@
-lib = File.expand_path("../lib", __FILE__)
+lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "gitlab_exporter/version"
 
@@ -20,13 +20,13 @@ Gem::Specification.new do |s|
   s.homepage      = "http://gitlab.com"
   s.license       = "MIT"
 
+  s.add_runtime_dependency "connection_pool", "~> 2.2.1"
   s.add_runtime_dependency "pg", "~> 1.1"
-  s.add_runtime_dependency "sinatra", "~> 2.0.4"
   s.add_runtime_dependency "quantile", "~> 0.2.0"
-  s.add_runtime_dependency "sidekiq", "~> 5.2.1"
   s.add_runtime_dependency "redis", "~> 4.1.2"
   s.add_runtime_dependency "redis-namespace", "~> 1.6.0"
-  s.add_runtime_dependency "connection_pool", "~> 2.2.1"
+  s.add_runtime_dependency "sidekiq", "~> 5.2.1"
+  s.add_runtime_dependency "sinatra", "~> 2.0.4"
 
   s.add_development_dependency "rspec", "~> 3.7.0"
   s.add_development_dependency "rspec-expectations", "~> 3.7.0"

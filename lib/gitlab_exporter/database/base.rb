@@ -31,13 +31,11 @@ module GitLab
 
         def with_connection_pool
           connection_pool.with do |conn|
-            begin
-              yield conn
-            rescue PG::UnableToSend => e
-              @logger.warn "Error sending to the database: #{e}" if @logger
-              conn.reset
-              raise e
-            end
+            yield conn
+          rescue PG::UnableToSend => e
+            @logger.warn "Error sending to the database: #{e}" if @logger
+            conn.reset
+            raise e
           end
         rescue PG::Error => e
           @logger.error "Error connecting to the database: #{e}" if @logger

@@ -53,21 +53,19 @@ module GitLab
         self
       end
 
-      def probe_jobs # rubocop:disable Metrics/MethodLength
+      def probe_jobs
         return self unless connected?
 
         job_stats = {}
 
         Sidekiq::Queue.all.each do |queue|
-          begin
-            Sidekiq.redis do |conn|
-              stats = conn.evalsha(QUEUE_JOB_STATS_SHA, ["queue:#{queue.name}"])
-              job_stats.merge!(stats.to_h)
-            end
-          rescue Redis::CommandError # Could happen if the script exceeded the maximum run time (5 seconds by default)
-            # FIXME: Should we call SCRIPT KILL?
-            return self
+          Sidekiq.redis do |conn|
+            stats = conn.evalsha(QUEUE_JOB_STATS_SHA, ["queue:#{queue.name}"])
+            job_stats.merge!(stats.to_h)
           end
+        rescue Redis::CommandError # Could happen if the script exceeded the maximum run time (5 seconds by default)
+          # FIXME: Should we call SCRIPT KILL?
+          return self
         end
 
         job_stats.each do |class_name, count|
@@ -153,7 +151,7 @@ module GitLab
                          end
                          true
                        end
-      rescue Redis::CannotConnectError, Redis::TimeoutError # rubocop:disable Lint/HandleExceptions
+      rescue Redis::CannotConnectError, Redis::TimeoutError
         # Maybe we're trying connecting to a slave
       end
 
@@ -164,6 +162,7 @@ module GitLab
           # Using administrative commands on conn directly (which is a Redis::Namespace)
           # will be removed in redis-namespace 2.0.
           next if conn.redis.script(:exists, QUEUE_JOB_STATS_SHA)
+
           conn.redis.script(:load, QUEUE_JOB_STATS_SCRIPT)
         end
       end
