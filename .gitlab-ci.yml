@@ -7,7 +7,7 @@ include:
   - template: Security/Secret-Detection.gitlab-ci.yml # https://gitlab.com/gitlab-org/gitlab-foss/-/blob/master/lib/gitlab/ci/templates/Security/Secret-Detection.gitlab-ci.yml
 
 default:
-  image: "ruby:2.3"
+  image: ruby:2.7
   cache:
     paths:
       - vendor
