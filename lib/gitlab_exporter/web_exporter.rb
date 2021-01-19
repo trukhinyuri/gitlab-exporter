@@ -35,6 +35,21 @@ module GitLab
         end
       end
 
+      # Performs a major GC after each request. We found that this helps to free up
+      # several MB of memory in conjunction with sricter malloc config.
+      # See https://gitlab.com/gitlab-org/gitlab/-/issues/297241
+      class RunGC
+        def initialize(app)
+          @app = app
+        end
+
+        def call(env)
+          @app.call(env).tap do
+            GC.start
+          end
+        end
+      end
+
       class << self
         DEFAULT_WEB_SERVER = "webrick".freeze
 
@@ -45,6 +60,10 @@ module GitLab
           memory_threshold = (config[:server] && config[:server][:memory_threshold]) || 1024
           use MemoryKillerMiddleware, memory_threshold
           use Rack::Logger
+          use RunGC
+
+          # Defrag heap after everything is loaded into memory.
+          GC.compact
         end
 
         def logger
