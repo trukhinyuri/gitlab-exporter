@@ -167,12 +167,10 @@ module GitLab
         end
 
         def successful_check?(query)
-          PrintStats.with("query:run:exists") do
-            result = execute("SELECT EXISTS (#{query})")
-            return unless result
+          result = execute("SELECT EXISTS (#{query})")
+          return unless result
 
-            result[0]["exists"]
-          end
+          result[0]["exists"]
         end
 
         def execute(query)

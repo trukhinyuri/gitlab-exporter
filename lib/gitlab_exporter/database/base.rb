@@ -8,9 +8,16 @@ module GitLab
       #
       # It takes a connection string (e.g. "dbname=test port=5432")
       class Base
+        POOL_SIZE = 3
+
+        # This timeout is configured to higher interval than scrapping
+        # of Prometheus to ensure that connection is kept instead of
+        # needed to be re-initialized
+        POOL_TIMEOUT = 90
+
         def self.connection_pool
           @@connection_pool ||= Hash.new do |h, connection_string| # rubocop:disable Style/ClassVars
-            h[connection_string] = ConnectionPool.new(size: 3, timeout: 5) do
+            h[connection_string] = ConnectionPool.new(size: POOL_SIZE, timeout: POOL_TIMEOUT) do
               PG.connect(connection_string).tap do |conn|
                 configure_type_map_for_results(conn)
               end
