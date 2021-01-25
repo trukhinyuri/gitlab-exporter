@@ -175,28 +175,10 @@ module GitLab
 
         def execute(query)
           with_connection_pool do |conn|
-            conn.exec(query).map_types!(type_map_for_results(conn))
+            conn.exec(query)
           end
         rescue PG::UndefinedTable, PG::UndefinedColumn
           nil
-        end
-
-        def type_map_for_results(conn)
-          @type_map_for_results ||= begin
-            tm = PG::BasicTypeMapForResults.new(conn)
-
-            # Remove warning message:
-            # Warning: no type cast defined for type "name" with oid 19.
-            # Please cast this type explicitly to TEXT to be safe for future changes.
-            # Warning: no type cast defined for type "regproc" with oid 24.
-            # Please cast this type explicitly to TEXT to be safe for future changes.
-            [{ "type": "text", "oid": 19 }, { "type": "int4", "oid": 24 }].each do |value|
-              old_coder = tm.coders.find { |c| c.name == value[:type] }
-              tm.add_coder(old_coder.dup.tap { |c| c.oid = value[:oid] })
-            end
-
-            tm
-          end
         end
 
         # Not private so I can test it without meta programming tricks
