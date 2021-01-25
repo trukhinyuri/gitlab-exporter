@@ -2,6 +2,8 @@
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 
+require "rubygems"
+require "bundler/setup"
 require "optparse"
 require "gitlab_exporter"
 
