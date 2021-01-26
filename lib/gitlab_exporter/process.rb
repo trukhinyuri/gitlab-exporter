@@ -71,6 +71,10 @@ module GitLab
       end
 
       def probe_stat
+        puts "[DEPRECATED] probe_stat and ProcessProber are now considered obsolete"\
+          " and will be removed in future major versions,"\
+          " please use metrics produced by application processes instead"
+
         @pids.each do |pid|
           stats = ProcessStats.new(pid)
           next unless stats.valid?
@@ -88,12 +92,20 @@ module GitLab
       end
 
       def probe_count
+        puts "[DEPRECATED] probe_count and ProcessProber are now considered obsolete"\
+          " and will be removed in future major versions,"\
+          " please use metrics produced by application processes instead"
+
         @metrics.add("process_count", @pids.count, name: @name.downcase)
 
         self
       end
 
       def probe_smaps
+        puts "[DEPRECATED] probe_smaps and ProcessProber are now considered obsolete"\
+          " and will be removed in future major versions,"\
+          " please use metrics produced by application processes instead"
+
         @pids.each do |pid|
           stats = ::GitLab::Exporter::MemStats::Aggregator.new(pid)
 

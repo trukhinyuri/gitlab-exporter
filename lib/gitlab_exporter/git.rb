@@ -93,6 +93,10 @@ module GitLab
       end
 
       def probe_git # rubocop:disable Metrics/MethodLength
+        puts "[DEPRECATED] probe_git and GitProcessProber are now considered obsolete"\
+          " and will be removed in future major versions,"\
+          " please use git metrics produced by Gitaly instead"
+
         counts = Hash.new(0)
 
         Utils.pgrep("^git ").each do |pid|
