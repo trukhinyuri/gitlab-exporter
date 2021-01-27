@@ -95,12 +95,21 @@ probes:
       redis_url: "redis://localhost:6379"
       redis_enable_client: true
 
+  ruby: &ruby
+    class_name: RubyProber
+    methods:
+    - probe_gc
+    opts:
+      quantiles: false
+
   metrics:
     multiple: true
     git_process:
       <<: *git_process
     process:
       <<: *process
+    ruby:
+      <<: *ruby
     sidekiq:
       <<: *sidekiq
     ci_builds:
