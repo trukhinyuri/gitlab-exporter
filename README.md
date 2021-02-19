@@ -33,23 +33,6 @@ metrics.
     * [git pull/push timings](lib/gitlab_exporter/git.rb) --
       `git_pull_time_milliseconds`, `git_push_time_milliseconds`
     * git processes stats (see Process below)
-1. [Process](lib/gitlab_exporter/process.rb)
-    * CPU time -- `process_cpu_seconds_total`
-    * Start time -- `process_start_time_seconds`
-    * Count -- `process_count`
-    * Memory usage
-      * Data from /proc/<pid>/cmdline:
-        * `process_resident_memory_bytes`
-        * `process_virtual_memory_bytes`
-      * Data from /proc/<pid>/smaps -- `probe_smaps` (off by default):
-        * `process_smaps_size_bytes`
-        * `process_smaps_rss_bytes`
-        * `process_smaps_shared_clean_bytes`
-        * `process_smaps_shared_dirty_bytes`
-        * `process_smaps_private_clean_bytes`
-        * `process_smaps_private_dirty_bytes`
-        * `process_smaps_swap_bytes`
-        * `process_smaps_pss_bytes`
 1. [Sidekiq](lib/gitlab_exporter/sidekiq.rb)
 	* Stats
 	  * `sidekiq_jobs_processed_total`
