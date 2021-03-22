@@ -46,7 +46,6 @@ probes:
       <<: *db_common
       opts:
         <<: *db_common_opts
-        allowed_repeated_commands_count: 2
         created_builds_counting_disabled: true
         unarchived_traces_offset_minutes: 1440
     tuple_stats:
