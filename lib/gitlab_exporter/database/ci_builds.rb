@@ -147,100 +147,6 @@ module GitLab
             SELECT COUNT(*) FROM licenses
           SQL
 
-        REPEATED_COMMANDS_QUERY_EE =
-          <<~SQL.freeze
-            SELECT
-              subquery.namespace_id,
-              subquery.shared_runners_enabled,
-              subquery.project_id,
-              subquery.status,
-              subquery.has_minutes,
-              MAX(subquery.count) as count
-            FROM (
-              SELECT
-                projects.namespace_id,
-                projects.shared_runners_enabled,
-                ci_builds.project_id,
-                ci_builds.commit_id,
-                ci_builds.status,
-                (COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) = 0 OR
-                   COALESCE(namespace_statistics.shared_runners_seconds, 0) < COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) * 60) as has_minutes,
-                COUNT(*) AS count
-              FROM ci_builds
-              JOIN projects
-                ON projects.id = ci_builds.project_id
-              JOIN namespaces
-                ON namespaces.id = projects.namespace_id
-              LEFT JOIN namespace_statistics
-                ON namespace_statistics.namespace_id = namespaces.id
-              JOIN application_settings ON (TRUE)
-              WHERE ci_builds.type = 'Ci::Build'
-                AND ci_builds.status IN ('running', 'pending')
-                -- The created_at filter has been introduced for performance reasons only
-                AND ci_builds.created_at > NOW() - INTERVAL '7 days'
-              GROUP BY
-                projects.namespace_id,
-                projects.shared_runners_enabled,
-                ci_builds.project_id,
-                ci_builds.commit_id,
-                ci_builds.status,
-                ci_builds.commands,
-                namespaces.shared_runners_minutes_limit,
-                namespace_statistics.shared_runners_seconds,
-                application_settings.shared_runners_minutes
-              HAVING COUNT(*) > %d
-            ) AS subquery
-            GROUP BY
-              subquery.namespace_id,
-              subquery.shared_runners_enabled,
-              subquery.project_id,
-              subquery.commit_id,
-              subquery.status,
-              subquery.has_minutes
-          SQL
-
-        REPEATED_COMMANDS_QUERY_CE =
-          <<~SQL.freeze
-            SELECT
-              subquery.namespace_id,
-              subquery.shared_runners_enabled,
-              subquery.project_id,
-              subquery.status,
-              MAX(subquery.count) as count
-            FROM (
-              SELECT
-                projects.namespace_id,
-                projects.shared_runners_enabled,
-                ci_builds.project_id,
-                ci_builds.commit_id,
-                ci_builds.status,
-                COUNT(*) AS count
-              FROM ci_builds
-              JOIN projects
-                ON projects.id = ci_builds.project_id
-              JOIN namespaces
-                ON namespaces.id = projects.namespace_id
-              WHERE ci_builds.type = 'Ci::Build'
-                AND ci_builds.status IN ('running', 'pending')
-              -- The created_at filter has been introduced for performance reasons only
-              AND ci_builds.created_at > NOW() - INTERVAL '7 days'
-              GROUP BY
-                projects.namespace_id,
-                projects.shared_runners_enabled,
-                ci_builds.project_id,
-                ci_builds.commit_id,
-                ci_builds.status,
-                ci_builds.commands
-              HAVING COUNT(*) > %d
-            ) AS subquery
-            GROUP BY
-              subquery.namespace_id,
-              subquery.shared_runners_enabled,
-              subquery.project_id,
-              subquery.commit_id,
-              subquery.status
-          SQL
-
         UNARCHIVED_TRACES_QUERY =
           <<~SQL.freeze
             SELECT
@@ -265,7 +171,6 @@ module GitLab
         def initialize(opts, logger: nil)
           super(opts, logger: logger)
 
-          @allowed_repeated_commands_count = opts[:allowed_repeated_commands_count]
           @created_builds_counting_disabled = opts[:created_builds_counting_disabled]
           @unarchived_traces_offset_minutes = opts[:unarchived_traces_offset_minutes]
         end
@@ -276,7 +181,6 @@ module GitLab
           results[:pending_builds] = builds(STATUS_PENDING)
           results[:stale_builds] = stale_builds
           results[:per_runner] = per_runner_builds
-          results[:repeated_commands] = repeated_commands
           results[:unarchived_traces] = unarchived_traces
           results
         end
@@ -333,34 +237,6 @@ module GitLab
                      triggered: row["trigger_request_id"] ? "yes" : "no",
                      value: row["count"].to_i }
           include_ee_fields(values, row)
-        end
-
-        def repeated_commands
-          results = []
-
-          query = ee? ? REPEATED_COMMANDS_QUERY_EE : REPEATED_COMMANDS_QUERY_CE
-          query = query % [allowed_repeated_commands_count] # rubocop:disable Style/FormatString
-          exec_query_with_custom_random_page_cost(query).each do |row|
-            results << transform_repeated_commands_row_to_values(row)
-          end
-
-          results
-        rescue PG::UndefinedTable, PG::UndefinedColumn
-          []
-        end
-
-        def allowed_repeated_commands_count
-          @allowed_repeated_commands_count ||= 2
-        end
-
-        def transform_repeated_commands_row_to_values(row)
-          values = { namespace: row["namespace_id"].to_s,
-                     project: row["project_id"].to_s,
-                     shared_runners: row["shared_runners_enabled"] == "t" ? "yes" : "no",
-                     status: row["status"].to_s,
-                     value: row["count"].to_i }
-
-          include_has_minutes_field(values, row)
         end
 
         def unarchived_traces
@@ -422,7 +298,6 @@ module GitLab
           @metrics = metrics
 
           collector_opts = { connection_string: opts[:connection_string],
-                             allowed_repeated_commands_count: opts[:allowed_repeated_commands_count],
                              created_builds_counting_disabled: opts[:created_builds_counting_disabled],
                              unarchived_traces_offset_minutes: opts[:unarchived_traces_offset_minutes] }
           @collector = CiBuildsCollector.new(collector_opts, logger: logger)
@@ -435,7 +310,6 @@ module GitLab
           ci_builds_metrics(@results[:pending_builds], "ci_pending_builds")
           ci_stale_builds_metrics
           metrics_per_runner
-          repeated_commands_metrics
           unarchived_traces_metrics
 
           self
@@ -518,14 +392,6 @@ module GitLab
 
           selected_labels = labels.select { |k, _| allowed_labels.include?(k) }.sort.to_h
           @metrics.add(metric_name, value.to_f, selected_labels)
-        end
-
-        def repeated_commands_metrics
-          @results[:repeated_commands].each do |metric|
-            value = metric.delete(:value)
-
-            @metrics.add("ci_repeated_commands_builds", value.to_f, metric)
-          end
         end
 
         def unarchived_traces_metrics

@@ -10,12 +10,9 @@ describe GitLab::Exporter::Database do
   let(:per_runner_query_ee) { "SELECT ALL RUNNING PER RUNNER EE" }
   let(:per_runner_query_ce) { "SELECT ALL RUNNING PER RUNNER CE" }
   let(:ee_check_query) { "SELECT COUNT(*) FROM licenses" }
-  let(:repeated_commands_query_ee) { "SELECT EE REPEATED COMNANDS %d" }
-  let(:repeated_commands_query_ce) { "SELECT CE REPEATED COMNANDS %d" }
   let(:unarchived_traces_query) { "SELECT UNARCHIVED TRACES %s LIST" }
   let(:connection_pool) { double("connection pool") }
   let(:connection) { double("connection") }
-  let(:allowed_repeated_commands_count) { 5 }
   let(:created_builds_counting_disabled) { true }
   let(:time_now) { Time.new(2019, 4, 9, 6, 30, 0) }
   let(:unarchived_traces_query_time) { "2019-04-09 05:30:00" }
@@ -63,22 +60,6 @@ describe GitLab::Exporter::Database do
   end
   # rubocop:enable Metrics/ParameterLists
 
-  # rubocop:disable Metrics/ParameterLists
-  def repeated_commands_query_row_ee(namespace_id, shared_runners_enabled, project_id, status, has_minutes, count)
-    row = repeated_commands_query_row_ce(namespace_id, shared_runners_enabled, project_id, status, count)
-    row["has_minutes"] = has_minutes
-    row
-  end
-  # rubocop:enable Metrics/ParameterLists
-
-  def repeated_commands_query_row_ce(namespace_id, shared_runners_enabled, project_id, status, count)
-    { "namespace_id" => namespace_id,
-      "shared_runners_enabled" => shared_runners_enabled,
-      "project_id" => project_id,
-      "status" => status,
-      "count" => count }
-  end
-
   before do
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::SET_RANDOM_PAGE_COST", set_random_page_cost_query)
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::BUILDS_QUERY_EE", builds_query_ee)
@@ -87,8 +68,6 @@ describe GitLab::Exporter::Database do
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::PER_RUNNER_QUERY_EE", per_runner_query_ee)
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::PER_RUNNER_QUERY_CE", per_runner_query_ce)
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::EE_CHECK_QUERY", ee_check_query)
-    stub_const("GitLab::Exporter::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_EE", repeated_commands_query_ee)
-    stub_const("GitLab::Exporter::Database::CiBuildsCollector::REPEATED_COMMANDS_QUERY_CE", repeated_commands_query_ce)
     stub_const("GitLab::Exporter::Database::CiBuildsCollector::UNARCHIVED_TRACES_QUERY", unarchived_traces_query)
 
     allow_any_instance_of(GitLab::Exporter::Database::CiBuildsCollector).to receive(:connection_pool).and_return(connection_pool)
@@ -130,24 +109,6 @@ describe GitLab::Exporter::Database do
                                                     per_runner_query_row_ce(2, "project_type", 3, nil, 3, 5),
                                                     per_runner_query_row_ce(3, "project_type", 4, nil, 3, 5)])
 
-    # rubocop:disable Style/FormatString
-    repeated_commands_query_ee_with_limit = repeated_commands_query_ee % [allowed_repeated_commands_count]
-    repeated_commands_query_ce_with_limit = repeated_commands_query_ce % [allowed_repeated_commands_count]
-    # rubocop:enable Style/FormatString
-
-    allow(connection).to receive(:exec)
-      .with(repeated_commands_query_ee_with_limit)
-      .and_return([repeated_commands_query_row_ee(1, "t", 1, "pending", "t", 10),
-                   repeated_commands_query_row_ee(2, "f", 2, "running", "f", 20),
-                   repeated_commands_query_row_ee(1, "f", 3, "pending", "t", 30),
-                   repeated_commands_query_row_ee(2, "t", 4, "running", "f", 40)])
-    allow(connection).to receive(:exec)
-      .with(repeated_commands_query_ce_with_limit)
-      .and_return([repeated_commands_query_row_ce(1, "t", 1, "pending", 10),
-                   repeated_commands_query_row_ce(2, "f", 2, "running", 20),
-                   repeated_commands_query_row_ce(1, "f", 3, "pending", 30),
-                   repeated_commands_query_row_ce(2, "t", 4, "running", 40)])
-
     unarchived_traces_query_with_time = unarchived_traces_query % [unarchived_traces_query_time] # rubocop:disable Style/FormatString
 
     allow(connection).to receive(:exec).with(unarchived_traces_query_with_time).and_return([{ "count" => 10 }])
@@ -156,7 +117,6 @@ describe GitLab::Exporter::Database do
   describe GitLab::Exporter::Database::CiBuildsCollector do
     let(:collector) do
       described_class.new(connection_string: "host=localhost",
-                          allowed_repeated_commands_count: allowed_repeated_commands_count,
                           created_builds_counting_disabled: created_builds_counting_disabled,
                           unarchived_traces_offset_minutes: unarchived_traces_offset_minutes)
     end
@@ -195,10 +155,6 @@ describe GitLab::Exporter::Database do
         expect(subject[:stale_builds]).to eq(expected_stale_builds)
       end
 
-      it "returns raw repeated_commands data" do
-        expect(subject[:repeated_commands]).to include(*expected_repeated_commands)
-      end
-
       it "returns raw unarchived_traces data" do
         expect(subject[:unarchived_traces]).to eq(expected_unarchived_traces)
       end
@@ -221,12 +177,6 @@ describe GitLab::Exporter::Database do
          { runner: "2", runner_type: "project_type", namespace: "2", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5.0 },
          { runner: "2", runner_type: "project_type", namespace: "3", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "yes", value: 5.0 },
          { runner: "3", runner_type: "project_type", namespace: "4", mirror: "yes", mirror_trigger_builds: "yes", scheduled: "no", triggered: "yes", has_minutes: "no", value: 5.0 }]
-      end
-      let(:expected_repeated_commands) do
-        [{ namespace: "1", project: "1", shared_runners: "yes", status: "pending", has_minutes: "yes", value: 10.0 },
-         { namespace: "2", project: "2", shared_runners: "no", status: "running", has_minutes: "no", value: 20.0 },
-         { namespace: "1", project: "3", shared_runners: "no", status: "pending", has_minutes: "yes", value: 30.0 },
-         { namespace: "2", project: "4", shared_runners: "yes", status: "running", has_minutes: "no", value: 40.0 }]
       end
 
       before do
@@ -254,12 +204,6 @@ describe GitLab::Exporter::Database do
          { runner: "2", runner_type: "project_type", namespace: "3", scheduled: "no", triggered: "yes", value: 5 },
          { runner: "3", runner_type: "project_type", namespace: "4", scheduled: "no", triggered: "yes", value: 5 }]
       end
-      let(:expected_repeated_commands) do
-        [{ namespace: "1", project: "1", shared_runners: "yes", status: "pending", value: 10 },
-         { namespace: "2", project: "2", shared_runners: "no", status: "running", value: 20 },
-         { namespace: "1", project: "3", shared_runners: "no", status: "pending", value: 30 },
-         { namespace: "2", project: "4", shared_runners: "yes", status: "running", value: 40 }]
-      end
 
       before do
         stub_ce
@@ -273,7 +217,6 @@ describe GitLab::Exporter::Database do
     let(:writer) { StringIO.new }
     let(:prober) do
       opts = { connection_string: "host=localhost",
-               allowed_repeated_commands_count: allowed_repeated_commands_count,
                created_builds_counting_disabled: created_builds_counting_disabled,
                unarchived_traces_offset_minutes: unarchived_traces_offset_minutes }
       described_class.new(opts,
@@ -324,12 +267,6 @@ describe GitLab::Exporter::Database do
           end
         end
 
-        it "responds with repeated commands Prometheus metrics" do
-          ci_repeated_commands_builds_lines.each do |expected_line|
-            expect(subject).to match(Regexp.new("^#{expected_line}$", Regexp::MULTILINE))
-          end
-        end
-
         it "responds with stale builds Prometheus metrics" do
           expect(subject).to match(/^ci_stale_builds 2.0$/m)
         end
@@ -372,12 +309,6 @@ describe GitLab::Exporter::Database do
          'ci_running_builds\{has_minutes="yes",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="2",runner_type="project_type",scheduled="no",triggered="yes"\} 5.0',
          'ci_running_builds\{has_minutes="no",mirror="yes",mirror_trigger_builds="yes",namespace="",runner="3",runner_type="project_type",scheduled="no",triggered="yes"\} 5.0']
       end
-      let(:ci_repeated_commands_builds_lines) do
-        ['ci_repeated_commands_builds\{namespace="1",project="1",shared_runners="yes",status="pending",has_minutes="yes"\} 10.0',
-         'ci_repeated_commands_builds\{namespace="2",project="2",shared_runners="no",status="running",has_minutes="no"\} 20.0',
-         'ci_repeated_commands_builds\{namespace="1",project="3",shared_runners="no",status="pending",has_minutes="yes"\} 30.0',
-         'ci_repeated_commands_builds\{namespace="2",project="4",shared_runners="yes",status="running",has_minutes="no"\} 40.0']
-      end
       let(:namespace_out_of_limit) { 2 }
 
       before do
@@ -402,12 +333,6 @@ describe GitLab::Exporter::Database do
         ['ci_running_builds\{namespace="1",runner="1",runner_type="instance_type",scheduled="yes",triggered="no"\} 15.0',
          'ci_running_builds\{namespace="",runner="2",runner_type="project_type",scheduled="no",triggered="yes"\} 10.0',
          'ci_running_builds\{namespace="",runner="3",runner_type="project_type",scheduled="no",triggered="yes"\} 5.0']
-      end
-      let(:ci_repeated_commands_builds_lines) do
-        ['ci_repeated_commands_builds\{namespace="1",project="1",shared_runners="yes",status="pending"\} 10.0',
-         'ci_repeated_commands_builds\{namespace="2",project="2",shared_runners="no",status="running"\} 20.0',
-         'ci_repeated_commands_builds\{namespace="1",project="3",shared_runners="no",status="pending"\} 30.0',
-         'ci_repeated_commands_builds\{namespace="2",project="4",shared_runners="yes",status="running"\} 40.0']
       end
       let(:namespace_out_of_limit) { 0 }
 
