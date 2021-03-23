@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-exporter (10.0.0)
+    gitlab-exporter (10.1.0)
       connection_pool (~> 2.2.1)
       pg (~> 1.1)
       puma (~> 5.1.1)
