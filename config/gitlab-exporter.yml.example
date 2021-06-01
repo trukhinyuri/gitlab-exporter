@@ -78,8 +78,6 @@ probes:
     opts:
       - pid_or_pattern: "sidekiq .* \\[.*?\\]"
         name: sidekiq
-      - pid_or_pattern: "unicorn.* worker\\[.*?\\]"
-        name: unicorn
       - pid_or_pattern: "git-upload-pack --stateless-rpc"
         name: git_upload_pack
         quantiles: true
