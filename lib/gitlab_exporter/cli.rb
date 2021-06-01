@@ -217,7 +217,7 @@ module GitLab
             opts.on("--pid=123", "Process ID") do |val|
               @pid = val
             end
-            opts.on("--pattern=unicorn", "Process command pattern") do |val|
+            opts.on("--pattern=worker", "Process command pattern") do |val|
               @pattern = val
             end
             opts.on("--name=NAME", "Process name to be used in metrics") do |val|
