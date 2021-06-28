@@ -10,6 +10,13 @@ module GitLab
       QUEUE_JOB_STATS_SCRIPT = File.read(File.expand_path("#{__FILE__}/../sidekiq_queue_job_stats.lua")).freeze
       QUEUE_JOB_STATS_SHA    = Digest::SHA1.hexdigest(QUEUE_JOB_STATS_SCRIPT).freeze
 
+      # The maximum depth (from the head) of each queue to probe. Probing the
+      # entirety of a very large queue will take longer and run the risk of
+      # timing out. But when we have a very large queue, we are most in need of
+      # reliable metrics. This trades off completeness for predictability by
+      # only taking a limited amount of items from the head of the queue.
+      PROBE_JOBS_LIMIT = 10_000
+
       POOL_SIZE = 3
 
       # This timeout is configured to higher interval than scrapping
@@ -62,6 +69,13 @@ module GitLab
         self
       end
 
+      # Count worker classes present in Sidekiq queues. This uses a Lua
+      # script to find all jobs in all queues. That script will block
+      # all other Redis commands:
+      # https://redis.io/commands/eval#atomicity-of-scripts
+      #
+      # The script is generally fast, but may be slower with very large
+      # queues, which is why this is not enabled by default.
       def probe_jobs
         with_sidekiq do
           job_stats = {}
@@ -73,6 +87,40 @@ module GitLab
             end
           rescue Redis::CommandError # Could happen if the script exceeded the maximum run time (5 seconds by default)
             # FIXME: Should we call SCRIPT KILL?
+            return self
+          end
+
+          job_stats.each do |class_name, count|
+            @metrics.add("sidekiq_enqueued_jobs", count, name: class_name)
+          end
+        end
+
+        self
+      end
+
+      # This does the same as #probe_jobs, but only looks at the first
+      # PROBE_JOBS_LIMIT jobs in each queue. This means that we run a
+      # single LRANGE command for each queue, which does not block other
+      # commands. For queues over PROBE_JOBS_LIMIT in size, this means
+      # that we will not have completely accurate statistics, but the
+      # probe performance will also not degrade as the queue gets
+      # larger.
+      #
+      # DO NOT USE this and probe_jobs together, as they export the same
+      # metric (sidekiq_enqueued_jobs).
+      def probe_jobs_limit # rubocop:disable Metrics/MethodLength
+        with_sidekiq do
+          job_stats = Hash.new(0)
+
+          Sidekiq::Queue.all.each do |queue|
+            Sidekiq.redis do |conn|
+              conn.lrange("queue:#{queue.name}", 0, PROBE_JOBS_LIMIT).each do |job|
+                job_class = Sidekiq.load_json(job)["class"]
+
+                job_stats[job_class] += 1
+              end
+            end
+          rescue Redis::CommandError # Could happen if the script exceeded the maximum run time (5 seconds by default)
             return self
           end
 
