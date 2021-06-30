@@ -23,4 +23,19 @@ describe GitLab::Exporter::PrometheusMetrics do
       subject.add("mymetric", "invalid", mylabel: "x", myotherlabel: "y").to_s
     }.to raise_error(RuntimeError)
   end
+
+  it "supports described metrics" do
+    time = Time.now
+
+    allow(Time).to receive(:now).and_return(time)
+
+    subject.describe("mymetric", "description")
+    subject.describe("missingmetric", "otherdescription")
+    subject.add("mymetric", 1.3, mylabel: "x", myotherlabel: "y")
+
+    expect(subject.to_s).to eq(<<~METRICS)
+      # HELP mymetric description
+      mymetric{mylabel="x",myotherlabel="y"} 1.3 #{(time.to_f * 1000).to_i}
+    METRICS
+  end
 end

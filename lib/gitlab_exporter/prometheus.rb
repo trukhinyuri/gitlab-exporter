@@ -12,7 +12,12 @@ module GitLab
       def initialize(include_timestamp: true)
         @metrics = Hash.new { |h, k| h[k] = [] }
         @quantiles = Hash.new { |h, k| h[k] = [] }
+        @metric_descriptions = {}
         @include_timestamp = include_timestamp
+      end
+
+      def describe(name, description)
+        @metric_descriptions[name] = description
       end
 
       def add(name, value, quantile = false, **labels)
@@ -32,6 +37,8 @@ module GitLab
 
         buffer = ""
         @metrics.each do |name, measurements|
+          buffer << "# HELP #{name} #{@metric_descriptions[name]}\n" if @metric_descriptions[name]
+
           measurements.each do |measurement|
             buffer << name.to_s
             labels = (measurement[:labels] || {}).map { |label, value| "#{label}=\"#{value}\"" }.join(",")
