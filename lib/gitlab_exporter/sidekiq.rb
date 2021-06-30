@@ -109,6 +109,9 @@ module GitLab
       # DO NOT USE this and probe_jobs together, as they export the same
       # metric (sidekiq_enqueued_jobs).
       def probe_jobs_limit # rubocop:disable Metrics/MethodLength
+        @metrics.describe("sidekiq_enqueued_jobs",
+                          "Total number of jobs enqueued by class name. Only inspects the first #{PROBE_JOBS_LIMIT} jobs per queue.") # rubocop:disable Layout/LineLength
+
         with_sidekiq do
           job_stats = Hash.new(0)
 
