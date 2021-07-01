@@ -123,8 +123,6 @@ module GitLab
                 job_stats[job_class] += 1
               end
             end
-          rescue Redis::CommandError # Could happen if the script exceeded the maximum run time (5 seconds by default)
-            return self
           end
 
           job_stats.each do |class_name, count|
