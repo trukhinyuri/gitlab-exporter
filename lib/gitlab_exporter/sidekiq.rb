@@ -15,7 +15,7 @@ module GitLab
       # timing out. But when we have a very large queue, we are most in need of
       # reliable metrics. This trades off completeness for predictability by
       # only taking a limited amount of items from the head of the queue.
-      PROBE_JOBS_LIMIT = 10_000
+      PROBE_JOBS_LIMIT = 1_000
 
       POOL_SIZE = 3
 
