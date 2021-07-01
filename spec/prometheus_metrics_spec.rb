@@ -29,13 +29,15 @@ describe GitLab::Exporter::PrometheusMetrics do
 
     allow(Time).to receive(:now).and_return(time)
 
-    subject.describe("mymetric", "description")
-    subject.describe("missingmetric", "otherdescription")
+    described_class.describe("mymetric", "description")
+    described_class.describe("missingmetric", "otherdescription")
     subject.add("mymetric", 1.3, mylabel: "x", myotherlabel: "y")
 
     expect(subject.to_s).to eq(<<~METRICS)
       # HELP mymetric description
       mymetric{mylabel="x",myotherlabel="y"} 1.3 #{(time.to_f * 1000).to_i}
     METRICS
+
+    described_class.clear_descriptions
   end
 end

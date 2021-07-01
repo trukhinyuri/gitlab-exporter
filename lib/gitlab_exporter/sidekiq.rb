@@ -24,6 +24,9 @@ module GitLab
       # needed to be re-initialized
       POOL_TIMEOUT = 90
 
+      PrometheusMetrics.describe("sidekiq_enqueued_jobs",
+                                 "Total number of jobs enqueued by class name. Only inspects the first #{PROBE_JOBS_LIMIT} jobs per queue.") # rubocop:disable Layout/LineLength
+
       def self.connection_pool
         @@connection_pool ||= Hash.new do |h, connection_hash| # rubocop:disable Style/ClassVars
           config = connection_hash.merge(pool_timeout: POOL_TIMEOUT, size: POOL_SIZE)
@@ -108,10 +111,7 @@ module GitLab
       #
       # DO NOT USE this and probe_jobs together, as they export the same
       # metric (sidekiq_enqueued_jobs).
-      def probe_jobs_limit # rubocop:disable Metrics/MethodLength
-        @metrics.describe("sidekiq_enqueued_jobs",
-                          "Total number of jobs enqueued by class name. Only inspects the first #{PROBE_JOBS_LIMIT} jobs per queue.") # rubocop:disable Layout/LineLength
-
+      def probe_jobs_limit
         with_sidekiq do
           job_stats = Hash.new(0)
 
