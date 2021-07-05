@@ -15,6 +15,21 @@ module GitLab
         @include_timestamp = include_timestamp
       end
 
+      class << self
+        def describe(name, description)
+          @metric_descriptions ||= {}
+          @metric_descriptions[name] = description
+        end
+
+        def description(name)
+          @metric_descriptions && @metric_descriptions[name]
+        end
+
+        def clear_descriptions
+          @metric_descriptions = {}
+        end
+      end
+
       def add(name, value, quantile = false, **labels)
         fail "value '#{value}' must be a number" unless value.is_a?(Numeric)
 
@@ -32,6 +47,8 @@ module GitLab
 
         buffer = ""
         @metrics.each do |name, measurements|
+          buffer << "# HELP #{name} #{self.class.description(name)}\n" if self.class.description(name)
+
           measurements.each do |measurement|
             buffer << name.to_s
             labels = (measurement[:labels] || {}).map { |label, value| "#{label}=\"#{value}\"" }.join(",")
