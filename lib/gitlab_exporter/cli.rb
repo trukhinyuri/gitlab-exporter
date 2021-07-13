@@ -275,7 +275,7 @@ module GitLab
           ::GitLab::Exporter::SidekiqProber.new(redis_url: @redis_url)
                                            .probe_stats
                                            .probe_queues
-                                           .probe_jobs
+                                           .probe_jobs_limit
                                            .probe_workers
                                            .probe_retries
                                            .write_to(@target)
