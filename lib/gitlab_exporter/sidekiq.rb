@@ -7,9 +7,6 @@ module GitLab
     #
     # It takes the Redis URL Sidekiq is connected to
     class SidekiqProber
-      QUEUE_JOB_STATS_SCRIPT = File.read(File.expand_path("#{__FILE__}/../sidekiq_queue_job_stats.lua")).freeze
-      QUEUE_JOB_STATS_SHA    = Digest::SHA1.hexdigest(QUEUE_JOB_STATS_SCRIPT).freeze
-
       # The maximum depth (from the head) of each queue to probe. Probing the
       # entirety of a very large queue will take longer and run the risk of
       # timing out. But when we have a very large queue, we are most in need of
@@ -72,45 +69,19 @@ module GitLab
         self
       end
 
-      # Count worker classes present in Sidekiq queues. This uses a Lua
-      # script to find all jobs in all queues. That script will block
-      # all other Redis commands:
-      # https://redis.io/commands/eval#atomicity-of-scripts
-      #
-      # The script is generally fast, but may be slower with very large
-      # queues, which is why this is not enabled by default.
       def probe_jobs
-        with_sidekiq do
-          job_stats = {}
-
-          Sidekiq::Queue.all.each do |queue|
-            Sidekiq.redis do |conn|
-              stats = conn.evalsha(QUEUE_JOB_STATS_SHA, ["queue:#{queue.name}"])
-              job_stats.merge!(stats.to_h)
-            end
-          rescue Redis::CommandError # Could happen if the script exceeded the maximum run time (5 seconds by default)
-            # FIXME: Should we call SCRIPT KILL?
-            return self
-          end
-
-          job_stats.each do |class_name, count|
-            @metrics.add("sidekiq_enqueued_jobs", count, name: class_name)
-          end
-        end
+        puts "[REMOVED] probe_jobs is now considered obsolete and does not emit any metrics,"\
+             " please use probe_jobs_limit instead"
 
         self
       end
 
-      # This does the same as #probe_jobs, but only looks at the first
-      # PROBE_JOBS_LIMIT jobs in each queue. This means that we run a
+      # Count worker classes present in Sidekiq queues. This only looks at the
+      # first PROBE_JOBS_LIMIT jobs in each queue. This means that we run a
       # single LRANGE command for each queue, which does not block other
-      # commands. For queues over PROBE_JOBS_LIMIT in size, this means
-      # that we will not have completely accurate statistics, but the
-      # probe performance will also not degrade as the queue gets
-      # larger.
-      #
-      # DO NOT USE this and probe_jobs together, as they export the same
-      # metric (sidekiq_enqueued_jobs).
+      # commands. For queues over PROBE_JOBS_LIMIT in size, this means that we
+      # will not have completely accurate statistics, but the probe performance
+      # will also not degrade as the queue gets larger.
       def probe_jobs_limit
         with_sidekiq do
           job_stats = Hash.new(0)
