@@ -189,14 +189,9 @@ module GitLab
       def connected?
         return @connected unless @connected.nil?
 
-        # This is also a good "connected check"
         Sidekiq.redis do |conn|
-          # Using administrative commands on conn directly (which is a Redis::Namespace)
-          # will be removed in redis-namespace 2.0.
-          conn.redis.script(:load, QUEUE_JOB_STATS_SCRIPT) unless conn.redis.script(:exists, QUEUE_JOB_STATS_SHA)
+          @connected = (conn.ping == "PONG")
         end
-
-        @connected = true
       rescue Redis::BaseConnectionError => e
         @logger&.error "Error connecting to the Redis: #{e}"
         @connected = false
