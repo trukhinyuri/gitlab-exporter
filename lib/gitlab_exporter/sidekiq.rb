@@ -85,9 +85,8 @@ module GitLab
               # Default to 0; if all jobs are due in the future, there is no "negative" delay.
               delay = 0
 
-              entry = conn.zrangebyscore(set, "-inf", now.to_s, limit: [0, 1], withscores: true).first
-              # entry[0] is the job as JSON, entry[1] is the score (timestamp) when it should execute
-              delay = now - entry[1] if entry
+              _job, timestamp = conn.zrangebyscore(set, "-inf", now.to_s, limit: [0, 1], withscores: true).first
+              delay = now - timestamp if timestamp
 
               @metrics.add("sidekiq_#{set}_set_processing_delay_seconds", delay)
 
