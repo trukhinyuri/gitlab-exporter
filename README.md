@@ -34,7 +34,7 @@ metrics.
       `git_pull_time_milliseconds`, `git_push_time_milliseconds`
     * git processes stats (see Process below)
 1. [Sidekiq](lib/gitlab_exporter/sidekiq.rb)
-	* Stats
+	* Stats (probe_stats)
 	  * `sidekiq_jobs_processed_total`
 	  * `sidekiq_jobs_failed_total`
 	  * `sidekiq_jobs_enqueued_size`
@@ -44,14 +44,21 @@ metrics.
 	  * `sidekiq_default_queue_latency_seconds`
 	  * `sidekiq_processes_size`
 	  * `sidekiq_workers_size`
-	* Queues
+	* Queues (probe_queues)
 	  * `sidekiq_queue_size`
 	  * `sidekiq_queue_paused`
 	  * `sidekiq_queue_latency_seconds`
-	* Jobs
+	* Jobs (probe_jobs_limit)
 	  * `sidekiq_enqueued_jobs`
+  * Workers (probe_workers)
 	  * `sidekiq_running_jobs`
+  * Retries (probe_retries)
 	  * `sidekiq_to_be_retried_jobs`
+  * Future Sets (probe_future_sets)
+    * `sidekiq_schedule_set_processing_delay_seconds`
+    * `sidekiq_schedule_set_backlog_count`
+    * `sidekiq_retry_set_processing_delay_seconds`
+    * `sidekiq_retry_set_backlog_count`
 
 ### Setup with GitLab Development Kit
 
