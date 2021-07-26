@@ -1,4 +1,5 @@
 require "sidekiq/api"
+require "sidekiq/scheduled"
 require "digest"
 
 module GitLab
@@ -74,6 +75,27 @@ module GitLab
              " please use probe_jobs_limit instead"
 
         self
+      end
+
+      def probe_future_sets
+        now = Time.now.to_f
+        with_sidekiq do
+          Sidekiq.redis do |conn|
+            Sidekiq::Scheduled::SETS.each do |set|
+              # Default to 0; if all jobs are due in the future, there is no "negative" delay.
+              delay = 0
+
+              _job, timestamp = conn.zrangebyscore(set, "-inf", now.to_s, limit: [0, 1], withscores: true).first
+              delay = now - timestamp if timestamp
+
+              @metrics.add("sidekiq_#{set}_set_processing_delay_seconds", delay)
+
+              # zcount is O(log(N)) (prob. binary search), so is still quick even with large sets
+              @metrics.add("sidekiq_#{set}_set_backlog_count",
+                           conn.zcount(set, "-inf", now.to_s))
+            end
+          end
+        end
       end
 
       # Count worker classes present in Sidekiq queues. This only looks at the
