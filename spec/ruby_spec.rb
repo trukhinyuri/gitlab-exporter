@@ -3,7 +3,7 @@ require "gitlab_exporter/ruby"
 require "gitlab_exporter/prober"
 
 describe GitLab::Exporter::RubyProber do
-  let(:prober) { GitLab::Exporter::Prober.new(options) }
+  let(:prober) { GitLab::Exporter::Prober.new(**options) }
 
   let(:options) do
     {

@@ -34,17 +34,17 @@ context "With valid pair of repositories" do
   end
 
   describe GitLab::Exporter::GitProber do
-    let(:options) { GitProberOptions.new(repos.cloned_repo, {}) }
+    let(:options) { { source: repos.cloned_repo, labels: {} } }
     let(:output) { StringIO.new }
 
     it "probes and monitors a pull" do
-      prober = GitLab::Exporter::GitProber.new(options)
+      prober = GitLab::Exporter::GitProber.new(**options)
       prober.probe_pull.write_to(output)
       expect(output.string).to match(/git_pull_time_milliseconds \d+ \d+/)
     end
 
     it "probes and monitors a push" do
-      prober = GitLab::Exporter::GitProber.new(options)
+      prober = GitLab::Exporter::GitProber.new(**options)
       prober.probe_push.write_to(output)
       expect(output.string).to match(/git_push_time_milliseconds \d+ \d+/)
     end

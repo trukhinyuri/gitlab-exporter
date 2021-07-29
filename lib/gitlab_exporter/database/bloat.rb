@@ -39,12 +39,11 @@ module GitLab
 
         attr_reader :metrics, :collector, :bloat_types
 
-        def initialize(opts,
-                       metrics: PrometheusMetrics.new,
-                       collector: BloatCollector.new(connection_string: opts[:connection_string]),
-                       logger: nil)
+        def initialize(metrics: PrometheusMetrics.new,
+                       logger: nil,
+                       **opts)
           @metrics = metrics
-          @collector = collector
+          @collector = opts[:collector] || BloatCollector.new(**opts)
           @collector.logger = logger
           @bloat_types = opts[:bloat_types] || %i[btree table]
         end

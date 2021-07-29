@@ -4,9 +4,9 @@ module GitLab
   module Exporter
     # Probes a current process GC for info then writes metrics to a target
     class RubyProber
-      def initialize(options, metrics: PrometheusMetrics.new, logger: nil) # rubocop:disable Lint/UnusedMethodArgument
+      def initialize(metrics: PrometheusMetrics.new, quantiles: false, **opts) # rubocop:disable Lint/UnusedMethodArgument
         @metrics = metrics
-        @use_quantiles = options.fetch(:quantiles, false)
+        @use_quantiles = quantiles
       end
 
       def probe_gc

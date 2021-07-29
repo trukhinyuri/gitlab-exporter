@@ -134,10 +134,10 @@ module GitLab
           }
         }.freeze
 
-        def initialize(args)
-          super(args)
+        def initialize(selected_queries: nil, **args)
+          super(**args)
 
-          @selected_queries = Set.new(args[:selected_queries].map(&:to_sym)) unless args[:selected_queries].nil?
+          @selected_queries = Set.new(selected_queries.map(&:to_sym)) unless selected_queries.nil?
         end
 
         def run
@@ -200,12 +200,9 @@ module GitLab
 
       # The prober which is called when gathering metrics
       class RowCountProber
-        def initialize(opts, metrics: PrometheusMetrics.new, logger: nil) # rubocop:disable Lint/UnusedMethodArgument
+        def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
-          @collector = RowCountCollector.new(
-            connection_string: opts[:connection_string],
-            selected_queries: opts[:selected_queries]
-          )
+          @collector = RowCountCollector.new(**opts)
         end
 
         def probe_db
