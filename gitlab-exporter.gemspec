@@ -27,7 +27,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "redis", "4.1.4"
   s.add_runtime_dependency "redis-namespace", "1.6.0"
   s.add_runtime_dependency "sidekiq", "5.2.9"
-  s.add_runtime_dependency "sinatra", "2.0.8.1"
+  s.add_runtime_dependency "sinatra", "~> 2.1.0"
 
   s.add_development_dependency "rspec", "~> 3.7.0"
   s.add_development_dependency "rspec-expectations", "~> 3.7.0"

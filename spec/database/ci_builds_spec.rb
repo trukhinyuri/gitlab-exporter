@@ -216,11 +216,12 @@ describe GitLab::Exporter::Database do
   describe GitLab::Exporter::Database::CiBuildsProber do
     let(:writer) { StringIO.new }
     let(:prober) do
-      opts = { connection_string: "host=localhost",
-               created_builds_counting_disabled: created_builds_counting_disabled,
-               unarchived_traces_offset_minutes: unarchived_traces_offset_minutes }
-      described_class.new(opts,
-                          metrics: GitLab::Exporter::PrometheusMetrics.new(include_timestamp: false))
+      described_class.new(
+        connection_string: "host=localhost",
+        created_builds_counting_disabled: created_builds_counting_disabled,
+        unarchived_traces_offset_minutes: unarchived_traces_offset_minutes,
+        metrics: GitLab::Exporter::PrometheusMetrics.new(include_timestamp: false)
+      )
     end
 
     before do

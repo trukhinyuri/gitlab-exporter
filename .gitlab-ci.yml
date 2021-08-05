@@ -6,12 +6,15 @@ include:
   - template: Security/SAST.gitlab-ci.yml  # https://gitlab.com/gitlab-org/gitlab-foss/blob/master/lib/gitlab/ci/templates/Security/SAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml # https://gitlab.com/gitlab-org/gitlab-foss/-/blob/master/lib/gitlab/ci/templates/Security/Secret-Detection.gitlab-ci.yml
 
+variables:
+  RUBY_VERSION: "2.7"
+
 stages:
   - test
   - dast
 
 default:
-  image: ruby:2.7
+  image: ruby:${RUBY_VERSION}
   cache:
     paths:
       - vendor
@@ -36,6 +39,10 @@ rspec:
   script:
     - bundle exec rspec spec -f d -c
   before_script: *before_scripts
+  parallel:
+    matrix:
+      - RUBY_VERSION: "2.7"
+      - RUBY_VERSION: "3.0"
 
 rubocop:
   script:

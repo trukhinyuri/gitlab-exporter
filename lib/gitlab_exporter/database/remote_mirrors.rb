@@ -10,8 +10,8 @@ module GitLab
           FROM remote_mirrors WHERE project_id IN (%s) AND enabled = 't'
         SQL
 
-        def initialize(args)
-          super(args)
+        def initialize(**args)
+          super(**args)
 
           @project_ids = args[:project_ids]
         end
@@ -35,7 +35,7 @@ module GitLab
 
       # The prober which is called when gathering metrics
       class RemoteMirrorsProber
-        def initialize(opts, metrics: PrometheusMetrics.new, logger: nil) # rubocop:disable Lint/UnusedMethodArgument
+        def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
           @collector = RemoteMirrorsCollector.new(
             connection_string: opts[:connection_string],

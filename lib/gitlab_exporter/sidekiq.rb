@@ -33,7 +33,7 @@ module GitLab
         end
       end
 
-      def initialize(opts, metrics: PrometheusMetrics.new, logger: nil)
+      def initialize(metrics: PrometheusMetrics.new, logger: nil, **opts)
         @opts    = opts
         @metrics = metrics
         @logger  = logger

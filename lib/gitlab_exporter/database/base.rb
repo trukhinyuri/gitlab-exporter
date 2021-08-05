@@ -41,8 +41,8 @@ module GitLab
           conn.type_map_for_results = tm
         end
 
-        def initialize(args, logger: nil)
-          @connection_string = args[:connection_string]
+        def initialize(connection_string:, logger: nil, **opts) # rubocop:disable Lint/UnusedMethodArgument
+          @connection_string = connection_string
           @logger = logger
         end
 

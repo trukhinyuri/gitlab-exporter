@@ -26,7 +26,7 @@ describe GitLab::Exporter::Database::BloatCollector do
 end
 
 describe GitLab::Exporter::Database::BloatProber do
-  let(:opts) { { bloat_types: %i[btree table] } }
+  let(:opts) { { bloat_types: %i[btree table], connection_string: "" } }
   let(:metrics) { double("PrometheusMetrics", add: nil) }
   let(:collector) { double("BloatCollector", run: data) }
 
@@ -43,7 +43,7 @@ describe GitLab::Exporter::Database::BloatProber do
   end
 
   describe "#probe_db" do
-    subject { described_class.new(opts, metrics: metrics, collector: collector, logger: STDOUT).probe_db }
+    subject { described_class.new(metrics: metrics, collector: collector, logger: STDOUT, **opts).probe_db }
 
     before do
       expect(collector).to receive(:logger=).with(STDOUT)
@@ -92,7 +92,7 @@ describe GitLab::Exporter::Database::BloatProber do
   describe "#write_to" do
     let(:target) { double }
     let(:metrics) { double("PrometheusMetrics", to_s: double) }
-    subject { described_class.new(opts, metrics: metrics).write_to(target) }
+    subject { described_class.new(metrics: metrics, **opts).write_to(target) }
 
     it "writes to given target" do
       expect(target).to receive(:write).with(metrics.to_s)

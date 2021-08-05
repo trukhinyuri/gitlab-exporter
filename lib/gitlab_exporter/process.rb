@@ -59,15 +59,15 @@ module GitLab
 
     # Probes a process for info then writes metrics to a target
     class ProcessProber
-      def initialize(options, metrics: PrometheusMetrics.new, logger: nil) # rubocop:disable Lint/UnusedMethodArgument
+      def initialize(name:, metrics: PrometheusMetrics.new, quantiles: false, **options)
         @metrics = metrics
-        @name    = options[:name]
+        @name    = name
         @pids    = if options[:pid_or_pattern] =~ /^\d+$/
                      [options[:pid_or_pattern]]
                    else
                      Utils.pgrep(options[:pid_or_pattern])
                    end
-        @use_quantiles = options.fetch(:quantiles, false)
+        @use_quantiles = quantiles
       end
 
       def probe_stat
