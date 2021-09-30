@@ -131,7 +131,12 @@ module GitLab
               visibility_level: {},
               root: { definition: "(parent_id IS NULL)" }
             }
-          }
+          },
+          registry_gc_manifest_review_queue: { select: :gc_manifest_review_queue },
+          registry_gc_blob_review_queue: { select: :gc_blob_review_queue },
+          registry_repositories: { select: :repositories },
+          registry_manifests: { select: :manifests },
+          registry_blobs: { select: :blobs }
         }.freeze
 
         def initialize(selected_queries: nil, **args)
