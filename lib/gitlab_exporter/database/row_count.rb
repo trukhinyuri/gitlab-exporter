@@ -134,6 +134,9 @@ module GitLab
           },
           registry_gc_manifest_review_queue: { select: :gc_manifest_review_queue },
           registry_gc_blob_review_queue: { select: :gc_blob_review_queue },
+          registry_top_level_namespaces: { select: :top_level_namespaces },
+          # Please note that the tables below are partitioned, so a SELECT COUNT(*)
+          # will scale poorly. Avoid using these in production:
           registry_repositories: { select: :repositories },
           registry_manifests: { select: :manifests },
           registry_blobs: { select: :blobs }
