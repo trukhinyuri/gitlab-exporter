@@ -133,7 +133,15 @@ module GitLab
             }
           },
           registry_gc_manifest_review_queue: { select: :gc_manifest_review_queue },
+          registry_gc_manifest_review_queue_overdue: {
+            select: :gc_manifest_review_queue,
+            where: "review_after < NOW()"
+          },
           registry_gc_blob_review_queue: { select: :gc_blob_review_queue },
+          registry_gc_blob_review_queue_overdue: {
+            select: :gc_blob_review_queue,
+            where: "review_after < NOW()"
+          },
           registry_top_level_namespaces: { select: :top_level_namespaces },
           # Please note that the tables below are partitioned, so a SELECT COUNT(*)
           # will scale poorly. Avoid using these in production:
