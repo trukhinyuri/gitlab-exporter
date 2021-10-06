@@ -24,9 +24,9 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "pg", "1.2.3"
   s.add_runtime_dependency "puma", "5.3.2"
   s.add_runtime_dependency "quantile", "0.2.1"
-  s.add_runtime_dependency "redis", "4.1.4"
+  s.add_runtime_dependency "redis", "4.4.0"
   s.add_runtime_dependency "redis-namespace", "1.6.0"
-  s.add_runtime_dependency "sidekiq", "5.2.9"
+  s.add_runtime_dependency "sidekiq", "6.2.2"
   s.add_runtime_dependency "sinatra", "~> 2.1.0"
 
   s.add_development_dependency "rspec", "~> 3.7.0"
