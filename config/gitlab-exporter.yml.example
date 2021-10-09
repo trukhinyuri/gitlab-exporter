@@ -99,6 +99,22 @@ probes:
     opts:
       quantiles: false
 
+
+  # Uncomment below to add GitLab specific Elasticsearch metrics.
+  #
+  # To support multiple authorization types, opts are passed to a Faraday connection object.
+  # See: https://www.rubydoc.info/github/lostisland/faraday/Faraday%2FConnection:initialize
+  #
+  # elasticsearch: &elasticsearch
+  #   methods:
+  #     - probe_migrations
+  #
+  #   opts:
+  #     - url: http://localhost:9200
+  #       options:
+  #         headers:
+  #           Authorization: "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=="
+
   metrics:
     multiple: true
     git_process:
