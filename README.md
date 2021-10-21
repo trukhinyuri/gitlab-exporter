@@ -59,6 +59,8 @@ metrics.
     * `sidekiq_schedule_set_backlog_count`
     * `sidekiq_retry_set_processing_delay_seconds`
     * `sidekiq_retry_set_backlog_count`
+1. [Elasticsearch](lib/gitlab_exporter/elasticsearch.rb)
+  * [Migrations](https://docs.gitlab.com/ee/integration/elasticsearch.html#advanced-search-migrations) -- `elasticsearch_migrations_state`
 
 ### Setup with GitLab Development Kit
 
