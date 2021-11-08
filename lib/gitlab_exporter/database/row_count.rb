@@ -143,9 +143,9 @@ module GitLab
             where: "review_after < NOW()"
           },
           registry_top_level_namespaces: { select: :top_level_namespaces },
+          registry_repositories: { select: :repositories },
           # Please note that the tables below are partitioned, so a SELECT COUNT(*)
           # will scale poorly. Avoid using these in production:
-          registry_repositories: { select: :repositories },
           registry_manifests: { select: :manifests },
           registry_blobs: { select: :blobs }
         }.freeze
