@@ -131,23 +131,7 @@ module GitLab
               visibility_level: {},
               root: { definition: "(parent_id IS NULL)" }
             }
-          },
-          registry_gc_manifest_review_queue: { select: :gc_manifest_review_queue },
-          registry_gc_manifest_review_queue_overdue: {
-            select: :gc_manifest_review_queue,
-            where: "review_after < NOW()"
-          },
-          registry_gc_blob_review_queue: { select: :gc_blob_review_queue },
-          registry_gc_blob_review_queue_overdue: {
-            select: :gc_blob_review_queue,
-            where: "review_after < NOW()"
-          },
-          registry_top_level_namespaces: { select: :top_level_namespaces },
-          registry_repositories: { select: :repositories },
-          # Please note that the tables below are partitioned, so a SELECT COUNT(*)
-          # will scale poorly. Avoid using these in production:
-          registry_manifests: { select: :manifests },
-          registry_blobs: { select: :blobs }
+          }
         }.freeze
 
         def initialize(selected_queries: nil, **args)
