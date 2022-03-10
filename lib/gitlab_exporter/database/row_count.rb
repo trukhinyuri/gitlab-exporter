@@ -131,6 +131,37 @@ module GitLab
               visibility_level: {},
               root: { definition: "(parent_id IS NULL)" }
             }
+          },
+          container_repositories_migration_pending: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state <> 'import_done' 
+              AND created_at < '2022-01-23 00:00:00' 
+            SQL
+          },
+          container_repositories_pre_importing: {
+            select: :container_repositories,
+            where: "migration_state = 'pre_importing'"
+          },
+          container_repositories_importing: {
+            select: :container_repositories,
+            where: "migration_state = 'importing'"
+          },
+          container_repositories_pre_import_done: {
+            select: :container_repositories,
+            where: "migration_state = 'pre_import_done'"
+          },
+          container_repositories_import_done: {
+            select: :container_repositories,
+            where: "migration_state = 'import_done'"
+          },
+          container_repositories_import_skipped: {
+            select: :container_repositories,
+            where: "migration_state = 'import_skipped'"
+          },
+          container_repositories_import_aborted: {
+            select: :container_repositories,
+            where: "migration_state = 'import_aborted'"
           }
         }.freeze
 
