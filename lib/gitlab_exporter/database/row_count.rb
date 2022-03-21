@@ -162,6 +162,25 @@ module GitLab
           container_repositories_import_aborted: {
             select: :container_repositories,
             where: "migration_state = 'import_aborted'"
+          },
+          container_repositories_migration_all_free: {
+            select: :container_repositories,
+            where: "migration_plan = 'free'"
+          },
+          container_repositories_migration_pending_free: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state <> 'import_done' 
+              AND created_at < '2022-01-23 00:00:00'
+              AND migration_plan = 'free'
+            SQL
+          },
+          container_repositories_import_done_free: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state = 'import_done' 
+              AND migration_plan = 'free'
+            SQL
           }
         }.freeze
 
