@@ -135,8 +135,8 @@ module GitLab
           container_repositories_migration_pending: {
             select: :container_repositories,
             where: <<~SQL
-              migration_state <> 'import_done' 
-              AND created_at < '2022-01-23 00:00:00' 
+              migration_state <> 'import_done'
+              AND created_at < '2022-01-23 00:00:00'
             SQL
           },
           container_repositories_pre_importing: {
@@ -166,24 +166,24 @@ module GitLab
           container_repositories_migration_all_free: {
             select: :container_repositories,
             where: <<~SQL
-              migration_plan IN ('free', 'early_adopter') 
+              migration_plan IN ('free', 'early_adopter')
               OR migration_plan IS NULL
             SQL
           },
           container_repositories_migration_pending_free: {
             select: :container_repositories,
             where: <<~SQL
-              migration_state <> 'import_done' 
+              migration_state <> 'import_done'
               AND created_at < '2022-01-23 00:00:00'
-              AND (migration_plan IN ('free', 'early_adopter') 
+              AND (migration_plan IN ('free', 'early_adopter')
                 OR migration_plan IS NULL)
             SQL
           },
           container_repositories_import_done_free: {
             select: :container_repositories,
             where: <<~SQL
-              migration_state = 'import_done' 
-              AND (migration_plan IN ('free', 'early_adopter') 
+              migration_state = 'import_done'
+              AND (migration_plan IN ('free', 'early_adopter')
                 OR migration_plan IS NULL)
             SQL
           },
@@ -206,6 +206,62 @@ module GitLab
             where: <<~SQL
               migration_state = 'importing'
               AND (COALESCE(migration_import_started_at, '01-01-1970') < (now() - INTERVAL '5 minutes'))
+            SQL
+          },
+          container_repositories_skipped_not_in_plan: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state = 'import_skipped'
+              AND migration_skipped_reason = 0
+            SQL
+          },
+          container_repositories_skipped_too_many_retries: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state = 'import_skipped'
+              AND migration_skipped_reason = 1
+            SQL
+          },
+          container_repositories_skipped_too_many_tags: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state = 'import_skipped'
+              AND migration_skipped_reason = 2
+            SQL
+          },
+          container_repositories_skipped_deny_list: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state = 'import_skipped'
+              AND migration_skipped_reason = 3
+            SQL
+          },
+          container_repositories_skipped_canceled: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state = 'import_skipped'
+              AND migration_skipped_reason IN (4, 8)
+            SQL
+          },
+          container_repositories_skipped_not_found: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state = 'import_skipped'
+              AND migration_skipped_reason = 5
+            SQL
+          },
+          container_repositories_skipped_native: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state = 'import_skipped'
+              AND migration_skipped_reason = 6
+            SQL
+          },
+          container_repositories_skipped_force_canceled: {
+            select: :container_repositories,
+            where: <<~SQL
+              migration_state = 'import_skipped'
+              AND migration_skipped_reason = 7
             SQL
           }
         }.freeze
