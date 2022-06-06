@@ -12,6 +12,7 @@ variables:
 stages:
   - test
   - dast
+  - publish
 
 default:
   image: ruby:${RUBY_VERSION}
@@ -57,3 +58,13 @@ gemnasium-dependency_scanning:
 
 secret_detection:
   rules: *workflow_rules
+
+publish_to_rubygems:
+  stage: publish
+  script:
+    - gem build gitlab-exporter.gemspec --output=gitlab-exporter.gem
+    - gem push gitlab-exporter.gem --key $RUBYGEMS_API_KEY
+  before_script: *before_scripts
+  rules:
+    # Only push to RubyGems.org when we tag a new version
+    - if: '$CI_COMMIT_TAG'
