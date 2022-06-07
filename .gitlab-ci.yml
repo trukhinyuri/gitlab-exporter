@@ -62,8 +62,11 @@ secret_detection:
 publish_to_rubygems:
   stage: publish
   script:
+    - mkdir -p ~/.gem
+    - 'echo ":rubygems_api_key: ${RUBYGEMS_API_KEY}" > ~/.gem/credentials'
+    - chmod 0600 ~/.gem/credentials
     - gem build gitlab-exporter.gemspec --output=gitlab-exporter.gem
-    - gem push gitlab-exporter.gem --key $RUBYGEMS_API_KEY
+    - gem push gitlab-exporter.gem
   before_script: *before_scripts
   rules:
     # Only push to RubyGems.org when we tag a new version
