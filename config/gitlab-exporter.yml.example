@@ -6,11 +6,15 @@ db_common: &db_common
 
 # Web server config
 server:
-  name: puma # cf. https://github.com/sinatra/sinatra#available-settings
+  name: webrick # cf. https://github.com/sinatra/sinatra#available-settings
   listen_address: 0.0.0.0
   listen_port: 9168
   # Maximum amount of memory to use in megabytes, after which the process is killed
   memory_threshold: 1024
+  # TLS settings
+  tls_enabled: false
+  tls_cert_path: /tmp/server.crt
+  tls_key_path: /tmp/server.key
 
 # Probes config
 probes:
