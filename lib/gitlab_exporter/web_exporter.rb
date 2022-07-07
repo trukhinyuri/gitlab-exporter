@@ -1,5 +1,8 @@
 require "sinatra/base"
 require "English"
+require "cgi"
+
+require_relative "tls_helper"
 
 module GitLab
   module Exporter
@@ -51,6 +54,8 @@ module GitLab
       end
 
       class << self
+        include TLSHelper
+
         DEFAULT_WEB_SERVER = "webrick".freeze
 
         def setup(config)
@@ -74,8 +79,47 @@ module GitLab
           config ||= {}
 
           set(:server, config.fetch(:name, DEFAULT_WEB_SERVER))
-          set(:bind, config.fetch(:listen_address, "0.0.0.0"))
           set(:port, config.fetch(:listen_port, 9168))
+
+          # Depending on whether TLS is enabled or not, bind string
+          # will be different.
+          if config.fetch(:tls_enabled, "false").to_s == "true"
+            set_tls_config(config)
+          else
+            set(:bind, config.fetch(:listen_address, "0.0.0.0"))
+          end
+        end
+
+        def set_tls_config(config) # rubocop:disable Naming/AccessorMethodName
+          validate_tls_config(config)
+
+          web_server = config.fetch(:name, DEFAULT_WEB_SERVER)
+          if web_server == "webrick"
+            set_webrick_tls(config)
+          elsif web_server == "puma"
+            set_puma_tls(config)
+          else
+            fail "TLS not supported for web server `#{web_server}`."
+          end
+        end
+
+        def set_webrick_tls(config) # rubocop:disable Naming/AccessorMethodName
+          server_settings = {}
+          server_settings.merge!(webrick_tls_config(config))
+
+          set(:bind, config.fetch(:listen_address, "0.0.0.0"))
+          set(:server_settings, server_settings)
+        end
+
+        def set_puma_tls(config) # rubocop:disable Naming/AccessorMethodName
+          listen_address = config.fetch(:listen_address, "0.0.0.0")
+          listen_port = config.fetch(:listen_port, 8443)
+          tls_cert_path = CGI.escape(config.fetch(:tls_cert_path))
+          tls_key_path = CGI.escape(config.fetch(:tls_key_path))
+
+          bind_string = "ssl://#{listen_address}:#{listen_port}?cert=#{tls_cert_path}&key=#{tls_key_path}"
+
+          set(:bind, bind_string)
         end
 
         def setup_probes(config)
