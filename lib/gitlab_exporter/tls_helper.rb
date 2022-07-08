@@ -6,7 +6,7 @@ module TLSHelper
     %i[tls_cert_path tls_key_path].each do |key|
       fail "TLS enabled, but #{key} not specified in config" unless config.key?(key)
 
-      fail "File specified via #{key} not found: #{config[file]}" unless File.exist?(config[key])
+      fail "File specified via #{key} not found: #{config[key]}" unless File.exist?(config[key])
     end
   end
 
