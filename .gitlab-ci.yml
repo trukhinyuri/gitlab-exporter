@@ -25,7 +25,8 @@ default:
 .before_scripts: &before_scripts
   - git config --global user.email "bot@gitlab.com"
   - git config --global user.name "Bot User"
-  - bundle install -j $(nproc) --path vendor
+  - bundle config set --local deployment true
+  - bundle install -j $(nproc)
 
 workflow:
   rules: &workflow_rules
