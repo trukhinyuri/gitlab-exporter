@@ -136,7 +136,7 @@ module GitLab
             select: :container_repositories,
             where: <<~SQL
               migration_state <> 'import_done'
-              AND created_at < '2022-01-23 00:00:00'
+              AND created_at < '2022-08-17 00:00:00'
             SQL
           },
           container_repositories_pre_importing: {
@@ -174,7 +174,7 @@ module GitLab
             select: :container_repositories,
             where: <<~SQL
               migration_state <> 'import_done'
-              AND created_at < '2022-01-23 00:00:00'
+              AND created_at < '2022-08-17 00:00:00'
               AND (migration_plan IN ('free', 'early_adopter')
                 OR migration_plan IS NULL)
             SQL
@@ -182,7 +182,7 @@ module GitLab
           container_repositories_import_done_free: {
             select: :container_repositories,
             where: <<~SQL
-              (migration_state = 'import_done' OR created_at >= '2022-01-23 00:00:00')
+              (migration_state = 'import_done' OR created_at >= '2022-08-17 00:00:00)
               AND (migration_plan IN ('free', 'early_adopter')
                 OR migration_plan IS NULL)
             SQL
