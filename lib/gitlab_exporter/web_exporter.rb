@@ -2,6 +2,7 @@ require "sinatra/base"
 require "English"
 require "cgi"
 
+require_relative "rack_vulndb_255039_patch"
 require_relative "tls_helper"
 
 module GitLab
