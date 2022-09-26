@@ -43,8 +43,19 @@ rspec:
   before_script: *before_scripts
   parallel:
     matrix:
-      - RUBY_VERSION: "2.7"
-      - RUBY_VERSION: "3.0"
+      - RUBY_VERSION: ["2.7", "3.0"]
+
+rspec_integration:
+  script:
+    - bundle exec rspec spec -t integration -f d -c
+  before_script: *before_scripts
+  services:
+    - redis:latest
+  variables:
+    REDIS_URL: "redis://redis"
+  parallel:
+    matrix:
+      - RUBY_VERSION: ["2.7", "3.0"]
 
 rubocop:
   script:
