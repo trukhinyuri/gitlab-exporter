@@ -7,6 +7,10 @@ require "tmpdir"
 $LOAD_PATH.unshift File.expand_path(".")
 Dir["spec/support/**/*.rb"].each do |f| require f end
 
+RSpec.configure do |config|
+  config.filter_run_excluding integration: true
+end
+
 class GitRepoBuilder
   def origin
     @origin ||= create_origin
@@ -41,19 +45,30 @@ class GitRepoBuilder
 end
 
 class CLIArgs
-  def initialize(args)
+  def initialize(args, options: {})
     @arguments = args
+    @options = options
   end
 
   def options
     yield self
+
+    self
   end
 
-  def on(*args); end
+  def on(flag, *_)
+    match = @options.find { |regex, _| regex.match?(flag) }
+
+    yield match[1] if match
+  end
 
   def banner=(banner); end
 
   def parse!
     @arguments
+  end
+
+  def shift
+    @arguments.shift
   end
 end
