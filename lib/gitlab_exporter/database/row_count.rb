@@ -125,9 +125,10 @@ module GitLab
               archived: {}
             }
           },
-          groups: {
+          namespaces: {
             select: :namespaces,
             fields: {
+              type: {},
               visibility_level: {},
               root: { definition: "(parent_id IS NULL)" }
             }
