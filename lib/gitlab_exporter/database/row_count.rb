@@ -192,21 +192,21 @@ module GitLab
             select: :container_repositories,
             where: <<~SQL
               migration_state = 'pre_importing'
-              AND (COALESCE(migration_pre_import_started_at, '01-01-1970') < (now() - INTERVAL '20 minutes'))
+              AND (COALESCE(migration_pre_import_started_at, TO_TIMESTAMP(0)) < (now() - INTERVAL '20 minutes'))
             SQL
           },
           container_repositories_stalled_pre_import_done: {
             select: :container_repositories,
             where: <<~SQL
               migration_state = 'pre_import_done'
-              AND (COALESCE(migration_pre_import_done_at, '01-01-1970') < (now() - INTERVAL '5 minutes'))
+              AND (COALESCE(migration_pre_import_done_at, TO_TIMESTAMP(0)) < (now() - INTERVAL '5 minutes'))
             SQL
           },
           container_repositories_stalled_importing: {
             select: :container_repositories,
             where: <<~SQL
               migration_state = 'importing'
-              AND (COALESCE(migration_import_started_at, '01-01-1970') < (now() - INTERVAL '5 minutes'))
+              AND (COALESCE(migration_import_started_at, TO_TIMESTAMP(0)) < (now() - INTERVAL '5 minutes'))
             SQL
           },
           container_repositories_skipped_not_in_plan: {
