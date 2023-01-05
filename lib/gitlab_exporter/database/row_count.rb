@@ -19,11 +19,6 @@ module GitLab
           projects.mirror = true
           AND projects.archived = false
           AND project_mirror_data.retry_count <= 14
-          AND (
-            (projects.visibility_level = 20 AND root_namespaces.visibility_level = 20)
-            OR
-            plans.name IN ('early_adopter', 'bronze', 'silver', 'gold')
-          )
           AND project_mirror_data.next_execution_timestamp > '2020-03-28'
         SQL
 
@@ -31,15 +26,6 @@ module GitLab
           select: :projects,
           joins: <<~SQL,
             INNER JOIN project_mirror_data ON project_mirror_data.project_id = projects.id
-            INNER JOIN namespaces AS root_namespaces ON root_namespaces.id = (
-              WITH RECURSIVE "base_and_ancestors" AS (
-                (SELECT "namespaces".* FROM "namespaces" WHERE "namespaces"."id" = projects.namespace_id)
-                UNION
-                (SELECT "namespaces".* FROM "namespaces", "base_and_ancestors" WHERE "namespaces"."id" = "base_and_ancestors"."parent_id")
-              ) SELECT "namespaces".id FROM "base_and_ancestors" AS "namespaces" WHERE "namespaces"."parent_id" IS NULL
-            )
-            LEFT JOIN gitlab_subscriptions ON gitlab_subscriptions.namespace_id = root_namespaces.id
-            LEFT JOIN plans ON plans.id = gitlab_subscriptions.hosted_plan_id
           SQL
           check: "SELECT 1 FROM information_schema.tables WHERE table_name='plans'"
         }.freeze
