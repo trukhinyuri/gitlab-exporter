@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-exporter (12.1.1)
+    gitlab-exporter (13.0.0)
       connection_pool (= 2.2.5)
       faraday (~> 1.8.0)
       pg (= 1.2.3)
