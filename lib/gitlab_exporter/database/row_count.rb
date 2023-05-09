@@ -8,7 +8,6 @@ module GitLab
       # This class works under the assumption you do COUNT(*) queries, define
       # queries in the QUERIES constant. If in doubt how these work, read
       # #construct_query
-      # rubocop:disable Metrics/ClassLength
       class RowCountCollector < Base
         # We ignore mirrors with a next_execution_timestamp before
         # 2020-03-28 because this is when we stopped processing mirrors
@@ -118,138 +117,6 @@ module GitLab
               visibility_level: {},
               root: { definition: "(parent_id IS NULL)" }
             }
-          },
-          container_repositories_migration_pending: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state <> 'import_done'
-              AND created_at < '2022-08-17 00:00:00'
-            SQL
-          },
-          container_repositories_pre_importing: {
-            select: :container_repositories,
-            where: "migration_state = 'pre_importing'"
-          },
-          container_repositories_importing: {
-            select: :container_repositories,
-            where: "migration_state = 'importing'"
-          },
-          container_repositories_pre_import_done: {
-            select: :container_repositories,
-            where: "migration_state = 'pre_import_done'"
-          },
-          container_repositories_import_done: {
-            select: :container_repositories,
-            where: "migration_state = 'import_done'"
-          },
-          container_repositories_import_skipped: {
-            select: :container_repositories,
-            where: "migration_state = 'import_skipped'"
-          },
-          container_repositories_import_aborted: {
-            select: :container_repositories,
-            where: "migration_state = 'import_aborted'"
-          },
-          container_repositories_migration_all_free: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_plan IN ('free', 'early_adopter')
-              OR migration_plan IS NULL
-            SQL
-          },
-          container_repositories_migration_pending_free: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state <> 'import_done'
-              AND created_at < '2022-08-17 00:00:00'
-              AND (migration_plan IN ('free', 'early_adopter')
-                OR migration_plan IS NULL)
-            SQL
-          },
-          container_repositories_import_done_free: {
-            select: :container_repositories,
-            where: <<~SQL
-              (migration_state = 'import_done' OR created_at >= '2022-08-17 00:00:00')
-              AND (migration_plan IN ('free', 'early_adopter')
-                OR migration_plan IS NULL)
-            SQL
-          },
-          container_repositories_stalled_pre_importing: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'pre_importing'
-              AND (COALESCE(migration_pre_import_started_at, TO_TIMESTAMP(0)) < (now() - INTERVAL '20 minutes'))
-            SQL
-          },
-          container_repositories_stalled_pre_import_done: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'pre_import_done'
-              AND (COALESCE(migration_pre_import_done_at, TO_TIMESTAMP(0)) < (now() - INTERVAL '5 minutes'))
-            SQL
-          },
-          container_repositories_stalled_importing: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'importing'
-              AND (COALESCE(migration_import_started_at, TO_TIMESTAMP(0)) < (now() - INTERVAL '5 minutes'))
-            SQL
-          },
-          container_repositories_skipped_not_in_plan: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'import_skipped'
-              AND migration_skipped_reason = 0
-            SQL
-          },
-          container_repositories_skipped_too_many_retries: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'import_skipped'
-              AND migration_skipped_reason = 1
-            SQL
-          },
-          container_repositories_skipped_too_many_tags: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'import_skipped'
-              AND migration_skipped_reason = 2
-            SQL
-          },
-          container_repositories_skipped_deny_list: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'import_skipped'
-              AND migration_skipped_reason = 3
-            SQL
-          },
-          container_repositories_skipped_canceled: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'import_skipped'
-              AND migration_skipped_reason IN (4, 8)
-            SQL
-          },
-          container_repositories_skipped_not_found: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'import_skipped'
-              AND migration_skipped_reason = 5
-            SQL
-          },
-          container_repositories_skipped_native: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'import_skipped'
-              AND migration_skipped_reason = 6
-            SQL
-          },
-          container_repositories_skipped_force_canceled: {
-            select: :container_repositories,
-            where: <<~SQL
-              migration_state = 'import_skipped'
-              AND migration_skipped_reason = 7
-            SQL
           }
         }.freeze
 
@@ -315,7 +182,6 @@ module GitLab
           query_string << ";"
         end
       end
-      # rubocop:enable Metrics/ClassLength
 
       # The prober which is called when gathering metrics
       class RowCountProber
