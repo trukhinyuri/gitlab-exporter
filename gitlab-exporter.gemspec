@@ -31,6 +31,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "sinatra", "~> 2.2.0"
   s.add_runtime_dependency "webrick", "~> 1.7"
 
-  s.add_development_dependency "rspec", "~> 3.7.0"
-  s.add_development_dependency "rspec-expectations", "~> 3.7.0"
+  s.add_development_dependency "rspec", "~> 3.12.0"
+  s.add_development_dependency "rspec-expectations", "~> 3.12.0"
 end
