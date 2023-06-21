@@ -8,7 +8,7 @@ module GitLab
       # This class works under the assumption you do COUNT(*) queries, define
       # queries in the QUERIES constant. If in doubt how these work, read
       # #construct_query
-      class RowCountCollector < Base
+      class RowCountCollector < Base # rubocop:disable Metrics/ClassLength
         # We ignore mirrors with a next_execution_timestamp before
         # 2020-03-28 because this is when we stopped processing mirrors
         # for private projects on the free plan. Skipping those can
@@ -27,6 +27,15 @@ module GitLab
             INNER JOIN project_mirror_data ON project_mirror_data.project_id = projects.id
           SQL
           check: "SELECT 1 FROM information_schema.tables WHERE table_name='plans'"
+        }.freeze
+
+        CONTAINER_REPOSITORIES_CLEANUP_ENABLED_QUERY = {
+          select: :container_repositories,
+          joins: <<~SQL,
+            INNER JOIN container_expiration_policies
+            ON container_repositories.project_id = container_expiration_policies.project_id
+          SQL
+          where: "container_expiration_policies.enabled = TRUE"
         }.freeze
 
         QUERIES = {
@@ -117,6 +126,52 @@ module GitLab
               visibility_level: {},
               root: { definition: "(parent_id IS NULL)" }
             }
+          },
+          container_repositories: { select: :container_repositories },
+          container_repositories_delete_scheduled: { select: :container_repositories, where: "status = 0" },
+          container_repositories_delete_failed: { select: :container_repositories, where: "status = 1" },
+          container_repositories_delete_ongoing: { select: :container_repositories, where: "status = 2" },
+          container_repositories_delete_staled: {
+            select: :container_repositories,
+            where: "status = 2 AND delete_started_at < (NOW() - INTERVAL '30 minutes')"
+          },
+          container_repositories_cleanup_enabled: CONTAINER_REPOSITORIES_CLEANUP_ENABLED_QUERY,
+          container_repositories_cleanup_pending: CONTAINER_REPOSITORIES_CLEANUP_ENABLED_QUERY.merge(
+            where: <<~SQL
+              container_expiration_policies.enabled = TRUE
+              AND container_repositories.expiration_policy_cleanup_status IN (0, 1)
+              AND (container_repositories.expiration_policy_started_at IS NULL OR container_repositories.expiration_policy_started_at < container_expiration_policies.next_run_at)
+              AND (container_expiration_policies.next_run_at < NOW())
+            SQL
+          ),
+          container_repositories_cleanup_unfinished: CONTAINER_REPOSITORIES_CLEANUP_ENABLED_QUERY.merge(
+            where: <<~SQL
+              container_expiration_policies.enabled = TRUE
+              AND container_repositories.expiration_policy_cleanup_status = 2
+            SQL
+          ),
+          container_repositories_cleanup_unscheduled: CONTAINER_REPOSITORIES_CLEANUP_ENABLED_QUERY.merge(
+            where: <<~SQL
+              container_expiration_policies.enabled = TRUE
+              AND container_repositories.expiration_policy_cleanup_status = 0
+            SQL
+          ),
+          container_repositories_cleanup_scheduled: CONTAINER_REPOSITORIES_CLEANUP_ENABLED_QUERY.merge(
+            where: <<~SQL
+              container_expiration_policies.enabled = TRUE
+              AND container_repositories.expiration_policy_cleanup_status = 1
+            SQL
+          ),
+          container_repositories_cleanup_ongoing: {
+            select: :container_repositories,
+            where: "expiration_policy_cleanup_status = 3"
+          },
+          container_repositories_cleanup_staled: {
+            select: :container_repositories,
+            where: <<~SQL
+              expiration_policy_cleanup_status = 3
+              AND (expiration_policy_started_at < (NOW() - INTERVAL '35 minutes') OR expiration_policy_started_at IS NULL)
+            SQL
           }
         }.freeze
 
