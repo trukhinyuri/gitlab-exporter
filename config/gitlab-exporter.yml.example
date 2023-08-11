@@ -95,6 +95,8 @@ probes:
     opts:
       redis_url: "redis://localhost:6379"
       redis_enable_client: true
+      probe_namespaced: true
+      probe_non_namespaced: true
 
   ruby: &ruby
     class_name: RubyProber
