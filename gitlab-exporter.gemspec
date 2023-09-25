@@ -10,6 +10,7 @@ Gem::Specification.new do |s|
   s.description   = "GitLab metrics exporter to use with prometheus"
   s.authors       = ["Pablo Carranza"]
   s.email         = "pablo@gitlab.com"
+  s.required_ruby_version = ">= 3.0.0"
 
   s.files         = `git ls-files -z`.split("\x0")
 
