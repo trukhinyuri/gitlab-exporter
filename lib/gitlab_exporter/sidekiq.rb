@@ -23,6 +23,9 @@ module GitLab
       # needed to be re-initialized
       POOL_TIMEOUT = 90
 
+      # Lock for Sidekiq.redis which we need to modify, but is not concurrency safe.
+      SIDEKIQ_REDIS_LOCK = Mutex.new
+
       PrometheusMetrics.describe("sidekiq_enqueued_jobs",
                                  "Total number of jobs enqueued by class name. Only inspects the first #{PROBE_JOBS_LIMIT} jobs per queue.") # rubocop:disable Layout/LineLength
 
@@ -211,16 +214,15 @@ module GitLab
       end
 
       def with_sidekiq(namespaced = true)
-        # TODO: this is not concurrent safe as we change global context
-        # It means that we are unable to use many different sidekiq's
-        # which is not a problem as of now
-        Sidekiq.configure_client do |config|
-          config.redis = self.class.connection_pool[redis_options(namespaced)]
-        end
+        SIDEKIQ_REDIS_LOCK.synchronize {
+          Sidekiq.configure_client do |config|
+            config.redis = self.class.connection_pool[redis_options(namespaced)]
+          end
 
-        return unless connected?
+          return unless connected?
 
-        yield
+          yield
+        }
       end
 
       def redis_options(namespaced = true)
