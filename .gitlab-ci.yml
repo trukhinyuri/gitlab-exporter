@@ -7,7 +7,7 @@ include:
   - template: Security/Secret-Detection.gitlab-ci.yml # https://gitlab.com/gitlab-org/gitlab-foss/-/blob/master/lib/gitlab/ci/templates/Security/Secret-Detection.gitlab-ci.yml
 
 variables:
-  RUBY_VERSION: "3.2"
+  RUBY_VERSION: "2.7"
 
 stages:
   - test
@@ -43,7 +43,7 @@ rspec:
   before_script: *before_scripts
   parallel:
     matrix:
-      - RUBY_VERSION: ["3.0", "3.1", "3.2"]
+      - RUBY_VERSION: ["2.7", "3.0", "3.1", "3.2"]
 
 rspec_integration:
   script:
@@ -55,7 +55,7 @@ rspec_integration:
     REDIS_URL: "redis://redis"
   parallel:
     matrix:
-      - RUBY_VERSION: ["3.0", "3.1", "3.2"]
+      - RUBY_VERSION: ["2.7", "3.0", "3.1", "3.2"]
 
 rubocop:
   script:

@@ -4,5 +4,5 @@ gemspec
 
 group :test do
   gem "rspec", "~>3.12"
-  gem "rubocop", "~> 1.52"
+  gem "rubocop", "~>0.42"
 end
