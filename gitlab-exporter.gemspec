@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.test_files    = s.files.grep(%r{^(spec)/})
 
   s.require_paths = ["lib"]
-  s.homepage      = "http://gitlab.com"
+  s.homepage      = "https://gitlab.com/gitlab-org/ruby/gems/gitlab-exporter"
   s.license       = "MIT"
 
   s.add_runtime_dependency "connection_pool", "2.2.5"
