@@ -9,27 +9,27 @@ module GitLab
           <<~SQL.freeze
             SELECT
               projects.namespace_id,
-              ci_builds.status,
+              p_ci_builds.status,
               projects.shared_runners_enabled,
               (COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) = 0 OR
                  COALESCE(namespace_statistics.shared_runners_seconds, 0) < COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) * 60) as has_minutes,
               COUNT(*) AS count
-            FROM ci_builds
+            FROM p_ci_builds
             JOIN projects
-              ON projects.id = ci_builds.project_id
+              ON projects.id = p_ci_builds.project_id
             JOIN namespaces
               ON namespaces.id = projects.namespace_id
             LEFT JOIN namespace_statistics
               ON namespace_statistics.namespace_id = namespaces.id
             JOIN application_settings ON (TRUE)
-            WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status = '%s'
+            WHERE p_ci_builds.type = 'Ci::Build'
+              AND p_ci_builds.status = '%s'
               -- The created_at filter has been introduced for performance reasons only
-              AND ci_builds.created_at > NOW() - INTERVAL '7 days'
+              AND p_ci_builds.created_at > NOW() - INTERVAL '7 days'
               AND projects.pending_delete = 'f'
             GROUP BY
               projects.namespace_id,
-              ci_builds.status,
+              p_ci_builds.status,
               projects.shared_runners_enabled,
               namespaces.shared_runners_minutes_limit,
               namespace_statistics.shared_runners_seconds,
@@ -40,20 +40,20 @@ module GitLab
           <<~SQL.freeze
             SELECT
               projects.namespace_id,
-              ci_builds.status,
+              p_ci_builds.status,
               projects.shared_runners_enabled,
               COUNT(*) AS count
-            FROM ci_builds
+            FROM p_ci_builds
             JOIN projects
-              ON projects.id = ci_builds.project_id
-            WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status = '%s'
+              ON projects.id = p_ci_builds.project_id
+            WHERE p_ci_builds.type = 'Ci::Build'
+              AND p_ci_builds.status = '%s'
               -- The created_at filter has been introduced for performance reasons only
-              AND ci_builds.created_at > NOW() - INTERVAL '7 days'
+              AND p_ci_builds.created_at > NOW() - INTERVAL '7 days'
               AND projects.pending_delete = 'f'
             GROUP BY
               projects.namespace_id,
-              ci_builds.status,
+              p_ci_builds.status,
               projects.shared_runners_enabled
           SQL
 
@@ -61,53 +61,53 @@ module GitLab
           <<~SQL.freeze
             SELECT
               COUNT(*) AS count
-            FROM ci_builds
+            FROM p_ci_builds
             JOIN projects
-              ON projects.id = ci_builds.project_id
-            WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status = 'running'
-              AND ci_builds.updated_at < NOW() - INTERVAL '1 hour'
+              ON projects.id = p_ci_builds.project_id
+            WHERE p_ci_builds.type = 'Ci::Build'
+              AND p_ci_builds.status = 'running'
+              AND p_ci_builds.updated_at < NOW() - INTERVAL '1 hour'
               AND projects.pending_delete = 'f'
           SQL
 
         PER_RUNNER_QUERY_EE =
           <<~SQL.freeze
             SELECT
-              ci_builds.runner_id,
+              p_ci_builds.runner_id,
               ci_runners.runner_type,
               projects.namespace_id,
               projects.mirror,
               projects.mirror_trigger_builds,
               ci_pipelines.pipeline_schedule_id,
-              ci_builds.trigger_request_id,
+              p_ci_builds.trigger_request_id,
               (COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) = 0 OR
                  COALESCE(namespace_statistics.shared_runners_seconds, 0) < COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) * 60) as has_minutes,
               COUNT(*) AS count
-            FROM ci_builds
+            FROM p_ci_builds
             JOIN ci_runners
-              ON ci_runners.id = ci_builds.runner_id
+              ON ci_runners.id = p_ci_builds.runner_id
             JOIN projects
-              ON projects.id = ci_builds.project_id
+              ON projects.id = p_ci_builds.project_id
             JOIN ci_pipelines
-              ON ci_pipelines.id = ci_builds.commit_id
+              ON ci_pipelines.id = p_ci_builds.commit_id
             JOIN namespaces
               ON namespaces.id = projects.namespace_id
             LEFT JOIN namespace_statistics
               ON namespace_statistics.namespace_id = namespaces.id
             JOIN application_settings ON (TRUE)
-            WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status = 'running'
+            WHERE p_ci_builds.type = 'Ci::Build'
+              AND p_ci_builds.status = 'running'
               -- The created_at filter has been introduced for performance reasons only
-              AND ci_builds.created_at > NOW() - INTERVAL '7 days'
+              AND p_ci_builds.created_at > NOW() - INTERVAL '7 days'
               AND projects.pending_delete = 'f'
             GROUP BY
-              ci_builds.runner_id,
+              p_ci_builds.runner_id,
               ci_runners.runner_type,
               projects.namespace_id,
               projects.mirror,
               projects.mirror_trigger_builds,
               ci_pipelines.pipeline_schedule_id,
-              ci_builds.trigger_request_id,
+              p_ci_builds.trigger_request_id,
               namespaces.shared_runners_minutes_limit,
               namespace_statistics.shared_runners_seconds,
               application_settings.shared_runners_minutes
@@ -116,30 +116,30 @@ module GitLab
         PER_RUNNER_QUERY_CE =
           <<~SQL.freeze
             SELECT
-              ci_builds.runner_id,
+              p_ci_builds.runner_id,
               ci_runners.runner_type,
               projects.namespace_id,
               ci_pipelines.pipeline_schedule_id,
-              ci_builds.trigger_request_id,
+              p_ci_builds.trigger_request_id,
               COUNT(*) AS count
-            FROM ci_builds
+            FROM p_ci_builds
             JOIN ci_runners
-              ON ci_runners.id = ci_builds.runner_id
+              ON ci_runners.id = p_ci_builds.runner_id
             JOIN projects
-              ON projects.id = ci_builds.project_id
+              ON projects.id = p_ci_builds.project_id
             JOIN ci_pipelines
-              ON ci_pipelines.id = ci_builds.commit_id
-            WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status = 'running'
+              ON ci_pipelines.id = p_ci_builds.commit_id
+            WHERE p_ci_builds.type = 'Ci::Build'
+              AND p_ci_builds.status = 'running'
               -- The created_at filter has been introduced for performance reasons only
-              AND ci_builds.created_at > NOW() - INTERVAL '7 days'
+              AND p_ci_builds.created_at > NOW() - INTERVAL '7 days'
               AND projects.pending_delete = 'f'
             GROUP BY
-              ci_builds.runner_id,
+              p_ci_builds.runner_id,
               ci_runners.runner_type,
               projects.namespace_id,
               ci_pipelines.pipeline_schedule_id,
-              ci_builds.trigger_request_id
+              p_ci_builds.trigger_request_id
           SQL
 
         EE_CHECK_QUERY =
@@ -151,15 +151,15 @@ module GitLab
           <<~SQL.freeze
             SELECT
               COUNT(*) as count
-            FROM ci_builds
+            FROM p_ci_builds
             JOIN ci_build_trace_chunks
-              ON ci_build_trace_chunks.build_id = ci_builds.id
+              ON ci_build_trace_chunks.build_id = p_ci_builds.id
             LEFT JOIN ci_job_artifacts
-              ON ci_job_artifacts.job_id = ci_builds.id
+              ON ci_job_artifacts.job_id = p_ci_builds.id
               AND ci_job_artifacts.file_type = 3
-            WHERE ci_builds.type = 'Ci::Build'
-              AND ci_builds.status IN ('success', 'failed', 'canceled')
-              AND ci_builds.finished_at < '%s'
+            WHERE p_ci_builds.type = 'Ci::Build'
+              AND p_ci_builds.status IN ('success', 'failed', 'canceled')
+              AND p_ci_builds.finished_at < '%s'
               AND ci_job_artifacts.job_id IS NULL
           SQL
 
