@@ -195,7 +195,6 @@ module GitLab
       def redis_options
         options = {
           url: @opts[:redis_url],
-          namespace: "resque:gitlab",
           connect_timeout: 1,
           reconnect_attempts: 0
         }
