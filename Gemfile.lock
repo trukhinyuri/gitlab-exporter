@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-exporter (13.5.0)
+    gitlab-exporter (14.0.0)
       connection_pool (= 2.2.5)
       faraday (~> 1.8.0)
       pg (= 1.5.3)
@@ -107,4 +107,4 @@ DEPENDENCIES
   rubocop (~> 0.42)
 
 BUNDLED WITH
-   2.4.5
+   2.4.20
