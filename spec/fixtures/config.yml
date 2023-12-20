@@ -1,0 +1,10 @@
+probes:
+  sidekiq:
+    methods:
+      - probe_stats
+
+  database:
+    methods:
+      - probe_db
+    opts:
+      connection_string: to-be-overridden

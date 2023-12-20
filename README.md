@@ -95,6 +95,25 @@ Once running, you can point your browser or curl to the following URLs:
 * http://localhost:9168/sidekiq
 * http://localhost:9168/metrics (to get all of the above combined)
 
+If it is undesirable to have secrets (e.g. Redis password or PostgreSQL credentials) in the config file,
+then you can specify an external command (with the `--extra-config-command <command>` flag) that outputs
+such credentials in a YAML form (same structure as the config file) and it will be merged with the file configuration.
+
+For example:
+
+```
+$ vault kv get -format=yaml secrets/gitlab/gitlab-exporter
+probes:
+  sidekiq:
+    opts:
+      redis_url: redis://hunter1@localhost:9765
+  database:
+    opts:
+      connection_string: postgres://db-admin:hunter1@localhost:6543/main-db
+
+$ bin/gitlab-exporter web -c config/gitlab-exporter.yml --extra-config-command "vault kv get -format=yaml secrets/gitlab/gitlab-exporter"
+```
+
 ### Database Bloat Metrics
 
 Database bloat is measured for indexes (`btree`) and/or tables
