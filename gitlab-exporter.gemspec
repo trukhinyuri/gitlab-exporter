@@ -21,6 +21,7 @@ Gem::Specification.new do |s|
   s.license       = "MIT"
 
   s.add_runtime_dependency "connection_pool", "2.2.5"
+  s.add_runtime_dependency "deep_merge", "~> 1.2.2"
   s.add_runtime_dependency "faraday", "~> 1.8.0"
   s.add_runtime_dependency "pg", "1.5.3"
   s.add_runtime_dependency "puma", "5.6.5"

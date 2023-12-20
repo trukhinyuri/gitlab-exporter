@@ -1,4 +1,6 @@
 require "yaml"
+require "deep_merge"
+require "English"
 
 # TODO: Remove this once we're on Ruby 3
 # https://gitlab.com/gitlab-org/gitlab/-/issues/393651
@@ -188,6 +190,10 @@ module GitLab
             opts.on("-c config.yml", "Monitoring config") do |val|
               @config_file = val
             end
+            opts.on("--extra-config-command command", "Shell command that returns YAML config to be merged
+                    with the config file") do |val|
+              @extra_config_command = val
+            end
           end
         end
 
@@ -195,12 +201,17 @@ module GitLab
           @options.help
         end
 
+        def merged_config
+          config_from_file = Utils.deep_symbolize_hash_keys(YAML.safe_load_file(@config_file, aliases: true))
+          config_from_command = extra_config_from_command
+
+          config_from_file.deep_merge!(config_from_command)
+        end
+
         def run
           validate!
 
-          config = Utils.deep_symbolize_hash_keys(YAML.safe_load_file(@config_file, aliases: true))
-
-          WebExporter.setup(config)
+          WebExporter.setup(merged_config)
           WebExporter.run!
         end
 
@@ -208,6 +219,22 @@ module GitLab
 
         def validate!
           fail InvalidCLICommand.new(help) unless @config_file
+        end
+
+        def run_extra_config_command
+          puts "Using extra config by running command `#{@extra_config_command}`"
+
+          output = `#{@extra_config_command}`
+          return output if $CHILD_STATUS == 0
+
+          puts "ERROR: command `#{@extra_config_command}` returned a non-zero code."
+          exit(2)
+        end
+
+        def extra_config_from_command
+          return {} unless @extra_config_command
+
+          Utils.deep_symbolize_hash_keys(YAML.safe_load(run_extra_config_command))
         end
       end
 
