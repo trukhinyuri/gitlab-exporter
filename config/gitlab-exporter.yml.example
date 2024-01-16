@@ -94,6 +94,9 @@ probes:
       - probe_retries
     opts:
       redis_url: "redis://localhost:6379"
+      # Uncomment if username or password is not part of the redis_url specified above
+      # redis_username: 'redis-username'
+      # redis_password: 'redis-password'
       redis_enable_client: true
 
   ruby: &ruby
