@@ -199,6 +199,10 @@ module GitLab
           reconnect_attempts: 0
         }
 
+        %i[username password].each do |credential|
+          options[credential] = @opts[:"redis_#{credential}"] if @opts.key?(:"redis_#{credential}")
+        end
+
         options[:id] = nil unless redis_enable_client?
         options
       end
