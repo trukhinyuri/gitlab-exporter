@@ -22,7 +22,9 @@ Gem::Specification.new do |s|
 
   s.add_runtime_dependency "connection_pool", "2.2.5"
   s.add_runtime_dependency "deep_merge", "~> 1.2.2"
-  s.add_runtime_dependency "faraday", "~> 1.8.0"
+  # Lock to 2.8.1 until RubyGems 3.5.5 is shipped with the fix for
+  # https://github.com/rubygems/rubygems/issues/7374
+  s.add_runtime_dependency "faraday", [">= 1.8.0", "<= 2.8.1"]
   s.add_runtime_dependency "pg", "1.5.3"
   s.add_runtime_dependency "puma", "5.6.5"
   s.add_runtime_dependency "quantile", "0.2.1"
