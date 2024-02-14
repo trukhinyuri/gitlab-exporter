@@ -26,7 +26,7 @@ Gem::Specification.new do |s|
   # https://github.com/rubygems/rubygems/issues/7374
   s.add_runtime_dependency "faraday", [">= 1.8.0", "<= 2.8.1"]
   s.add_runtime_dependency "pg", "1.5.3"
-  s.add_runtime_dependency "puma", "5.6.5"
+  s.add_runtime_dependency "puma", "5.6.7"
   s.add_runtime_dependency "quantile", "0.2.1"
   s.add_runtime_dependency "redis", "4.4.0"
   s.add_runtime_dependency "redis-namespace", "1.9.0"
