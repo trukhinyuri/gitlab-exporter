@@ -104,6 +104,8 @@ probes:
       #     port: 26380
       #   - host: 'localhost'
       #     port: 26381
+      # redis_sentinel_username: 'redis-sentinel-username'
+      # redis_sentinel_password: 'redis-sentinel-password'
 
   ruby: &ruby
     class_name: RubyProber

@@ -303,6 +303,9 @@ module GitLab
             opts.on("--redis-url=\"redis://localhost:6379\"", "Redis URL") do |val|
               @redis_url = val
             end
+            opts.on("--redis-sentinel-password=\"my-sentinel-password\"", "Redis Sentinel password") do |val|
+              @redis_sentinel_password = val
+            end
             opts.on("--redis-sentinels=HOST1:PORT1,HOST2:PORT2", Array, "List of Redis Sentinels") do |val|
               @redis_sentinels = val.map { |item|
                 host, port = item.split(":")
