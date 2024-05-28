@@ -324,6 +324,7 @@ module GitLab
 
           prober = ::GitLab::Exporter::SidekiqProber.new(redis_url: @redis_url,
                                                          redis_sentinels: @redis_sentinels,
+                                                         redis_sentinel_password: @redis_sentinel_password,
                                                          logger: Logger.new(STDERR))
 
           prober

@@ -60,11 +60,10 @@ rspec_integration:
         - |
           echo "Starting Redis Sentinel..."
           cat <<EOF > /opt/bitnami/redis-sentinel/etc/sentinel.conf
+          requirepass "my-sentinel-password"
           sentinel monitor mymaster redis-master 6379 2
           sentinel resolve-hostnames yes
           sentinel down-after-milliseconds mymaster 5000
-          sentinel failover-timeout mymaster 60000
-          sentinel parallel-syncs mymaster 1
           EOF
           redis-sentinel /opt/bitnami/redis-sentinel/etc/sentinel.conf
 
