@@ -98,6 +98,12 @@ probes:
       # redis_username: 'redis-username'
       # redis_password: 'redis-password'
       redis_enable_client: true
+      # Uncomment if Redis Sentinels are needed
+      # redis_sentinels:
+      #   - host: 'localhost'
+      #     port: 26380
+      #   - host: 'localhost'
+      #     port: 26381
 
   ruby: &ruby
     class_name: RubyProber

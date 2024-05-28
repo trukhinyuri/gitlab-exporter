@@ -195,6 +195,7 @@ module GitLab
       def redis_options
         options = {
           url: @opts[:redis_url],
+          sentinels: @opts[:redis_sentinels],
           connect_timeout: 1,
           reconnect_attempts: 0
         }

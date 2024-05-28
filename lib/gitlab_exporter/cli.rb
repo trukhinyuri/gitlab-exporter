@@ -303,6 +303,12 @@ module GitLab
             opts.on("--redis-url=\"redis://localhost:6379\"", "Redis URL") do |val|
               @redis_url = val
             end
+            opts.on("--redis-sentinels=HOST1:PORT1,HOST2:PORT2", Array, "List of Redis Sentinels") do |val|
+              @redis_sentinels = val.map { |item|
+                host, port = item.split(":")
+                { host: host, port: port.to_i }
+              }
+            end
           end
         end
 
@@ -313,13 +319,17 @@ module GitLab
         def run
           validate!
 
-          ::GitLab::Exporter::SidekiqProber.new(redis_url: @redis_url)
-                                           .probe_stats
-                                           .probe_queues
-                                           .probe_jobs_limit
-                                           .probe_workers
-                                           .probe_retries
-                                           .write_to(@target)
+          prober = ::GitLab::Exporter::SidekiqProber.new(redis_url: @redis_url,
+                                                         redis_sentinels: @redis_sentinels,
+                                                         logger: Logger.new(STDERR))
+
+          prober
+            .probe_stats
+            .probe_queues
+            .probe_jobs_limit
+            .probe_workers
+            .probe_retries
+            .write_to(@target)
         end
 
         private
