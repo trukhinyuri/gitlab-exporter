@@ -290,6 +290,22 @@ describe GitLab::Exporter::Database do
           expect(output).to match(/^ci_stale_builds 0.0$/m)
         end
       end
+
+      context "when PG connection shuts down" do
+        before do
+          allow(connection).to receive(:exec).and_raise(PG::ConnectionBad)
+        end
+
+        it "responds with Prometheus metrics" do
+          expect(connection_pool).to receive(:reload)
+
+          prober.probe_db
+          prober.write_to(writer)
+          output = writer.string
+
+          expect(output).to be_empty
+        end
+      end
     end
 
     context "when executed on EE" do

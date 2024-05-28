@@ -221,6 +221,8 @@ module GitLab
         end
       rescue Redis::BaseConnectionError => e
         @logger&.error "Error connecting to the Redis: #{e}"
+        pool = self.class.connection_pool[redis_options]
+        pool.reload(&:close)
         @connected = false
       end
     end

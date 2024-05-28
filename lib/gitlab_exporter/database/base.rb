@@ -62,6 +62,10 @@ module GitLab
             conn.reset
             raise e
           end
+        rescue PG::ConnectionBad => e
+          @logger.error "Bad connection to the database, resetting pool: #{e}" if @logger
+          connection_pool.reload(&:close)
+          raise e
         rescue PG::Error => e
           @logger.error "Error connecting to the database: #{e}" if @logger
           raise e
