@@ -7,7 +7,7 @@ module GitLab
     # A prober for Sidekiq queues
     #
     # It takes the Redis URL Sidekiq is connected to
-    class SidekiqProber
+    class SidekiqProber # rubocop:disable Metrics/ClassLength
       # The maximum depth (from the head) of each queue to probe. Probing the
       # entirety of a very large queue will take longer and run the risk of
       # timing out. But when we have a very large queue, we are most in need of
@@ -195,6 +195,7 @@ module GitLab
       def redis_options
         options = {
           url: @opts[:redis_url],
+          sentinels: redis_sentinel_options,
           connect_timeout: 1,
           reconnect_attempts: 0
         }
@@ -205,6 +206,19 @@ module GitLab
 
         options[:id] = nil unless redis_enable_client?
         options
+      end
+
+      def redis_sentinel_options
+        sentinels = @opts[:redis_sentinels]
+
+        return sentinels unless sentinels.is_a?(Array)
+
+        sentinels.each do |sentinel_config|
+          sentinel_config[:username] = @opts[:redis_sentinel_username] if @opts.key?(:redis_sentinel_username)
+          sentinel_config[:password] = @opts[:redis_sentinel_password] if @opts.key?(:redis_sentinel_password)
+        end
+
+        sentinels
       end
 
       def redis_enable_client?
