@@ -60,7 +60,8 @@ rspec_integration:
         - |
           echo "Starting Redis Sentinel..."
           cat <<EOF > /opt/bitnami/redis-sentinel/etc/sentinel.conf
-          requirepass "my-sentinel-password"
+          user default off
+          user ${REDIS_SENTINEL_USERNAME} on >${REDIS_SENTINEL_PASSWORD} +@all
           sentinel monitor mymaster redis-master 6379 2
           sentinel resolve-hostnames yes
           sentinel down-after-milliseconds mymaster 5000
@@ -73,6 +74,8 @@ rspec_integration:
     REDIS_SENTINELS: "redis-sentinel:26379"
     REDIS_VERSION: latest
     REDIS_SENTINEL_VERSION: latest
+    REDIS_SENTINEL_USERNAME: "my-sentinel-username"
+    REDIS_SENTINEL_PASSWORD: "my-sentinel-password"
   parallel:
     matrix:
       - RUBY_VERSION: ["2.7", "3.0", "3.1", "3.2"]

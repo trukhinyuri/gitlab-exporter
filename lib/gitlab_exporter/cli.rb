@@ -297,11 +297,14 @@ module GitLab
           @target = File.open(@target, "a") if @target.is_a?(String)
         end
 
-        def options(args)
+        def options(args) # rubocop:disable Metrics/MethodLength
           args.options do |opts|
             opts.banner = "Usage: #{EXECUTABLE_NAME} #{COMMAND_NAME} [options]"
             opts.on("--redis-url=\"redis://localhost:6379\"", "Redis URL") do |val|
               @redis_url = val
+            end
+            opts.on("--redis-sentinel-username=\"my-sentinel-username\"", "Redis Sentinel username") do |val|
+              @redis_sentinel_username = val
             end
             opts.on("--redis-sentinel-password=\"my-sentinel-password\"", "Redis Sentinel password") do |val|
               @redis_sentinel_password = val
@@ -324,6 +327,7 @@ module GitLab
 
           prober = ::GitLab::Exporter::SidekiqProber.new(redis_url: @redis_url,
                                                          redis_sentinels: @redis_sentinels,
+                                                         redis_sentinel_username: @redis_sentinel_username,
                                                          redis_sentinel_password: @redis_sentinel_password,
                                                          logger: Logger.new(STDERR))
 
