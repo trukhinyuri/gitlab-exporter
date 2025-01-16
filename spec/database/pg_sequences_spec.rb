@@ -15,8 +15,7 @@ describe GitLab::Exporter::Database::PgSequencesCollector do
         "fully_qualified_sequencename" => "public.seq_one",
         "min_value" => 1,
         "max_value" => 9_223_372_036_854_775_807,
-        "current_value" => 6_223_372_036_854_745_121,
-        "saturation_ratio" => 0.6747e2
+        "current_value" => 6_223_372_036_854_745_121
       },
       {
         "schemaname" => "public",
@@ -24,8 +23,7 @@ describe GitLab::Exporter::Database::PgSequencesCollector do
         "fully_qualified_sequencename" => "public.seq_two",
         "min_value" => 1,
         "max_value" => 9_223_372_036_854_775_807,
-        "current_value" => nil,
-        "saturation_ratio" => 0.0
+        "current_value" => nil
       }
     ]
   end
@@ -43,16 +41,14 @@ describe GitLab::Exporter::Database::PgSequencesCollector do
           "sequencename" => "seq_one",
           "min_value" => 1,
           "max_value" => 9_223_372_036_854_775_807,
-          "current_value" => 6_223_372_036_854_745_121,
-          "saturation_ratio" => 0.6747e2
+          "current_value" => 6_223_372_036_854_745_121
         },
         "public.seq_two" => {
           "schemaname" => "public",
           "sequencename" => "seq_two",
           "min_value" => 1,
           "max_value" => 9_223_372_036_854_775_807,
-          "current_value" => nil,
-          "saturation_ratio" => 0.0
+          "current_value" => nil
         }
       )
     )
@@ -71,8 +67,7 @@ describe GitLab::Exporter::Database::PgSequencesProber do
         "sequencename" => "seq_one",
         "min_value" => 1,
         "max_value" => 10,
-        "current_value" => 2,
-        "saturation_ratio" => 0.2
+        "current_value" => 2
       }
     }
   end

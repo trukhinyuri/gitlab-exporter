@@ -20,8 +20,7 @@ metrics.
     * [Per-table tuple stats](lib/gitlab_exporter/database/tuple_stats.rb) --
       `gitlab_database_stat_table_*`
    * [Per-sequence stats](lib/gitlab_exporter/database/pg_sequences.rb) --
-     `gitlab_pg_sequences_min_value`, `gitlab_pg_sequences_max_value`, `gitlab_pg_sequences_current_value`,
-     `gitlab_pg_sequences_saturation_ratio`
+     `gitlab_pg_sequences_min_value`, `gitlab_pg_sequences_max_value`, `gitlab_pg_sequences_current_value`
     * [Row count queries](lib/gitlab_exporter/database/row_count.rb) --
       `gitlab_database_rows`
     * [CI builds](lib/gitlab_exporter/database/ci_builds.rb) --
