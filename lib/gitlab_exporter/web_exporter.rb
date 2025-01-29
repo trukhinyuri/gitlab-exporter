@@ -133,7 +133,7 @@ module GitLab
               end
 
             get "/#{probe_name}" do
-              content_type "text/plain; version=0.0.4"
+              content_type "text/plain; version=0.0.4; charset=utf-8"
               prober = Prober.new(metrics: PrometheusMetrics.new(include_timestamp: false), logger: logger, **opts)
 
               prober.probe_all
