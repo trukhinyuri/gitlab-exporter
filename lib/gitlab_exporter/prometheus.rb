@@ -16,17 +16,24 @@ module GitLab
       end
 
       class << self
-        def describe(name, description)
+        def describe(name, description, metric_type = nil)
           @metric_descriptions ||= {}
           @metric_descriptions[name] = description
+          @metric_types ||= {}
+          @metric_types[name] = metric_type
         end
 
         def description(name)
           @metric_descriptions && @metric_descriptions[name]
         end
 
+        def metric_type(name)
+          @metric_types && @metric_types[name]
+        end
+
         def clear_descriptions
           @metric_descriptions = {}
+          @metric_types = {}
         end
       end
 
@@ -48,10 +55,11 @@ module GitLab
         buffer = ""
         @metrics.each do |name, measurements|
           buffer << "# HELP #{name} #{self.class.description(name)}\n" if self.class.description(name)
+          buffer << "# TYPE #{name} #{self.class.metric_type(name)}\n" if self.class.metric_type(name)
 
           measurements.each do |measurement|
             buffer << name.to_s
-            labels = (measurement[:labels] || {}).map { |label, value| "#{label}=\"#{value}\"" }.join(",")
+            labels = labels(measurement[:labels])
             buffer << "{#{labels}}" unless labels.empty?
             buffer << " #{measurement[:value]}"
             buffer << " #{measurement[:timestamp]}" if @include_timestamp
@@ -62,6 +70,10 @@ module GitLab
       end
 
       private
+
+      def labels(measurement_labels = {})
+        measurement_labels.map { |label, value| "#{label}=\"#{value}\"" }.join(",")
+      end
 
       def add_quantiles_to_metrics
         @quantiles.each do |data, measurements|

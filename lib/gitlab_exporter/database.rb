@@ -9,6 +9,7 @@ module GitLab
       autoload :BloatProber,          "gitlab_exporter/database/bloat"
       autoload :RemoteMirrorsProber,  "gitlab_exporter/database/remote_mirrors"
       autoload :PgSequencesProber,    "gitlab_exporter/database/pg_sequences"
+      autoload :ZoektProber,          "gitlab_exporter/database/zoekt"
     end
   end
 end
