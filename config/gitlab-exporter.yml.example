@@ -78,6 +78,9 @@ probes:
         <<: *db_common_opts
         project_ids:
         - 1
+    zoekt:
+      class_name: Database::ZoektProber
+      <<: *db_common
 
   process: &process
     methods:

@@ -31,6 +31,8 @@ metrics.
       (table bloat) and keys `bloat_ratio bloat_size extra_size real_size` (see below)
     * [Remote mirrors](lib/gitlab_exporter/database/remote_mirrors.rb) --
       `project_remote_mirror_last_successful_update_time_seconds`, `project_remote_mirror_last_update_time_seconds`
+    * [Zoekt](lib/gitlab_exporter/database/zoekt.rb) --
+      `search_zoekt_task_processing_queue_size`
 1. Git
     * [git pull/push timings](lib/gitlab_exporter/git.rb) --
       `git_pull_time_milliseconds`, `git_push_time_milliseconds`
