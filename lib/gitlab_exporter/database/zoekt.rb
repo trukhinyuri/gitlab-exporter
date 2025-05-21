@@ -48,7 +48,7 @@ module GitLab
               with_connection_pool do |conn|
                 conn.exec(ZOEKT_ENABLED_QUERY).first["zoekt_indexing_enabled"] == "true"
               end
-            rescue PG::UndefinedColumn
+            rescue PG::UndefinedTable, PG::UndefinedColumn
               false
             end
         end
