@@ -78,7 +78,7 @@ module GitLab
               projects.namespace_id,
               projects.mirror,
               projects.mirror_trigger_builds,
-              ci_pipelines.pipeline_schedule_id,
+              p_ci_pipelines.pipeline_schedule_id,
               p_ci_builds.trigger_request_id,
               (COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) = 0 OR
                  COALESCE(namespace_statistics.shared_runners_seconds, 0) < COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) * 60) as has_minutes,
@@ -88,8 +88,8 @@ module GitLab
               ON ci_runners.id = p_ci_builds.runner_id
             JOIN projects
               ON projects.id = p_ci_builds.project_id
-            JOIN ci_pipelines
-              ON ci_pipelines.id = p_ci_builds.commit_id
+            JOIN p_ci_pipelines
+              ON p_ci_pipelines.id = p_ci_builds.commit_id
             JOIN namespaces
               ON namespaces.id = projects.namespace_id
             LEFT JOIN namespace_statistics
@@ -106,7 +106,7 @@ module GitLab
               projects.namespace_id,
               projects.mirror,
               projects.mirror_trigger_builds,
-              ci_pipelines.pipeline_schedule_id,
+              p_ci_pipelines.pipeline_schedule_id,
               p_ci_builds.trigger_request_id,
               namespaces.shared_runners_minutes_limit,
               namespace_statistics.shared_runners_seconds,
@@ -119,7 +119,7 @@ module GitLab
               p_ci_builds.runner_id,
               ci_runners.runner_type,
               projects.namespace_id,
-              ci_pipelines.pipeline_schedule_id,
+              p_ci_pipelines.pipeline_schedule_id,
               p_ci_builds.trigger_request_id,
               COUNT(*) AS count
             FROM p_ci_builds
@@ -127,8 +127,8 @@ module GitLab
               ON ci_runners.id = p_ci_builds.runner_id
             JOIN projects
               ON projects.id = p_ci_builds.project_id
-            JOIN ci_pipelines
-              ON ci_pipelines.id = p_ci_builds.commit_id
+            JOIN p_ci_pipelines
+              ON p_ci_pipelines.id = p_ci_builds.commit_id
             WHERE p_ci_builds.type = 'Ci::Build'
               AND p_ci_builds.status = 'running'
               -- The created_at filter has been introduced for performance reasons only
@@ -138,7 +138,7 @@ module GitLab
               p_ci_builds.runner_id,
               ci_runners.runner_type,
               projects.namespace_id,
-              ci_pipelines.pipeline_schedule_id,
+              p_ci_pipelines.pipeline_schedule_id,
               p_ci_builds.trigger_request_id
           SQL
 
@@ -154,13 +154,13 @@ module GitLab
             FROM p_ci_builds
             JOIN ci_build_trace_chunks
               ON ci_build_trace_chunks.build_id = p_ci_builds.id
-            LEFT JOIN ci_job_artifacts
-              ON ci_job_artifacts.job_id = p_ci_builds.id
-              AND ci_job_artifacts.file_type = 3
+            LEFT JOIN p_ci_job_artifacts
+              ON p_ci_job_artifacts.job_id = p_ci_builds.id
+              AND p_ci_job_artifacts.file_type = 3
             WHERE p_ci_builds.type = 'Ci::Build'
               AND p_ci_builds.status IN ('success', 'failed', 'canceled')
               AND p_ci_builds.finished_at < '%s'
-              AND ci_job_artifacts.job_id IS NULL
+              AND p_ci_job_artifacts.job_id IS NULL
           SQL
 
         STATUS_CREATED = "created".freeze
