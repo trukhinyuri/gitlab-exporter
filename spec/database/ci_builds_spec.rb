@@ -40,8 +40,8 @@ describe GitLab::Exporter::Database do
   end
 
   # rubocop:disable Metrics/ParameterLists
-  def per_runner_query_row_ee(runner_id, runner_type, namespace_id, mirror, mirror_trigger_builds, pipeline_schedule_id, trigger_request_id, has_minutes, count)
-    row = per_runner_query_row_ce(runner_id, runner_type, namespace_id, pipeline_schedule_id, trigger_request_id, count)
+  def per_runner_query_row_ee(runner_id, runner_type, namespace_id, mirror, mirror_trigger_builds, pipeline_schedule_id, trigger_id, has_minutes, count)
+    row = per_runner_query_row_ce(runner_id, runner_type, namespace_id, pipeline_schedule_id, trigger_id, count)
     row["mirror"] = mirror
     row["mirror_trigger_builds"] = mirror_trigger_builds
     row["has_minutes"] = has_minutes
@@ -50,12 +50,12 @@ describe GitLab::Exporter::Database do
   # rubocop:enable Metrics/ParameterLists
 
   # rubocop:disable Metrics/ParameterLists
-  def per_runner_query_row_ce(runner_id, runner_type, namespace_id, pipeline_schedule_id, trigger_request_id, count)
+  def per_runner_query_row_ce(runner_id, runner_type, namespace_id, pipeline_schedule_id, trigger_id, count)
     { "runner_id" => runner_id,
       "runner_type" => runner_type,
       "namespace_id" => namespace_id,
       "pipeline_schedule_id" => pipeline_schedule_id,
-      "trigger_request_id" => trigger_request_id,
+      "trigger_id" => trigger_id,
       "count" => count }
   end
   # rubocop:enable Metrics/ParameterLists

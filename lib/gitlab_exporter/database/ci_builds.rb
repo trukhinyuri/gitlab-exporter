@@ -79,7 +79,7 @@ module GitLab
               projects.mirror,
               projects.mirror_trigger_builds,
               p_ci_pipelines.pipeline_schedule_id,
-              p_ci_builds.trigger_request_id,
+              p_ci_pipelines.trigger_id,
               (COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) = 0 OR
                  COALESCE(namespace_statistics.shared_runners_seconds, 0) < COALESCE(namespaces.shared_runners_minutes_limit, application_settings.shared_runners_minutes, 0) * 60) as has_minutes,
               COUNT(*) AS count
@@ -107,7 +107,7 @@ module GitLab
               projects.mirror,
               projects.mirror_trigger_builds,
               p_ci_pipelines.pipeline_schedule_id,
-              p_ci_builds.trigger_request_id,
+              p_ci_pipelines.trigger_id,
               namespaces.shared_runners_minutes_limit,
               namespace_statistics.shared_runners_seconds,
               application_settings.shared_runners_minutes
@@ -120,7 +120,7 @@ module GitLab
               ci_runners.runner_type,
               projects.namespace_id,
               p_ci_pipelines.pipeline_schedule_id,
-              p_ci_builds.trigger_request_id,
+              p_ci_pipelines.trigger_id,
               COUNT(*) AS count
             FROM p_ci_builds
             JOIN ci_runners
@@ -139,7 +139,7 @@ module GitLab
               ci_runners.runner_type,
               projects.namespace_id,
               p_ci_pipelines.pipeline_schedule_id,
-              p_ci_builds.trigger_request_id
+              p_ci_pipelines.trigger_id
           SQL
 
         EE_CHECK_QUERY =
@@ -234,7 +234,7 @@ module GitLab
                      runner_type: row["runner_type"],
                      namespace: row["namespace_id"].to_s,
                      scheduled: row["pipeline_schedule_id"] ? "yes" : "no",
-                     triggered: row["trigger_request_id"] ? "yes" : "no",
+                     triggered: row["trigger_id"] ? "yes" : "no",
                      value: row["count"].to_i }
           include_ee_fields(values, row)
         end
