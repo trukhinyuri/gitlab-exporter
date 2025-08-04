@@ -101,10 +101,10 @@ module GitLab
 
         Utils.pgrep("^git ").each do |pid|
           process_cmd = begin
-                          File.read("/proc/#{pid}/cmdline")
-                        rescue StandardError
-                          "" # Process file is gone (race condition)
-                        end
+            File.read("/proc/#{pid}/cmdline")
+          rescue StandardError
+            "" # Process file is gone (race condition)
+          end
           subcommand  = self.class.extract_subcommand(process_cmd)
           next unless subcommand # Unlikely, but just to be safe
 
@@ -142,7 +142,7 @@ module GitLab
 
         cmd_splitted.shift # Because it's "git"
         cmd_splitted.shift while cmd_splitted.first &&
-                                 (cmd_splitted.first.empty? || cmd_splitted.first !~ /^[^-][a-z\-]*$/)
+                                 (cmd_splitted.first.empty? || cmd_splitted.first !~ /^[^-][a-z-]*$/)
 
         cmd_splitted[0]
       end

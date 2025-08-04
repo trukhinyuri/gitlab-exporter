@@ -27,23 +27,9 @@ module GitLab
       class Mapping
         FIELDS = %w[size rss shared_clean shared_dirty private_clean private_dirty swap pss].freeze
 
-        attr_reader :address_start
-        attr_reader :address_end
-        attr_reader :perms
-        attr_reader :offset
-        attr_reader :device_major
-        attr_reader :device_minor
-        attr_reader :inode
-        attr_reader :region
+        attr_reader :address_start, :address_end, :perms, :offset, :device_major, :device_minor, :inode, :region
 
-        attr_accessor :size
-        attr_accessor :rss
-        attr_accessor :shared_clean
-        attr_accessor :shared_dirty
-        attr_accessor :private_dirty
-        attr_accessor :private_clean
-        attr_accessor :swap
-        attr_accessor :pss
+        attr_accessor :size, :rss, :shared_clean, :shared_dirty, :private_dirty, :private_clean, :swap, :pss
 
         def initialize(lines)
           FIELDS.each do |field|
