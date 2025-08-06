@@ -43,10 +43,10 @@ describe GitLab::Exporter::Database::BloatProber do
   end
 
   describe "#probe_db" do
-    subject { described_class.new(metrics: metrics, collector: collector, logger: STDOUT, **opts).probe_db }
+    subject { described_class.new(metrics: metrics, collector: collector, logger: $stdout, **opts).probe_db }
 
     before do
-      expect(collector).to receive(:logger=).with(STDOUT)
+      expect(collector).to receive(:logger=).with($stdout)
     end
 
     it "invokes the collector for each bloat type" do

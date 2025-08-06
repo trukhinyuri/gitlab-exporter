@@ -44,7 +44,7 @@ module GitLab
           @options = options(args)
           args = @options.parse!
           @source = args.shift
-          @target = args.shift || STDOUT
+          @target = args.shift || $stdout
           @labels ||= {}
         end
 
@@ -79,7 +79,7 @@ module GitLab
 
       # Database tuple stats runner.
       #
-      # It will take a database connection string and print results to STDOUT
+      # It will take a database connection string and print results to $stdout
       class DatabaseTupleStats
         COMMAND_NAME = "db-tuple-stats".freeze
 
@@ -87,7 +87,7 @@ module GitLab
           @options = options(args)
           @options.parse!
 
-          @target = args.shift || STDOUT
+          @target = args.shift || $stdout
           @target = File.open(@target, "a") if @target.is_a?(String)
         end
 
@@ -121,7 +121,7 @@ module GitLab
 
       # Database row counts query runner.
       #
-      # This will take the database connection and print the result to STDOUT
+      # This will take the database connection and print the result to $stdout
       class DatabaseRowCounts
         COMMAND_NAME = "row-counts".freeze
 
@@ -129,7 +129,7 @@ module GitLab
           @options = options(args)
           @options.parse!
 
-          @target = args.shift || STDOUT
+          @target = args.shift || $stdout
           @target = File.open(@target, "a") if @target.is_a?(String)
         end
 
@@ -234,7 +234,7 @@ module GitLab
           @options = options(args)
           @options.parse!
 
-          @target = args.shift || STDOUT
+          @target = args.shift || $stdout
           @target = File.open(@target, "a") if @target.is_a?(String)
         end
 
@@ -271,7 +271,7 @@ module GitLab
 
       # Sidekiq runner.
       #
-      # It will take a Redis connection URL and print results to STDOUT
+      # It will take a Redis connection URL and print results to $stdout
       class SidekiqRunner
         COMMAND_NAME = "sidekiq".freeze
 
@@ -279,7 +279,7 @@ module GitLab
           @options = options(args)
           @options.parse!
 
-          @target = args.shift || STDOUT
+          @target = args.shift || $stdout
           @target = File.open(@target, "a") if @target.is_a?(String)
         end
 
@@ -315,7 +315,7 @@ module GitLab
                                                          redis_sentinels: @redis_sentinels,
                                                          redis_sentinel_username: @redis_sentinel_username,
                                                          redis_sentinel_password: @redis_sentinel_password,
-                                                         logger: Logger.new(STDERR))
+                                                         logger: Logger.new($stderr))
 
           prober
             .probe_stats
@@ -343,7 +343,7 @@ module GitLab
           @options = options(args)
           @options.parse!
 
-          @target = args.shift || STDOUT
+          @target = args.shift || $stdout
           @target = File.open(@target, "a") if @target.is_a?(String)
         end
 

@@ -202,7 +202,7 @@ module GitLab
 
           result.map do |row|
             labels = {}
-            (query_hash[:fields] || []).each do |key, _| labels[key] = row[key.to_s] end
+            (query_hash[:fields] || {}).each_key do |key| labels[key] = row[key.to_s] end
             { "count": row["count"], "labels": labels }
           end
         end
@@ -233,7 +233,7 @@ module GitLab
           query_string << " FROM #{query[:select]}"
           query_string << " #{query[:joins]}"       if query[:joins]
           query_string << " WHERE #{query[:where]}" if query[:where]
-          query_string << " GROUP BY " + query[:fields].keys.join(", ") if query[:fields]
+          query_string << " GROUP BY #{query[:fields].keys.join(', ')}" if query[:fields]
           query_string << ";"
         end
       end
