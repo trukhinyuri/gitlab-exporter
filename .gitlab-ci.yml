@@ -17,6 +17,7 @@ stages:
 default:
   image: ruby:${RUBY_VERSION}
   cache:
+    key: ruby-${RUBY_VERSION}
     paths:
       - vendor
   tags:
