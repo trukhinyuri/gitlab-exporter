@@ -5,30 +5,30 @@ module GitLab
       class ZoektCollector < Base
         QUERY = <<~SQL.freeze
           WITH task_counts AS (
-            SELECT 
+            SELECT
               zoekt_node_id,
               COUNT(*) AS count
-            FROM 
+            FROM
               zoekt_tasks
-            WHERE 
+            WHERE
               perform_at <= $1
               AND state IN (0, 1)
-            GROUP BY 
+            GROUP BY
               zoekt_node_id
           )
-          SELECT 
+          SELECT
             n.id AS node_id,
             n.metadata ->> 'name' AS node_name,
             COALESCE(tc.count, 0) AS task_count
-          FROM 
+          FROM
             zoekt_nodes n
-          LEFT JOIN 
+          LEFT JOIN
             task_counts tc ON n.id = tc.zoekt_node_id
         SQL
 
         ZOEKT_ENABLED_QUERY = <<~SQL.freeze
           SELECT
-            zoekt_settings ->> 'zoekt_indexing_enabled' AS zoekt_indexing_enabled 
+            zoekt_settings ->> 'zoekt_indexing_enabled' AS zoekt_indexing_enabled
           FROM application_settings
           ORDER BY ID DESC
           LIMIT 1

@@ -11,7 +11,7 @@ module GitLab
       end
 
       def probe_all
-        @prober_opts.each do |_probe_name, params|
+        @prober_opts.each_value do |params|
           Utils.wrap_in_array(params[:opts]).each do |opts|
             prober = params[:class].new(metrics: @metrics, logger: @logger, **opts)
             params[:methods].each do |meth|

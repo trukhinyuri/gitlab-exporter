@@ -191,7 +191,7 @@ module GitLab
           results = []
 
           query = ee? ? BUILDS_QUERY_EE : BUILDS_QUERY_CE
-          query = query % [status] # rubocop:disable Style/FormatString
+          query %= [status]
           exec_query_with_custom_random_page_cost(query).each do |row|
             results << transform_builds_row_to_values(row)
           end

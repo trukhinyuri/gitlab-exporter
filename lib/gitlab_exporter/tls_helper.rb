@@ -1,6 +1,6 @@
 # Contains helper methods to generate TLS related configuration for web servers
 module TLSHelper
-  CERT_REGEX = /-----BEGIN CERTIFICATE-----(?:.|\n)+?-----END CERTIFICATE-----/.freeze
+  CERT_REGEX = /-----BEGIN CERTIFICATE-----(?:.|\n)+?-----END CERTIFICATE-----/
 
   def validate_tls_config(config)
     %i[tls_cert_path tls_key_path].each do |key|

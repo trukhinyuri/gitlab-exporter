@@ -7,7 +7,7 @@ include:
   - template: Security/Dependency-Scanning.gitlab-ci.yml  # https://gitlab.com/gitlab-org/gitlab-foss/blob/master/lib/gitlab/ci/templates/Security/Dependency-Scanning.gitlab-ci.yml
 
 variables:
-  RUBY_VERSION: "3.0"
+  RUBY_VERSION: "3.3"
 
 stages:
   - test
@@ -17,6 +17,7 @@ stages:
 default:
   image: ruby:${RUBY_VERSION}
   cache:
+    key: ruby-${RUBY_VERSION}
     paths:
       - vendor
   tags:
@@ -26,6 +27,15 @@ default:
   - git config --global user.email "bot@gitlab.com"
   - git config --global user.name "Bot User"
   - bundle config set --local deployment true
+  - |
+     # Bundler 2.7.1 and up require Ruby 3.2 and up, so
+     # to avoid https://github.com/rubygems/rubygems/issues/5380 use an
+     # older Bundler version.
+     case ${RUBY_VERSION} in
+       "3.0"|"3.1")
+           export BUNDLER_VERSION="2.4.20"
+           ;;
+     esac
   - bundle install -j $(nproc)
 
 workflow:
