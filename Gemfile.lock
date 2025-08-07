@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-exporter (16.0.0)
+    gitlab-exporter (16.1.0)
       connection_pool (= 2.5.3)
       deep_merge (~> 1.2.2)
       faraday (= 2.13.4)
