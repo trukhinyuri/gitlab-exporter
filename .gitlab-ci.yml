@@ -62,7 +62,7 @@ rspec_integration:
   services:
     - name: redis:${REDIS_VERSION}
       alias: redis-master
-    - name: bitnami/redis-sentinel:${REDIS_SENTINEL_VERSION}
+    - name: bitnamilegacy/redis-sentinel:${REDIS_SENTINEL_VERSION}
       alias: redis-sentinel
       command:
         - /bin/sh
