@@ -4,8 +4,13 @@ require "gitlab_exporter/database/zoekt"
 describe GitLab::Exporter::Database::ZoektCollector do
   let(:connection_pool) { double("connection pool") }
   let(:connection) { double("connection") }
-  let(:query) { described_class::QUERY }
+  let(:zoekt_tasks_processing_query) { described_class::ZOEKT_TASKS_PROCESSING_QUERY }
+  let(:zoekt_nodes_query) { described_class::ZOEKT_NODES_QUERY }
+  let(:zoekt_nodes_query_results) { [{ "id" => "1", "schema_version" => "2302" }] }
   let(:zoekt_enabled_query) { described_class::ZOEKT_ENABLED_QUERY }
+  let(:zoekt_repository_schema_version_query) { described_class::ZOEKT_REPOSITORY_SCHEMA_VERSION_QUERY }
+
+  let(:zoekt_repository_schema_version_query_results) { [{ "count" => "1" }] }
 
   subject(:collector) { described_class.new(connection_string: "host=localhost") }
 
@@ -26,11 +31,22 @@ describe GitLab::Exporter::Database::ZoektCollector do
   describe "#run" do
     let(:zoekt_enabled_results) {}
     let(:frozen_time) { Time.new(2023, 1, 1, 0, 0, 0, 0) }
-    let(:query_results) do
+    let(:zoekt_tasks_processing_query_results) do
       [
         { "node_id" => "1", "node_name" => "zoekt-1", "task_count" => "5" },
         { "node_id" => "2", "node_name" => "zoekt-2", "task_count" => "10" }
       ]
+    end
+
+    let(:zoekt_repositories_schema_version_query_results) do
+      Set.new([{ target_schema_version: "2302", zoekt_node_id: "1", unfinished_repository_count: 1 }])
+    end
+
+    let(:result) do
+      {
+        repositories_schema_version_query_result: zoekt_repositories_schema_version_query_results,
+        task_processing_query_result: zoekt_tasks_processing_query_results
+      }
     end
 
     before do
@@ -42,10 +58,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
         stub_zoekt_not_enabled
       end
 
-      it "returns nil" do
-        allow(connection).to receive(:exec_params).with(query, frozen_time).and_raise(PG::UndefinedTable)
-
-        expect(collector.run).to be_nil
+      it "returns {}" do
+        expect(collector.run).to eq({})
       end
     end
 
@@ -54,25 +68,38 @@ describe GitLab::Exporter::Database::ZoektCollector do
         stub_zoekt_enabled
       end
 
-      it "executes the query with the current time" do
-        expect(connection).to receive(:exec_params).with(query, [frozen_time]).and_return(query_results)
+      it "executes the query with correct params" do
+        expect(connection).to receive(:exec_params).with(zoekt_tasks_processing_query, [frozen_time])
+                                                   .and_return(zoekt_tasks_processing_query_results)
+        expect(connection).to receive(:exec_params).with(zoekt_nodes_query, [])
+                                                   .and_return(zoekt_nodes_query_results)
+        expect(connection).to receive(:exec_params).with(zoekt_repository_schema_version_query, %w[1 2302])
+                                                   .and_return(zoekt_repository_schema_version_query_results)
 
-        expect(collector.run).to eq(query_results)
+        expect(collector.run).to eq(result)
       end
 
       context "when PG::UndefinedTable is raised" do
-        it "returns nil" do
-          allow(connection).to receive(:exec_params).with(query, [frozen_time]).and_raise(PG::UndefinedTable)
+        it "does not includes the key which got the exception" do
+          allow(connection).to receive(:exec_params).with(zoekt_tasks_processing_query, [frozen_time])
+                                                    .and_raise(PG::UndefinedTable)
+          allow(connection).to receive(:exec_params).with(zoekt_nodes_query, [])
+                                                    .and_raise(PG::UndefinedTable)
 
-          expect(collector.run).to be_nil
+          expect(collector.run).to eq({})
         end
       end
 
       context "when PG::UndefinedColumn is raised" do
-        it "returns nil" do
-          allow(connection).to receive(:exec_params).with(query, [frozen_time]).and_raise(PG::UndefinedColumn)
+        it "does not includes the key which got the exception" do
+          allow(connection).to receive(:exec_params).with(zoekt_tasks_processing_query, [frozen_time])
+                                                    .and_return(zoekt_tasks_processing_query_results)
+          expect(connection).to receive(:exec_params).with(zoekt_nodes_query, [])
+                                                     .and_return(zoekt_nodes_query_results)
+          expect(connection).to receive(:exec_params).with(zoekt_repository_schema_version_query, %w[1 2302])
+                                                     .and_raise(PG::UndefinedTable)
 
-          expect(collector.run).to be_nil
+          expect(collector.run).to eq({ task_processing_query_result: zoekt_tasks_processing_query_results })
         end
       end
     end
@@ -99,10 +126,15 @@ describe GitLab::Exporter::Database::ZoektProber do
   let(:metrics) { double("PrometheusMetrics", add: nil) }
   let(:collector) { double(GitLab::Exporter::Database::ZoektCollector, run: data) }
   let(:data) do
-    [
-      { "node_id" => "1", "node_name" => "zoekt-1", "task_count" => "5" },
-      { "node_id" => "2", "node_name" => "zoekt-2", "task_count" => "10" }
-    ]
+    {
+      repositories_schema_version_query_result: Set.new(
+        [{ target_schema_version: "2302", zoekt_node_id: "1", unfinished_repository_count: 1 }]
+      ),
+      task_processing_query_result: [
+        { "node_id" => "1", "node_name" => "zoekt-1", "task_count" => "5" },
+        { "node_id" => "2", "node_name" => "zoekt-2", "task_count" => "10" }
+      ]
+    }
   end
 
   describe "#probe_db" do
@@ -123,12 +155,22 @@ describe GitLab::Exporter::Database::ZoektProber do
     it "adds metrics for each node" do
       expect(collector).to receive(:run).and_return(data)
 
-      data.each do |node_data|
+      data[:task_processing_query_result].each do |node_data|
         expect(metrics).to receive(:add)
           .with("search_zoekt_task_processing_queue_size",
                 node_data["task_count"].to_i,
                 node_name: node_data["node_name"],
                 node_id: node_data["node_id"])
+      end
+
+      data[:repositories_schema_version_query_result].each do |node_data|
+        expect(metrics).to receive(:add)
+          .with(
+            "search_zoekt_repositories_schema_version_count",
+            node_data[:unfinished_repository_count].to_i,
+            target_schema_version: node_data[:target_schema_version],
+            zoekt_node_id: node_data[:zoekt_node_id]
+          )
       end
 
       probe_db
