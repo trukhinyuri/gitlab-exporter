@@ -9,6 +9,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
   let(:zoekt_nodes_query_results) { [{ "id" => "1", "schema_version" => "2302" }] }
   let(:zoekt_enabled_query) { described_class::ZOEKT_ENABLED_QUERY }
   let(:zoekt_repository_schema_version_query) { described_class::ZOEKT_REPOSITORY_SCHEMA_VERSION_QUERY }
+  let(:zoekt_nodes_status_query) { described_class::ZOEKT_NODES_STATUS_QUERY }
+  let(:zoekt_nodes_status_query_results) { [{ "id" => "1", "status" => "1" }] }
 
   let(:zoekt_repository_schema_version_query_results) { [{ "count" => "1" }] }
 
@@ -45,7 +47,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
     let(:result) do
       {
         repositories_schema_version_query_result: zoekt_repositories_schema_version_query_results,
-        task_processing_query_result: zoekt_tasks_processing_query_results
+        task_processing_query_result: zoekt_tasks_processing_query_results,
+        zoekt_nodes_status_query_result: zoekt_nodes_status_query_results
       }
     end
 
@@ -75,6 +78,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
                                                    .and_return(zoekt_nodes_query_results)
         expect(connection).to receive(:exec_params).with(zoekt_repository_schema_version_query, %w[1 2302])
                                                    .and_return(zoekt_repository_schema_version_query_results)
+        expect(connection).to receive(:exec_params).with(zoekt_nodes_status_query, [])
+                                                   .and_return(zoekt_nodes_status_query_results)
 
         expect(collector.run).to eq(result)
       end
@@ -84,6 +89,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
           allow(connection).to receive(:exec_params).with(zoekt_tasks_processing_query, [frozen_time])
                                                     .and_raise(PG::UndefinedTable)
           allow(connection).to receive(:exec_params).with(zoekt_nodes_query, [])
+                                                    .and_raise(PG::UndefinedTable)
+          allow(connection).to receive(:exec_params).with(zoekt_nodes_status_query, [])
                                                     .and_raise(PG::UndefinedTable)
 
           expect(collector.run).to eq({})
@@ -98,6 +105,7 @@ describe GitLab::Exporter::Database::ZoektCollector do
                                                      .and_return(zoekt_nodes_query_results)
           expect(connection).to receive(:exec_params).with(zoekt_repository_schema_version_query, %w[1 2302])
                                                      .and_raise(PG::UndefinedTable)
+          expect(connection).to receive(:exec_params).with(zoekt_nodes_status_query, []).and_raise(PG::UndefinedTable)
 
           expect(collector.run).to eq({ task_processing_query_result: zoekt_tasks_processing_query_results })
         end
