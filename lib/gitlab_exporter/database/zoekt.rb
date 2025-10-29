@@ -31,6 +31,16 @@ module GitLab
           SELECT schema_version, id FROM zoekt_nodes
         SQL
 
+        ZOEKT_NODES_STATUS_QUERY = <<~SQL.freeze
+          SELECT
+            id,
+            CASE
+              WHEN last_seen_at < NOW() - INTERVAL '2 minute' THEN 0
+              ELSE 1
+            END AS status
+          FROM zoekt_nodes;
+        SQL
+
         ZOEKT_REPOSITORY_SCHEMA_VERSION_QUERY = <<~SQL.freeze
           SELECT
             COUNT(*)
@@ -58,7 +68,8 @@ module GitLab
 
           {
             task_processing_query_result: execute(ZOEKT_TASKS_PROCESSING_QUERY, [Time.now.utc]),
-            repositories_schema_version_query_result: repositories_schema_version_query_result
+            repositories_schema_version_query_result: repositories_schema_version_query_result,
+            zoekt_nodes_status_query_result: execute(ZOEKT_NODES_STATUS_QUERY)
           }.compact
         end
 
@@ -119,13 +130,23 @@ module GitLab
 
       # The prober which is called when gathering metrics
       class ZoektProber
-        PrometheusMetrics.describe("search_zoekt_task_processing_queue_size",
-                                   "Number of tasks waiting to be processed by Zoekt",
-                                   "gauge")
+        PrometheusMetrics.describe(
+          "search_zoekt_task_processing_queue_size",
+          "Number of tasks waiting to be processed by Zoekt",
+          "gauge"
+        )
 
-        PrometheusMetrics.describe("search_zoekt_repositories_schema_version_count",
-                                   "Number of zoekt_repositories which do not have the latest schema version",
-                                   "gauge")
+        PrometheusMetrics.describe(
+          "search_zoekt_repositories_schema_version_count",
+          "Number of zoekt_repositories which do not have the latest schema version",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "search_zoekt_nodes_status",
+          "Status of each zoekt_node. 0 is offline (last seen more than 2 minutes ago), 1 is online",
+          "gauge"
+        )
 
         def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
@@ -139,6 +160,9 @@ module GitLab
           end
           results[:repositories_schema_version_query_result]&.each do |row|
             add_zoekt_repositories_by_schema_version_to_metric(row)
+          end
+          results[:zoekt_nodes_status_query_result]&.each do |row|
+            add_zoekt_nodes_status_to_metric(row)
           end
 
           self
@@ -161,6 +185,14 @@ module GitLab
             row[:unfinished_repository_count].to_i,
             target_schema_version: row[:target_schema_version],
             zoekt_node_id: row[:zoekt_node_id]
+          )
+        end
+
+        def add_zoekt_nodes_status_to_metric(row)
+          @metrics.add(
+            "search_zoekt_nodes_status",
+            row["status"].to_i,
+            zoekt_node_id: row["id"]
           )
         end
 
