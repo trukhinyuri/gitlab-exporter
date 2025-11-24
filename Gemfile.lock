@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     gitlab-exporter (16.3.0)
-      connection_pool (= 2.5.4)
+      connection_pool (= 2.5.5)
       deep_merge (~> 1.2.2)
       faraday (= 2.14.0)
       pg (= 1.6.2)
@@ -19,7 +19,7 @@ GEM
   specs:
     ast (2.4.3)
     base64 (0.2.0)
-    connection_pool (2.5.4)
+    connection_pool (2.5.5)
     deep_merge (1.2.2)
     diff-lcs (1.5.0)
     faraday (2.14.0)
