@@ -5,7 +5,7 @@ PATH
       connection_pool (= 2.5.5)
       deep_merge (~> 1.2.2)
       faraday (= 2.14.0)
-      pg (= 1.6.2)
+      pg (= 1.6.3)
       puma (= 7.1.0)
       quantile (= 0.2.1)
       redis (= 4.8.1)
@@ -38,7 +38,7 @@ GEM
     parser (3.3.9.0)
       ast (~> 2.4.1)
       racc
-    pg (1.6.2)
+    pg (1.6.3)
     prism (1.4.0)
     puma (7.1.0)
       nio4r (~> 2.0)
