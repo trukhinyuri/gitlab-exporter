@@ -1,3 +1,4 @@
+require "openssl"
 require "sidekiq/api"
 require "sidekiq/scheduled"
 require "digest"
@@ -204,6 +205,7 @@ module GitLab
           options[credential] = @opts[:"redis_#{credential}"] if @opts.key?(:"redis_#{credential}")
         end
 
+        options[:ssl_params] = parse_ssl_params(@opts[:redis_ssl_params]) if @opts.key?(:redis_ssl_params)
         options[:id] = nil unless redis_enable_client?
         options
       end
@@ -216,6 +218,9 @@ module GitLab
         sentinels.each do |sentinel_config|
           sentinel_config[:username] = @opts[:redis_sentinel_username] if @opts.key?(:redis_sentinel_username)
           sentinel_config[:password] = @opts[:redis_sentinel_password] if @opts.key?(:redis_sentinel_password)
+          if sentinel_config.key?(:ssl_params)
+            sentinel_config[:ssl_params] = parse_ssl_params(sentinel_config[:ssl_params])
+          end
         end
 
         sentinels
@@ -225,6 +230,27 @@ module GitLab
         return true if @opts[:redis_enable_client].nil?
 
         @opts[:redis_enable_client]
+      end
+
+      # redis v4.5 needs OpenSSL objects for the SSL parameters.
+      # redis v5 does not need to do this because is uses redis-client, which
+      # already does this: https://github.com/redis-rb/redis-client/blob/2b044dbf6266cbc0b0e52b4b9d6940dacb25ccf3/lib/redis_client/ruby_connection.rb#L14-L39
+      def parse_ssl_params(ssl_params)
+        params = ssl_params&.dup || {}
+
+        cert = params[:cert]
+        if cert.is_a?(String)
+          cert = File.read(cert) if File.exist?(cert)
+          params[:cert] = OpenSSL::X509::Certificate.new(cert)
+        end
+
+        key = params[:key]
+        if key.is_a?(String)
+          key = File.read(key) if File.exist?(key)
+          params[:key] = OpenSSL::PKey.read(key)
+        end
+
+        params
       end
 
       def connected?

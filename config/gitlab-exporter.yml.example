@@ -113,6 +113,11 @@ probes:
       #     port: 26381
       # redis_sentinel_username: 'redis-sentinel-username'
       # redis_sentinel_password: 'redis-sentinel-password'
+      # Uncomment if SSL parameters are needed
+      # redis_ssl_params:
+      #   ca_file: '/path/to/ca.crt'
+      #   cert: '/path/to/client.crt'
+      #   key: '/path/to/client.key'
 
   ruby: &ruby
     class_name: RubyProber
