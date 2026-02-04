@@ -28,12 +28,11 @@ module GitLab
         SQL
 
         ZOEKT_NODES_QUERY = <<~SQL.freeze
-          SELECT schema_version, id FROM zoekt_nodes
+          SELECT schema_version, id, metadata ->> 'name' AS node_name FROM zoekt_nodes
         SQL
 
         ZOEKT_NODES_STATUS_QUERY = <<~SQL.freeze
-          SELECT
-            id,
+          SELECT id, metadata ->> 'name' AS node_name,
             CASE
               WHEN last_seen_at < NOW() - INTERVAL '2 minute' THEN 0
               ELSE 1
@@ -88,22 +87,25 @@ module GitLab
 
           hash = {}
           zoekt_nodes.each do |row|
-            hash[row["id"]] = row["schema_version"]
+            hash[row["id"]] = [row["schema_version"], row["node_name"]]
           end
           hash
         end
 
         def zoekt_repository_schema_version_result(hash)
           result = Set.new
-          hash.each do |id, schema_version|
-            query_result = execute(ZOEKT_REPOSITORY_SCHEMA_VERSION_QUERY, [id, schema_version])
+          hash.each do |id, schema_version_name_arr|
+            query_result = execute(ZOEKT_REPOSITORY_SCHEMA_VERSION_QUERY, [id, schema_version_name_arr[0]])
             if query_result.nil?
               result = nil
               break
             end
-
-            count = query_result[0]["count"].to_i
-            result.add({ target_schema_version: schema_version, zoekt_node_id: id, unfinished_repository_count: count })
+            result.add(
+              {
+                target_schema_version: schema_version_name_arr[0], zoekt_node_id: id,
+                zoekt_node_name: schema_version_name_arr[1], unfinished_repository_count: query_result[0]["count"].to_i
+              }
+            )
           end
           result
         end
@@ -174,8 +176,10 @@ module GitLab
           @metrics.add(
             "search_zoekt_task_processing_queue_size",
             row["task_count"].to_i,
-            node_name: row["node_name"],
-            node_id: row["node_id"]
+            **{
+              node_name: row["node_name"],
+              node_id: row["node_id"]
+            }.compact
           )
         end
 
@@ -183,8 +187,11 @@ module GitLab
           @metrics.add(
             "search_zoekt_repositories_schema_version_count",
             row[:unfinished_repository_count].to_i,
-            target_schema_version: row[:target_schema_version],
-            zoekt_node_id: row[:zoekt_node_id]
+            **{
+              target_schema_version: row[:target_schema_version],
+              zoekt_node_id: row[:zoekt_node_id],
+              zoekt_node_name: row[:zoekt_node_name]
+            }.compact
           )
         end
 
@@ -192,7 +199,10 @@ module GitLab
           @metrics.add(
             "search_zoekt_nodes_status",
             row["status"].to_i,
-            zoekt_node_id: row["id"]
+            **{
+              zoekt_node_id: row["id"],
+              zoekt_node_name: row["node_name"]
+            }.compact
           )
         end
 
