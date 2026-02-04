@@ -6,11 +6,11 @@ describe GitLab::Exporter::Database::ZoektCollector do
   let(:connection) { double("connection") }
   let(:zoekt_tasks_processing_query) { described_class::ZOEKT_TASKS_PROCESSING_QUERY }
   let(:zoekt_nodes_query) { described_class::ZOEKT_NODES_QUERY }
-  let(:zoekt_nodes_query_results) { [{ "id" => "1", "schema_version" => "2302" }] }
+  let(:zoekt_nodes_query_results) { [{ "id" => "1", "schema_version" => "2302", "node_name" => "foo" }] }
   let(:zoekt_enabled_query) { described_class::ZOEKT_ENABLED_QUERY }
   let(:zoekt_repository_schema_version_query) { described_class::ZOEKT_REPOSITORY_SCHEMA_VERSION_QUERY }
   let(:zoekt_nodes_status_query) { described_class::ZOEKT_NODES_STATUS_QUERY }
-  let(:zoekt_nodes_status_query_results) { [{ "id" => "1", "status" => "1" }] }
+  let(:zoekt_nodes_status_query_results) { [{ "id" => "1", "name" => "foo", "status" => "1" }] }
 
   let(:zoekt_repository_schema_version_query_results) { [{ "count" => "1" }] }
 
@@ -41,7 +41,9 @@ describe GitLab::Exporter::Database::ZoektCollector do
     end
 
     let(:zoekt_repositories_schema_version_query_results) do
-      Set.new([{ target_schema_version: "2302", zoekt_node_id: "1", unfinished_repository_count: 1 }])
+      Set.new(
+        [{ target_schema_version: "2302", zoekt_node_id: "1", zoekt_node_name: "foo", unfinished_repository_count: 1 }]
+      )
     end
 
     let(:result) do
@@ -136,7 +138,7 @@ describe GitLab::Exporter::Database::ZoektProber do
   let(:data) do
     {
       repositories_schema_version_query_result: Set.new(
-        [{ target_schema_version: "2302", zoekt_node_id: "1", unfinished_repository_count: 1 }]
+        [{ target_schema_version: "2302", zoekt_node_id: "1", unfinished_repository_count: 1, zoekt_node_name: "foo" }]
       ),
       task_processing_query_result: [
         { "node_id" => "1", "node_name" => "zoekt-1", "task_count" => "5" },
@@ -165,10 +167,12 @@ describe GitLab::Exporter::Database::ZoektProber do
 
       data[:task_processing_query_result].each do |node_data|
         expect(metrics).to receive(:add)
-          .with("search_zoekt_task_processing_queue_size",
-                node_data["task_count"].to_i,
-                node_name: node_data["node_name"],
-                node_id: node_data["node_id"])
+          .with(
+            "search_zoekt_task_processing_queue_size",
+            node_data["task_count"].to_i,
+            node_name: node_data["node_name"],
+            node_id: node_data["node_id"]
+          )
       end
 
       data[:repositories_schema_version_query_result].each do |node_data|
@@ -177,7 +181,8 @@ describe GitLab::Exporter::Database::ZoektProber do
             "search_zoekt_repositories_schema_version_count",
             node_data[:unfinished_repository_count].to_i,
             target_schema_version: node_data[:target_schema_version],
-            zoekt_node_id: node_data[:zoekt_node_id]
+            zoekt_node_id: node_data[:zoekt_node_id],
+            zoekt_node_name: node_data[:zoekt_node_name]
           )
       end
 
