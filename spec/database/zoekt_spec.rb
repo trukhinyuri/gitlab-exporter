@@ -19,6 +19,10 @@ describe GitLab::Exporter::Database::ZoektCollector do
   let(:zoekt_repositories_state_query_results) do
     [{ "state" => "0", "count" => "5" }, { "state" => "10", "count" => "15" }]
   end
+  let(:zoekt_indices_state_query) { described_class::ZOEKT_INDICES_STATE_QUERY }
+  let(:zoekt_indices_state_query_results) do
+    [{ "state" => "0", "count" => "3" }, { "state" => "1", "count" => "7" }]
+  end
 
   let(:zoekt_repository_schema_version_query_results) { [{ "count" => "1" }] }
 
@@ -60,7 +64,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
         task_processing_query_result: zoekt_tasks_processing_query_results,
         zoekt_nodes_status_query_result: zoekt_nodes_status_query_results,
         node_storage_query_result: zoekt_node_storage_query_results,
-        repositories_state_query_result: zoekt_repositories_state_query_results
+        repositories_state_query_result: zoekt_repositories_state_query_results,
+        indices_state_query_result: zoekt_indices_state_query_results
       }
     end
 
@@ -96,6 +101,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
                                                    .and_return(zoekt_node_storage_query_results)
         expect(connection).to receive(:exec_params).with(zoekt_repositories_state_query, [])
                                                    .and_return(zoekt_repositories_state_query_results)
+        expect(connection).to receive(:exec_params).with(zoekt_indices_state_query, [])
+                                                   .and_return(zoekt_indices_state_query_results)
 
         expect(collector.run).to eq(result)
       end
@@ -111,6 +118,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
           allow(connection).to receive(:exec_params).with(zoekt_node_storage_query, [])
                                                     .and_raise(PG::UndefinedTable)
           allow(connection).to receive(:exec_params).with(zoekt_repositories_state_query, [])
+                                                    .and_raise(PG::UndefinedTable)
+          allow(connection).to receive(:exec_params).with(zoekt_indices_state_query, [])
                                                     .and_raise(PG::UndefinedTable)
 
           expect(collector.run).to eq({})
@@ -128,6 +137,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
           expect(connection).to receive(:exec_params).with(zoekt_nodes_status_query, []).and_raise(PG::UndefinedTable)
           expect(connection).to receive(:exec_params).with(zoekt_node_storage_query, []).and_raise(PG::UndefinedColumn)
           expect(connection).to receive(:exec_params).with(zoekt_repositories_state_query, [])
+                                                     .and_raise(PG::UndefinedColumn)
+          expect(connection).to receive(:exec_params).with(zoekt_indices_state_query, [])
                                                      .and_raise(PG::UndefinedColumn)
 
           expect(collector.run).to eq({ task_processing_query_result: zoekt_tasks_processing_query_results })
@@ -178,6 +189,10 @@ describe GitLab::Exporter::Database::ZoektProber do
       repositories_state_query_result: [
         { "state" => "0", "count" => "5" },
         { "state" => "10", "count" => "15" }
+      ],
+      indices_state_query_result: [
+        { "state" => "0", "count" => "3" },
+        { "state" => "1", "count" => "7" }
       ]
     }
   end
@@ -242,6 +257,15 @@ describe GitLab::Exporter::Database::ZoektProber do
         expect(metrics).to receive(:add)
           .with(
             "search_zoekt_repositories_states_total",
+            state_data["count"].to_i,
+            state: state_data["state"]
+          )
+      end
+
+      data[:indices_state_query_result].each do |state_data|
+        expect(metrics).to receive(:add)
+          .with(
+            "search_zoekt_indices_states",
             state_data["count"].to_i,
             state: state_data["state"]
           )
