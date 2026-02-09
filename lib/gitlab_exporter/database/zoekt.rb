@@ -71,6 +71,10 @@ module GitLab
           FROM zoekt_nodes
         SQL
 
+        ZOEKT_REPOSITORIES_STATE_QUERY = <<~SQL.freeze
+          SELECT state, COUNT(*) FROM zoekt_repositories GROUP BY state
+        SQL
+
         def run
           return {} unless zoekt_indexing_enabled?
 
@@ -78,7 +82,8 @@ module GitLab
             task_processing_query_result: execute(ZOEKT_TASKS_PROCESSING_QUERY, [Time.now.utc]),
             repositories_schema_version_query_result: repositories_schema_version_query_result,
             zoekt_nodes_status_query_result: execute(ZOEKT_NODES_STATUS_QUERY),
-            node_storage_query_result: execute(ZOEKT_NODE_STORAGE_QUERY)
+            node_storage_query_result: execute(ZOEKT_NODE_STORAGE_QUERY),
+            repositories_state_query_result: execute(ZOEKT_REPOSITORIES_STATE_QUERY)
           }.compact
         end
 
@@ -172,6 +177,12 @@ module GitLab
           "gauge"
         )
 
+        PrometheusMetrics.describe(
+          "search_zoekt_repositories_states_total",
+          "Number of Zoekt repositories in each state",
+          "gauge"
+        )
+
         def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
           @collector = opts[:collector] || ZoektCollector.new(**opts)
@@ -192,6 +203,7 @@ module GitLab
           process_repository_results(results[:repositories_schema_version_query_result])
           process_node_status_results(results[:zoekt_nodes_status_query_result])
           process_node_storage_results(results[:node_storage_query_result])
+          process_repositories_state_results(results[:repositories_state_query_result])
         end
 
         def process_task_results(results)
@@ -211,6 +223,10 @@ module GitLab
             add_zoekt_node_unclaimed_storage_to_metric(row)
             add_zoekt_node_storage_percent_used_to_metric(row)
           end
+        end
+
+        def process_repositories_state_results(results)
+          results&.each { |row| add_zoekt_repositories_state_to_metric(row) }
         end
 
         def add_processing_zoekt_tasks_to_metric(row)
@@ -265,6 +281,16 @@ module GitLab
             **{
               zoekt_node_id: row["id"],
               zoekt_node_name: row["node_name"]
+            }.compact
+          )
+        end
+
+        def add_zoekt_repositories_state_to_metric(row)
+          @metrics.add(
+            "search_zoekt_repositories_states_total",
+            row["count"].to_i,
+            **{
+              state: row["state"]
             }.compact
           )
         end
