@@ -169,6 +169,7 @@ module GitLab
       end
 
       # The prober which is called when gathering metrics
+      # rubocop:disable Metrics/ClassLength
       class ZoektProber
         PrometheusMetrics.describe(
           "search_zoekt_task_processing_queue_size",
@@ -377,6 +378,7 @@ module GitLab
           )
         end
 
+        # rubocop:disable Metrics/MethodLength
         def add_zoekt_indices_storage_to_metric(row)
           @metrics.add(
             "search_zoekt_indices_reserved_storage_bytes",
@@ -395,11 +397,13 @@ module GitLab
             }.compact
           )
         end
+        # rubocop:enable Metrics/MethodLength
 
         def write_to(target)
           target.write(@metrics.to_s)
         end
       end
+      # rubocop:enable Metrics/ClassLength
     end
   end
 end
