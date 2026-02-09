@@ -62,13 +62,23 @@ module GitLab
           LIMIT 1
         SQL
 
+        ZOEKT_NODE_STORAGE_QUERY = <<~SQL.freeze
+          SELECT
+            id,
+            metadata ->> 'name' AS node_name,
+            unclaimed_storage_bytes,
+            storage_percent_used
+          FROM zoekt_nodes
+        SQL
+
         def run
           return {} unless zoekt_indexing_enabled?
 
           {
             task_processing_query_result: execute(ZOEKT_TASKS_PROCESSING_QUERY, [Time.now.utc]),
             repositories_schema_version_query_result: repositories_schema_version_query_result,
-            zoekt_nodes_status_query_result: execute(ZOEKT_NODES_STATUS_QUERY)
+            zoekt_nodes_status_query_result: execute(ZOEKT_NODES_STATUS_QUERY),
+            node_storage_query_result: execute(ZOEKT_NODE_STORAGE_QUERY)
           }.compact
         end
 
@@ -150,6 +160,18 @@ module GitLab
           "gauge"
         )
 
+        PrometheusMetrics.describe(
+          "search_zoekt_node_unclaimed_storage_bytes",
+          "Unclaimed storage bytes for Zoekt node",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "search_zoekt_node_storage_percent_used",
+          "Fraction of storage used on Zoekt node (0..1)",
+          "gauge"
+        )
+
         def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
           @collector = opts[:collector] || ZoektCollector.new(**opts)
@@ -157,19 +179,38 @@ module GitLab
 
         def probe_db
           results = @collector.run
-          results[:task_processing_query_result].to_a.each do |row|
-            add_processing_zoekt_tasks_to_metric(row)
-          end
-          results[:repositories_schema_version_query_result]&.each do |row|
-            add_zoekt_repositories_by_schema_version_to_metric(row)
-          end
-          results[:zoekt_nodes_status_query_result]&.each do |row|
-            add_zoekt_nodes_status_to_metric(row)
-          end
-
+          process_results(results)
           self
         rescue PG::ConnectionBad
           self
+        end
+
+        private
+
+        def process_results(results)
+          process_task_results(results[:task_processing_query_result])
+          process_repository_results(results[:repositories_schema_version_query_result])
+          process_node_status_results(results[:zoekt_nodes_status_query_result])
+          process_node_storage_results(results[:node_storage_query_result])
+        end
+
+        def process_task_results(results)
+          results.to_a.each { |row| add_processing_zoekt_tasks_to_metric(row) }
+        end
+
+        def process_repository_results(results)
+          results&.each { |row| add_zoekt_repositories_by_schema_version_to_metric(row) }
+        end
+
+        def process_node_status_results(results)
+          results&.each { |row| add_zoekt_nodes_status_to_metric(row) }
+        end
+
+        def process_node_storage_results(results)
+          results&.each do |row|
+            add_zoekt_node_unclaimed_storage_to_metric(row)
+            add_zoekt_node_storage_percent_used_to_metric(row)
+          end
         end
 
         def add_processing_zoekt_tasks_to_metric(row)
@@ -199,6 +240,28 @@ module GitLab
           @metrics.add(
             "search_zoekt_nodes_status",
             row["status"].to_i,
+            **{
+              zoekt_node_id: row["id"],
+              zoekt_node_name: row["node_name"]
+            }.compact
+          )
+        end
+
+        def add_zoekt_node_unclaimed_storage_to_metric(row)
+          @metrics.add(
+            "search_zoekt_node_unclaimed_storage_bytes",
+            row["unclaimed_storage_bytes"].to_i,
+            **{
+              zoekt_node_id: row["id"],
+              zoekt_node_name: row["node_name"]
+            }.compact
+          )
+        end
+
+        def add_zoekt_node_storage_percent_used_to_metric(row)
+          @metrics.add(
+            "search_zoekt_node_storage_percent_used",
+            row["storage_percent_used"].to_f,
             **{
               zoekt_node_id: row["id"],
               zoekt_node_name: row["node_name"]

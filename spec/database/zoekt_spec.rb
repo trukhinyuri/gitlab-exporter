@@ -11,6 +11,10 @@ describe GitLab::Exporter::Database::ZoektCollector do
   let(:zoekt_repository_schema_version_query) { described_class::ZOEKT_REPOSITORY_SCHEMA_VERSION_QUERY }
   let(:zoekt_nodes_status_query) { described_class::ZOEKT_NODES_STATUS_QUERY }
   let(:zoekt_nodes_status_query_results) { [{ "id" => "1", "name" => "foo", "status" => "1" }] }
+  let(:zoekt_node_storage_query) { described_class::ZOEKT_NODE_STORAGE_QUERY }
+  let(:zoekt_node_storage_query_results) do
+    [{ "id" => "1", "node_name" => "foo", "unclaimed_storage_bytes" => "1000000", "storage_percent_used" => "0.75" }]
+  end
 
   let(:zoekt_repository_schema_version_query_results) { [{ "count" => "1" }] }
 
@@ -50,7 +54,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
       {
         repositories_schema_version_query_result: zoekt_repositories_schema_version_query_results,
         task_processing_query_result: zoekt_tasks_processing_query_results,
-        zoekt_nodes_status_query_result: zoekt_nodes_status_query_results
+        zoekt_nodes_status_query_result: zoekt_nodes_status_query_results,
+        node_storage_query_result: zoekt_node_storage_query_results
       }
     end
 
@@ -82,6 +87,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
                                                    .and_return(zoekt_repository_schema_version_query_results)
         expect(connection).to receive(:exec_params).with(zoekt_nodes_status_query, [])
                                                    .and_return(zoekt_nodes_status_query_results)
+        expect(connection).to receive(:exec_params).with(zoekt_node_storage_query, [])
+                                                   .and_return(zoekt_node_storage_query_results)
 
         expect(collector.run).to eq(result)
       end
@@ -93,6 +100,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
           allow(connection).to receive(:exec_params).with(zoekt_nodes_query, [])
                                                     .and_raise(PG::UndefinedTable)
           allow(connection).to receive(:exec_params).with(zoekt_nodes_status_query, [])
+                                                    .and_raise(PG::UndefinedTable)
+          allow(connection).to receive(:exec_params).with(zoekt_node_storage_query, [])
                                                     .and_raise(PG::UndefinedTable)
 
           expect(collector.run).to eq({})
@@ -108,6 +117,7 @@ describe GitLab::Exporter::Database::ZoektCollector do
           expect(connection).to receive(:exec_params).with(zoekt_repository_schema_version_query, %w[1 2302])
                                                      .and_raise(PG::UndefinedTable)
           expect(connection).to receive(:exec_params).with(zoekt_nodes_status_query, []).and_raise(PG::UndefinedTable)
+          expect(connection).to receive(:exec_params).with(zoekt_node_storage_query, []).and_raise(PG::UndefinedColumn)
 
           expect(collector.run).to eq({ task_processing_query_result: zoekt_tasks_processing_query_results })
         end
@@ -143,6 +153,16 @@ describe GitLab::Exporter::Database::ZoektProber do
       task_processing_query_result: [
         { "node_id" => "1", "node_name" => "zoekt-1", "task_count" => "5" },
         { "node_id" => "2", "node_name" => "zoekt-2", "task_count" => "10" }
+      ],
+      node_storage_query_result: [
+        {
+          "id" => "1", "node_name" => "zoekt-1", "unclaimed_storage_bytes" => "1000000",
+          "storage_percent_used" => "0.75"
+        },
+        {
+          "id" => "2", "node_name" => "zoekt-2", "unclaimed_storage_bytes" => "2000000",
+          "storage_percent_used" => "0.50"
+        }
       ]
     }
   end
@@ -183,6 +203,23 @@ describe GitLab::Exporter::Database::ZoektProber do
             target_schema_version: node_data[:target_schema_version],
             zoekt_node_id: node_data[:zoekt_node_id],
             zoekt_node_name: node_data[:zoekt_node_name]
+          )
+      end
+
+      data[:node_storage_query_result].each do |node_data|
+        expect(metrics).to receive(:add)
+          .with(
+            "search_zoekt_node_unclaimed_storage_bytes",
+            node_data["unclaimed_storage_bytes"].to_i,
+            zoekt_node_id: node_data["id"],
+            zoekt_node_name: node_data["node_name"]
+          )
+        expect(metrics).to receive(:add)
+          .with(
+            "search_zoekt_node_storage_percent_used",
+            node_data["storage_percent_used"].to_f,
+            zoekt_node_id: node_data["id"],
+            zoekt_node_name: node_data["node_name"]
           )
       end
 
