@@ -83,6 +83,18 @@ module GitLab
           SELECT watermark_level, COUNT(*) FROM zoekt_indices GROUP BY watermark_level
         SQL
 
+        ZOEKT_INDICES_STORAGE_QUERY = <<~SQL.freeze
+          SELECT
+            zoekt_indices.id,
+            zoekt_indices.reserved_storage_bytes,
+            zoekt_indices.used_storage_bytes,
+            zoekt_nodes.metadata ->> 'name' AS node_name
+          FROM
+            zoekt_indices
+          INNER JOIN
+            zoekt_nodes ON zoekt_indices.zoekt_node_id = zoekt_nodes.id
+        SQL
+
         def run
           return {} unless zoekt_indexing_enabled?
 
@@ -93,7 +105,8 @@ module GitLab
             node_storage_query_result: execute(ZOEKT_NODE_STORAGE_QUERY),
             repositories_state_query_result: execute(ZOEKT_REPOSITORIES_STATE_QUERY),
             indices_state_query_result: execute(ZOEKT_INDICES_STATE_QUERY),
-            indices_watermark_query_result: execute(ZOEKT_INDICES_WATERMARK_QUERY)
+            indices_watermark_query_result: execute(ZOEKT_INDICES_WATERMARK_QUERY),
+            indices_storage_query_result: execute(ZOEKT_INDICES_STORAGE_QUERY)
           }.compact
         end
 
@@ -205,6 +218,18 @@ module GitLab
           "gauge"
         )
 
+        PrometheusMetrics.describe(
+          "search_zoekt_indices_reserved_storage_bytes",
+          "Reserved storage bytes for each Zoekt index",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "search_zoekt_indices_used_storage_bytes",
+          "Used storage bytes for each Zoekt index",
+          "gauge"
+        )
+
         def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
           @collector = opts[:collector] || ZoektCollector.new(**opts)
@@ -228,6 +253,7 @@ module GitLab
           process_repositories_state_results(results[:repositories_state_query_result])
           process_indices_state_results(results[:indices_state_query_result])
           process_indices_watermark_results(results[:indices_watermark_query_result])
+          process_indices_storage_results(results[:indices_storage_query_result])
         end
 
         def process_task_results(results)
@@ -259,6 +285,10 @@ module GitLab
 
         def process_indices_watermark_results(results)
           results&.each { |row| add_zoekt_indices_watermark_to_metric(row) }
+        end
+
+        def process_indices_storage_results(results)
+          results&.each { |row| add_zoekt_indices_storage_to_metric(row) }
         end
 
         def add_processing_zoekt_tasks_to_metric(row)
@@ -343,6 +373,25 @@ module GitLab
             row["count"].to_i,
             **{
               watermark_level: row["watermark_level"]
+            }.compact
+          )
+        end
+
+        def add_zoekt_indices_storage_to_metric(row)
+          @metrics.add(
+            "search_zoekt_indices_reserved_storage_bytes",
+            row["reserved_storage_bytes"].to_i,
+            **{
+              zoekt_index_id: row["id"],
+              zoekt_node_name: row["node_name"]
+            }.compact
+          )
+          @metrics.add(
+            "search_zoekt_indices_used_storage_bytes",
+            row["used_storage_bytes"].to_i,
+            **{
+              zoekt_index_id: row["id"],
+              zoekt_node_name: row["node_name"]
             }.compact
           )
         end

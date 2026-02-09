@@ -27,6 +27,15 @@ describe GitLab::Exporter::Database::ZoektCollector do
   let(:zoekt_indices_watermark_query_results) do
     [{ "watermark_level" => "healthy", "count" => "8" }, { "watermark_level" => "warning", "count" => "2" }]
   end
+  let(:zoekt_indices_storage_query) { described_class::ZOEKT_INDICES_STORAGE_QUERY }
+  let(:zoekt_indices_storage_query_results) do
+    [
+      { "id" => "1", "reserved_storage_bytes" => "1000000", "used_storage_bytes" => "500000",
+        "node_name" => "zoekt-1" },
+      { "id" => "2", "reserved_storage_bytes" => "2000000", "used_storage_bytes" => "1500000",
+        "node_name" => "zoekt-2" }
+    ]
+  end
 
   let(:zoekt_repository_schema_version_query_results) { [{ "count" => "1" }] }
 
@@ -70,7 +79,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
         node_storage_query_result: zoekt_node_storage_query_results,
         repositories_state_query_result: zoekt_repositories_state_query_results,
         indices_state_query_result: zoekt_indices_state_query_results,
-        indices_watermark_query_result: zoekt_indices_watermark_query_results
+        indices_watermark_query_result: zoekt_indices_watermark_query_results,
+        indices_storage_query_result: zoekt_indices_storage_query_results
       }
     end
 
@@ -110,6 +120,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
                                                    .and_return(zoekt_indices_state_query_results)
         expect(connection).to receive(:exec_params).with(zoekt_indices_watermark_query, [])
                                                    .and_return(zoekt_indices_watermark_query_results)
+        expect(connection).to receive(:exec_params).with(zoekt_indices_storage_query, [])
+                                                   .and_return(zoekt_indices_storage_query_results)
 
         expect(collector.run).to eq(result)
       end
@@ -129,6 +141,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
           allow(connection).to receive(:exec_params).with(zoekt_indices_state_query, [])
                                                     .and_raise(PG::UndefinedTable)
           allow(connection).to receive(:exec_params).with(zoekt_indices_watermark_query, [])
+                                                    .and_raise(PG::UndefinedTable)
+          allow(connection).to receive(:exec_params).with(zoekt_indices_storage_query, [])
                                                     .and_raise(PG::UndefinedTable)
 
           expect(collector.run).to eq({})
@@ -150,6 +164,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
           expect(connection).to receive(:exec_params).with(zoekt_indices_state_query, [])
                                                      .and_raise(PG::UndefinedColumn)
           expect(connection).to receive(:exec_params).with(zoekt_indices_watermark_query, [])
+                                                     .and_raise(PG::UndefinedColumn)
+          expect(connection).to receive(:exec_params).with(zoekt_indices_storage_query, [])
                                                      .and_raise(PG::UndefinedColumn)
 
           expect(collector.run).to eq({ task_processing_query_result: zoekt_tasks_processing_query_results })
@@ -208,6 +224,12 @@ describe GitLab::Exporter::Database::ZoektProber do
       indices_watermark_query_result: [
         { "watermark_level" => "healthy", "count" => "8" },
         { "watermark_level" => "warning", "count" => "2" }
+      ],
+      indices_storage_query_result: [
+        { "id" => "1", "reserved_storage_bytes" => "1000000", "used_storage_bytes" => "500000",
+          "node_name" => "zoekt-1" },
+        { "id" => "2", "reserved_storage_bytes" => "2000000", "used_storage_bytes" => "1500000",
+          "node_name" => "zoekt-2" }
       ]
     }
   end
@@ -292,6 +314,23 @@ describe GitLab::Exporter::Database::ZoektProber do
             "search_zoekt_indices_watermark_levels",
             watermark_data["count"].to_i,
             watermark_level: watermark_data["watermark_level"]
+          )
+      end
+
+      data[:indices_storage_query_result].each do |storage_data|
+        expect(metrics).to receive(:add)
+          .with(
+            "search_zoekt_indices_reserved_storage_bytes",
+            storage_data["reserved_storage_bytes"].to_i,
+            zoekt_index_id: storage_data["id"],
+            zoekt_node_name: storage_data["node_name"]
+          )
+        expect(metrics).to receive(:add)
+          .with(
+            "search_zoekt_indices_used_storage_bytes",
+            storage_data["used_storage_bytes"].to_i,
+            zoekt_index_id: storage_data["id"],
+            zoekt_node_name: storage_data["node_name"]
           )
       end
 
