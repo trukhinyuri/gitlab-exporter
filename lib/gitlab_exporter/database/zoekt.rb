@@ -79,6 +79,10 @@ module GitLab
           SELECT state, COUNT(*) FROM zoekt_indices GROUP BY state
         SQL
 
+        ZOEKT_INDICES_WATERMARK_QUERY = <<~SQL.freeze
+          SELECT watermark_level, COUNT(*) FROM zoekt_indices GROUP BY watermark_level
+        SQL
+
         def run
           return {} unless zoekt_indexing_enabled?
 
@@ -88,7 +92,8 @@ module GitLab
             zoekt_nodes_status_query_result: execute(ZOEKT_NODES_STATUS_QUERY),
             node_storage_query_result: execute(ZOEKT_NODE_STORAGE_QUERY),
             repositories_state_query_result: execute(ZOEKT_REPOSITORIES_STATE_QUERY),
-            indices_state_query_result: execute(ZOEKT_INDICES_STATE_QUERY)
+            indices_state_query_result: execute(ZOEKT_INDICES_STATE_QUERY),
+            indices_watermark_query_result: execute(ZOEKT_INDICES_WATERMARK_QUERY)
           }.compact
         end
 
@@ -194,6 +199,12 @@ module GitLab
           "gauge"
         )
 
+        PrometheusMetrics.describe(
+          "search_zoekt_indices_watermark_levels",
+          "Number of Zoekt indices in each watermark level",
+          "gauge"
+        )
+
         def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
           @collector = opts[:collector] || ZoektCollector.new(**opts)
@@ -216,6 +227,7 @@ module GitLab
           process_node_storage_results(results[:node_storage_query_result])
           process_repositories_state_results(results[:repositories_state_query_result])
           process_indices_state_results(results[:indices_state_query_result])
+          process_indices_watermark_results(results[:indices_watermark_query_result])
         end
 
         def process_task_results(results)
@@ -243,6 +255,10 @@ module GitLab
 
         def process_indices_state_results(results)
           results&.each { |row| add_zoekt_indices_state_to_metric(row) }
+        end
+
+        def process_indices_watermark_results(results)
+          results&.each { |row| add_zoekt_indices_watermark_to_metric(row) }
         end
 
         def add_processing_zoekt_tasks_to_metric(row)
@@ -317,6 +333,16 @@ module GitLab
             row["count"].to_i,
             **{
               state: row["state"]
+            }.compact
+          )
+        end
+
+        def add_zoekt_indices_watermark_to_metric(row)
+          @metrics.add(
+            "search_zoekt_indices_watermark_levels",
+            row["count"].to_i,
+            **{
+              watermark_level: row["watermark_level"]
             }.compact
           )
         end

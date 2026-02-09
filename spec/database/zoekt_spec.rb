@@ -23,6 +23,10 @@ describe GitLab::Exporter::Database::ZoektCollector do
   let(:zoekt_indices_state_query_results) do
     [{ "state" => "0", "count" => "3" }, { "state" => "1", "count" => "7" }]
   end
+  let(:zoekt_indices_watermark_query) { described_class::ZOEKT_INDICES_WATERMARK_QUERY }
+  let(:zoekt_indices_watermark_query_results) do
+    [{ "watermark_level" => "healthy", "count" => "8" }, { "watermark_level" => "warning", "count" => "2" }]
+  end
 
   let(:zoekt_repository_schema_version_query_results) { [{ "count" => "1" }] }
 
@@ -65,7 +69,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
         zoekt_nodes_status_query_result: zoekt_nodes_status_query_results,
         node_storage_query_result: zoekt_node_storage_query_results,
         repositories_state_query_result: zoekt_repositories_state_query_results,
-        indices_state_query_result: zoekt_indices_state_query_results
+        indices_state_query_result: zoekt_indices_state_query_results,
+        indices_watermark_query_result: zoekt_indices_watermark_query_results
       }
     end
 
@@ -103,6 +108,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
                                                    .and_return(zoekt_repositories_state_query_results)
         expect(connection).to receive(:exec_params).with(zoekt_indices_state_query, [])
                                                    .and_return(zoekt_indices_state_query_results)
+        expect(connection).to receive(:exec_params).with(zoekt_indices_watermark_query, [])
+                                                   .and_return(zoekt_indices_watermark_query_results)
 
         expect(collector.run).to eq(result)
       end
@@ -120,6 +127,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
           allow(connection).to receive(:exec_params).with(zoekt_repositories_state_query, [])
                                                     .and_raise(PG::UndefinedTable)
           allow(connection).to receive(:exec_params).with(zoekt_indices_state_query, [])
+                                                    .and_raise(PG::UndefinedTable)
+          allow(connection).to receive(:exec_params).with(zoekt_indices_watermark_query, [])
                                                     .and_raise(PG::UndefinedTable)
 
           expect(collector.run).to eq({})
@@ -139,6 +148,8 @@ describe GitLab::Exporter::Database::ZoektCollector do
           expect(connection).to receive(:exec_params).with(zoekt_repositories_state_query, [])
                                                      .and_raise(PG::UndefinedColumn)
           expect(connection).to receive(:exec_params).with(zoekt_indices_state_query, [])
+                                                     .and_raise(PG::UndefinedColumn)
+          expect(connection).to receive(:exec_params).with(zoekt_indices_watermark_query, [])
                                                      .and_raise(PG::UndefinedColumn)
 
           expect(collector.run).to eq({ task_processing_query_result: zoekt_tasks_processing_query_results })
@@ -193,6 +204,10 @@ describe GitLab::Exporter::Database::ZoektProber do
       indices_state_query_result: [
         { "state" => "0", "count" => "3" },
         { "state" => "1", "count" => "7" }
+      ],
+      indices_watermark_query_result: [
+        { "watermark_level" => "healthy", "count" => "8" },
+        { "watermark_level" => "warning", "count" => "2" }
       ]
     }
   end
@@ -268,6 +283,15 @@ describe GitLab::Exporter::Database::ZoektProber do
             "search_zoekt_indices_states",
             state_data["count"].to_i,
             state: state_data["state"]
+          )
+      end
+
+      data[:indices_watermark_query_result].each do |watermark_data|
+        expect(metrics).to receive(:add)
+          .with(
+            "search_zoekt_indices_watermark_levels",
+            watermark_data["count"].to_i,
+            watermark_level: watermark_data["watermark_level"]
           )
       end
 
