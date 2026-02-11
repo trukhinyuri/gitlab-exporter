@@ -71,6 +71,30 @@ module GitLab
           FROM zoekt_nodes
         SQL
 
+        ZOEKT_REPOSITORIES_STATE_QUERY = <<~SQL.freeze
+          SELECT state, COUNT(*) FROM zoekt_repositories GROUP BY state
+        SQL
+
+        ZOEKT_INDICES_STATE_QUERY = <<~SQL.freeze
+          SELECT state, COUNT(*) FROM zoekt_indices GROUP BY state
+        SQL
+
+        ZOEKT_INDICES_WATERMARK_QUERY = <<~SQL.freeze
+          SELECT watermark_level, COUNT(*) FROM zoekt_indices GROUP BY watermark_level
+        SQL
+
+        ZOEKT_INDICES_STORAGE_QUERY = <<~SQL.freeze
+          SELECT
+            zoekt_indices.id,
+            zoekt_indices.reserved_storage_bytes,
+            zoekt_indices.used_storage_bytes,
+            zoekt_nodes.metadata ->> 'name' AS node_name
+          FROM
+            zoekt_indices
+          INNER JOIN
+            zoekt_nodes ON zoekt_indices.zoekt_node_id = zoekt_nodes.id
+        SQL
+
         def run
           return {} unless zoekt_indexing_enabled?
 
@@ -78,7 +102,11 @@ module GitLab
             task_processing_query_result: execute(ZOEKT_TASKS_PROCESSING_QUERY, [Time.now.utc]),
             repositories_schema_version_query_result: repositories_schema_version_query_result,
             zoekt_nodes_status_query_result: execute(ZOEKT_NODES_STATUS_QUERY),
-            node_storage_query_result: execute(ZOEKT_NODE_STORAGE_QUERY)
+            node_storage_query_result: execute(ZOEKT_NODE_STORAGE_QUERY),
+            repositories_state_query_result: execute(ZOEKT_REPOSITORIES_STATE_QUERY),
+            indices_state_query_result: execute(ZOEKT_INDICES_STATE_QUERY),
+            indices_watermark_query_result: execute(ZOEKT_INDICES_WATERMARK_QUERY),
+            indices_storage_query_result: execute(ZOEKT_INDICES_STORAGE_QUERY)
           }.compact
         end
 
@@ -141,6 +169,7 @@ module GitLab
       end
 
       # The prober which is called when gathering metrics
+      # rubocop:disable Metrics/ClassLength
       class ZoektProber
         PrometheusMetrics.describe(
           "search_zoekt_task_processing_queue_size",
@@ -172,6 +201,36 @@ module GitLab
           "gauge"
         )
 
+        PrometheusMetrics.describe(
+          "search_zoekt_repositories_states_total",
+          "Number of Zoekt repositories in each state",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "search_zoekt_indices_states",
+          "Number of Zoekt indices in each state",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "search_zoekt_indices_watermark_levels",
+          "Number of Zoekt indices in each watermark level",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "search_zoekt_indices_reserved_storage_bytes",
+          "Reserved storage bytes for each Zoekt index",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "search_zoekt_indices_used_storage_bytes",
+          "Used storage bytes for each Zoekt index",
+          "gauge"
+        )
+
         def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
           @collector = opts[:collector] || ZoektCollector.new(**opts)
@@ -192,6 +251,10 @@ module GitLab
           process_repository_results(results[:repositories_schema_version_query_result])
           process_node_status_results(results[:zoekt_nodes_status_query_result])
           process_node_storage_results(results[:node_storage_query_result])
+          process_repositories_state_results(results[:repositories_state_query_result])
+          process_indices_state_results(results[:indices_state_query_result])
+          process_indices_watermark_results(results[:indices_watermark_query_result])
+          process_indices_storage_results(results[:indices_storage_query_result])
         end
 
         def process_task_results(results)
@@ -211,6 +274,22 @@ module GitLab
             add_zoekt_node_unclaimed_storage_to_metric(row)
             add_zoekt_node_storage_percent_used_to_metric(row)
           end
+        end
+
+        def process_repositories_state_results(results)
+          results&.each { |row| add_zoekt_repositories_state_to_metric(row) }
+        end
+
+        def process_indices_state_results(results)
+          results&.each { |row| add_zoekt_indices_state_to_metric(row) }
+        end
+
+        def process_indices_watermark_results(results)
+          results&.each { |row| add_zoekt_indices_watermark_to_metric(row) }
+        end
+
+        def process_indices_storage_results(results)
+          results&.each { |row| add_zoekt_indices_storage_to_metric(row) }
         end
 
         def add_processing_zoekt_tasks_to_metric(row)
@@ -269,10 +348,62 @@ module GitLab
           )
         end
 
+        def add_zoekt_repositories_state_to_metric(row)
+          @metrics.add(
+            "search_zoekt_repositories_states_total",
+            row["count"].to_i,
+            **{
+              state: row["state"]
+            }.compact
+          )
+        end
+
+        def add_zoekt_indices_state_to_metric(row)
+          @metrics.add(
+            "search_zoekt_indices_states",
+            row["count"].to_i,
+            **{
+              state: row["state"]
+            }.compact
+          )
+        end
+
+        def add_zoekt_indices_watermark_to_metric(row)
+          @metrics.add(
+            "search_zoekt_indices_watermark_levels",
+            row["count"].to_i,
+            **{
+              watermark_level: row["watermark_level"]
+            }.compact
+          )
+        end
+
+        # rubocop:disable Metrics/MethodLength
+        def add_zoekt_indices_storage_to_metric(row)
+          @metrics.add(
+            "search_zoekt_indices_reserved_storage_bytes",
+            row["reserved_storage_bytes"].to_i,
+            **{
+              zoekt_index_id: row["id"],
+              zoekt_node_name: row["node_name"]
+            }.compact
+          )
+          @metrics.add(
+            "search_zoekt_indices_used_storage_bytes",
+            row["used_storage_bytes"].to_i,
+            **{
+              zoekt_index_id: row["id"],
+              zoekt_node_name: row["node_name"]
+            }.compact
+          )
+        end
+        # rubocop:enable Metrics/MethodLength
+
         def write_to(target)
           target.write(@metrics.to_s)
         end
       end
+      # rubocop:enable Metrics/ClassLength
     end
   end
 end
