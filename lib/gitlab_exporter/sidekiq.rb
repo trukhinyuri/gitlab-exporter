@@ -115,7 +115,7 @@ module GitLab
           Sidekiq::Queue.all.each do |queue|
             Sidekiq.redis do |conn|
               conn.lrange("queue:#{queue.name}", 0, PROBE_JOBS_LIMIT).each do |job|
-                job_class = Sidekiq.load_json(job)["class"]
+                job_class = Sidekiq.load_json(job.force_encoding("utf-8"))["class"]
 
                 job_stats[job_class] += 1
               end
