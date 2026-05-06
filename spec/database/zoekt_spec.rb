@@ -174,6 +174,33 @@ describe GitLab::Exporter::Database::ZoektCollector do
     end
   end
 
+  describe "ZOEKT_NODE_STORAGE_QUERY" do
+    subject(:query) { described_class::ZOEKT_NODE_STORAGE_QUERY }
+
+    it "selects the unclaimed_storage_bytes and storage_percent_used aliases" do
+      expect(query).to match(/AS unclaimed_storage_bytes/)
+      expect(query).to match(/AS storage_percent_used/)
+    end
+
+    it "computes unclaimed_storage_bytes from real columns rather than referencing a non-existent column" do
+      # zoekt_nodes does not have an unclaimed_storage_bytes column; it must be derived
+      # from usable_storage_bytes minus the SUM of zoekt_indices.reserved_storage_bytes.
+      expect(query).to include("usable_storage_bytes")
+      expect(query).to include("reserved_storage_bytes")
+      expect(query).to include("zoekt_indices")
+      expect(query).not_to match(/^\s*unclaimed_storage_bytes\b/)
+    end
+
+    it "computes storage_percent_used from used_bytes / total_bytes with a guard" do
+      # zoekt_nodes does not have a storage_percent_used column; it must be derived
+      # from used_bytes / total_bytes (with a divide-by-zero guard).
+      expect(query).to include("used_bytes")
+      expect(query).to include("total_bytes")
+      expect(query).to match(/total_bytes\s*>\s*0/)
+      expect(query).not_to match(/^\s*storage_percent_used\b/)
+    end
+  end
+
   describe "#zoekt_indexing_enabled?" do
     it "returns true when zoekt is enabled" do
       expect(connection).to receive(:exec)

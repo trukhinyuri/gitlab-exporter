@@ -62,13 +62,26 @@ module GitLab
           LIMIT 1
         SQL
 
+        # unclaimed_storage_bytes and storage_percent_used are not real columns on
+        # zoekt_nodes; they are derived in Search::Zoekt::Node. We compute them in SQL
+        # here to avoid loading every row through ActiveRecord.
         ZOEKT_NODE_STORAGE_QUERY = <<~SQL.freeze
           SELECT
-            id,
-            metadata ->> 'name' AS node_name,
-            unclaimed_storage_bytes,
-            storage_percent_used
-          FROM zoekt_nodes
+            zn.id,
+            zn.metadata ->> 'name' AS node_name,
+            (zn.usable_storage_bytes - COALESCE(zi.reserved_total, 0))::bigint
+              AS unclaimed_storage_bytes,
+            CASE
+              WHEN zn.total_bytes > 0
+                THEN zn.used_bytes::float8 / zn.total_bytes::float8
+              ELSE 0
+            END AS storage_percent_used
+          FROM zoekt_nodes zn
+          LEFT JOIN (
+            SELECT zoekt_node_id, SUM(reserved_storage_bytes) AS reserved_total
+            FROM zoekt_indices
+            GROUP BY zoekt_node_id
+          ) zi ON zi.zoekt_node_id = zn.id
         SQL
 
         ZOEKT_REPOSITORIES_STATE_QUERY = <<~SQL.freeze
@@ -163,7 +176,8 @@ module GitLab
           with_connection_pool do |conn|
             conn.exec_params(query, params)
           end
-        rescue PG::UndefinedTable, PG::UndefinedColumn
+        rescue PG::UndefinedTable, PG::UndefinedColumn => e
+          @logger&.warn("ZoektCollector query failed: #{e.class}: #{e.message.lines.first&.strip}")
           nil
         end
       end
