@@ -1,107 +1,138 @@
 -- Originally from: https://github.com/ioguix/pgsql-bloat-estimation/blob/master/btree/btree_bloat.sql
--- WARNING: executed with a non-superuser role, the query inspect only index on tables you are granted to read.
+--
+-- Rewritten to use CROSS JOIN LATERAL stages so this query stays in sync with the
+-- `postgres_index_bloat_estimate(p_schema, p_idxname)` function used by the main GitLab
+-- application's reindexing pipeline:
+-- https://gitlab.com/gitlab-org/gitlab/-/blob/master/db/migrate/20260526120000_add_postgres_index_bloat_estimate_function.rb
+--
+-- Expanding the index columns inside a LATERAL join (instead of putting a set-returning
+-- function such as generate_series in the SELECT list) avoids the ProjectSet barrier that
+-- prevents the planner from pushing predicates down. See:
+-- https://gitlab.com/gitlab-org/gitlab/-/work_items/569363
+-- https://gitlab.com/gitlab-org/gitlab/-/work_items/599210
+--
+-- WARNING: executed with a non-superuser role, the query inspects only indexes on tables you are granted to read.
 -- WARNING: rows with is_na = 't' are known to have bad statistics ("name" type is not supported).
--- This query is compatible with PostgreSQL 12 and after
--- pg_stats is materialized so the planner sees the true row count before planning the join,
--- avoiding a catastrophic cardinality underestimate on PostgreSQL 17.
-WITH pg_stats_cached AS MATERIALIZED (
-  SELECT schemaname, tablename, attname, null_frac, avg_width
-  FROM pg_catalog.pg_stats
-)
-SELECT current_database(), nspname AS schemaname, tblname, idxname AS object_name, bs*(relpages)::bigint AS real_size,
-  bs*(relpages-est_pages)::bigint AS extra_size,
-  100 * (relpages-est_pages)::float / relpages AS extra_ratio,
-  fillfactor,
-  CASE WHEN relpages > est_pages_ff
-    THEN bs*(relpages-est_pages_ff)
+-- This query is compatible with PostgreSQL 9.3 and after (LATERAL joins).
+--
+-- Note: unlike the previous ioguix-style query, this form does NOT need to materialize
+-- pg_stats to stay fast on PostgreSQL 17. The old query joined pg_stats once as a single
+-- large join that the PG17 planner badly underestimated (see f18ac4b); here pg_stats is
+-- looked up per index inside the LATERAL, resolving through the pg_statistic indexes, so
+-- there is no single join for the planner to misestimate.
+SELECT
+  current_database(),
+  n.nspname AS schemaname,
+  ct.relname AS tblname,
+  ci.relname AS object_name,
+  c.bs * ci.relpages::bigint AS real_size,
+  c.bs * (ci.relpages - bloat.est_pages)::bigint AS extra_size,
+  100 * (ci.relpages - bloat.est_pages)::float / ci.relpages AS extra_ratio,
+  c.fillfactor,
+  CASE WHEN ci.relpages > bloat.est_pages_ff
+    THEN c.bs * (ci.relpages - bloat.est_pages_ff)
     ELSE 0
   END AS bloat_size,
-  100 * (relpages-est_pages_ff)::float / relpages AS bloat_ratio,
-  is_na
-  -- , 100-(pst).avg_leaf_density AS pst_avg_bloat, est_pages, index_tuple_hdr_bm, maxalign, pagehdr, nulldatawidth, nulldatahdrwidth, reltuples, relpages -- (DEBUG INFO)
-FROM (
-  SELECT coalesce(1 +
-         ceil(reltuples/floor((bs-pageopqdata-pagehdr)/(4+nulldatahdrwidth)::float)), 0 -- ItemIdData size + computed avg size of a tuple (nulldatahdrwidth)
-      ) AS est_pages,
-      coalesce(1 +
-         ceil(reltuples/floor((bs-pageopqdata-pagehdr)*fillfactor/(100*(4+nulldatahdrwidth)::float))), 0
-      ) AS est_pages_ff,
-      bs, nspname, tblname, idxname, relpages, fillfactor, is_na
-      -- , pgstatindex(idxoid) AS pst, index_tuple_hdr_bm, maxalign, pagehdr, nulldatawidth, nulldatahdrwidth, reltuples -- (DEBUG INFO)
-  FROM (
-      SELECT maxalign, bs, nspname, tblname, idxname, reltuples, relpages, idxoid, fillfactor,
-            ( index_tuple_hdr_bm +
-                maxalign - CASE -- Add padding to the index tuple header to align on MAXALIGN
-                  WHEN index_tuple_hdr_bm%maxalign = 0 THEN maxalign
-                  ELSE index_tuple_hdr_bm%maxalign
-                END
-              + nulldatawidth + maxalign - CASE -- Add padding to the data to align on MAXALIGN
-                  WHEN nulldatawidth = 0 THEN 0
-                  WHEN nulldatawidth::integer%maxalign = 0 THEN maxalign
-                  ELSE nulldatawidth::integer%maxalign
-                END
-            )::numeric AS nulldatahdrwidth, pagehdr, pageopqdata, is_na
-            -- , index_tuple_hdr_bm, nulldatawidth -- (DEBUG INFO)
-      FROM (
-          SELECT n.nspname, i.tblname, i.idxname, i.reltuples, i.relpages,
-              i.idxoid, i.fillfactor, current_setting('block_size')::numeric AS bs,
-              CASE -- MAXALIGN: 4 on 32bits, 8 on 64bits (and mingw32 ?)
-                WHEN version() ~ 'mingw32' OR version() ~ '64-bit|x86_64|ppc64|ia64|amd64' THEN 8
-                ELSE 4
-              END AS maxalign,
-              /* per page header, fixed size: 20 for 7.X, 24 for others */
-              24 AS pagehdr,
-              /* per page btree opaque data */
-              16 AS pageopqdata,
-              /* per tuple header: add IndexAttributeBitMapData if some cols are null-able */
-              CASE WHEN max(coalesce(s.null_frac,0)) = 0
-                  THEN 2 -- IndexTupleData size
-                  ELSE 2 + (( 32 + 8 - 1 ) / 8) -- IndexTupleData size + IndexAttributeBitMapData size ( max num filed per index + 8 - 1 /8)
-              END AS index_tuple_hdr_bm,
-              /* data len: we remove null values save space using it fractionnal part from stats */
-              sum( (1-coalesce(s.null_frac, 0)) * coalesce(s.avg_width, 1024)) AS nulldatawidth,
-              max( CASE WHEN i.atttypid = 'pg_catalog.name'::regtype THEN 1 ELSE 0 END ) > 0 AS is_na
-          FROM (
-              SELECT ct.relname AS tblname, ct.relnamespace, ic.idxname, ic.attpos, ic.indkey, ic.indkey[ic.attpos], ic.reltuples, ic.relpages, ic.tbloid, ic.idxoid, ic.fillfactor,
-                  coalesce(a1.attnum, a2.attnum) AS attnum, coalesce(a1.attname, a2.attname) AS attname, coalesce(a1.atttypid, a2.atttypid) AS atttypid,
-                  CASE WHEN a1.attnum IS NULL
-                  THEN ic.idxname
-                  ELSE ct.relname
-                  END AS attrelname
-              FROM (
-                  SELECT idxname, reltuples, relpages, tbloid, idxoid, fillfactor, indkey,
-                      pg_catalog.generate_series(1,indnatts) AS attpos
-                  FROM (
-                      SELECT ci.relname AS idxname, ci.reltuples, ci.relpages, i.indrelid AS tbloid,
-                          i.indexrelid AS idxoid,
-                          coalesce(substring(
-                              array_to_string(ci.reloptions, ' ')
-                              from 'fillfactor=([0-9]+)')::smallint, 90) AS fillfactor,
-                          i.indnatts,
-                          pg_catalog.string_to_array(pg_catalog.textin(
-                              pg_catalog.int2vectorout(i.indkey)),' ')::int[] AS indkey
-                      FROM pg_catalog.pg_index i
-                      JOIN pg_catalog.pg_class ci ON ci.oid = i.indexrelid
-                      WHERE ci.relam=(SELECT oid FROM pg_am WHERE amname = 'btree')
-                      AND ci.relpages > 0
-                  ) AS idx_data
-              ) AS ic
-              JOIN pg_catalog.pg_class ct ON ct.oid = ic.tbloid
-              LEFT JOIN pg_catalog.pg_attribute a1 ON
-                  ic.indkey[ic.attpos] <> 0
-                  AND a1.attrelid = ic.tbloid
-                  AND a1.attnum = ic.indkey[ic.attpos]
-              LEFT JOIN pg_catalog.pg_attribute a2 ON
-                  ic.indkey[ic.attpos] = 0
-                  AND a2.attrelid = ic.idxoid
-                  AND a2.attnum = ic.attpos
-            ) i
-            JOIN pg_catalog.pg_namespace n ON n.oid = i.relnamespace
-            JOIN pg_stats_cached s ON s.schemaname = n.nspname
-                                  AND s.tablename = i.attrelname
-                                  AND s.attname = i.attname
-            GROUP BY 1,2,3,4,5,6,7,8,9,10,11
-      ) AS rows_data_stats
-  ) AS rows_hdr_pdg_stats
-) AS relation_stats
-ORDER BY nspname, tblname, idxname;
+  100 * (ci.relpages - bloat.est_pages_ff)::float / ci.relpages AS bloat_ratio,
+  bloat.is_na
+FROM pg_catalog.pg_class ci
+JOIN pg_catalog.pg_index i     ON i.indexrelid = ci.oid
+JOIN pg_catalog.pg_class ct    ON ct.oid = i.indrelid
+JOIN pg_catalog.pg_namespace n ON n.oid = ct.relnamespace
+
+-- Per-index system constants and fillfactor.
+CROSS JOIN LATERAL (
+    SELECT
+        current_setting('block_size')::numeric AS bs,
+        CASE -- MAXALIGN: 4 on 32bits, 8 on 64bits (and mingw32 ?)
+            WHEN version() ~ 'mingw32'::text
+              OR version() ~ '64-bit|x86_64|ppc64|ia64|amd64'::text THEN 8
+            ELSE 4
+        END AS maxalign,
+        24 AS pagehdr,     -- per page header, fixed size: 24 for 8.3 and after
+        16 AS pageopqdata, -- per page btree opaque data
+        COALESCE(
+            substring(array_to_string(ci.reloptions, ' '::text) FROM 'fillfactor=([0-9]+)')::smallint::integer,
+            90
+        ) AS fillfactor
+) c
+
+-- Aggregate the per-column statistics for this index, expanding the index columns
+-- through a LATERAL generate_series rather than a SELECT-list set-returning function.
+CROSS JOIN LATERAL (
+    SELECT
+        max(CASE WHEN COALESCE(a1.atttypid, a2.atttypid) = 'pg_catalog.name'::regtype THEN 1 ELSE 0 END) > 0 AS is_na,
+        /* per tuple header: add IndexAttributeBitMapData if some cols are null-able */
+        CASE WHEN max(COALESCE(s_t.null_frac, s_x.null_frac, 0::real)) = 0::double precision
+            THEN 2 -- IndexTupleData size
+            ELSE 2 + (32 + 8 - 1) / 8 -- IndexTupleData size + IndexAttributeBitMapData size
+        END AS index_tuple_hdr_bm,
+        /* data len: we remove null values, saving space, using their fractional part from stats */
+        sum((1::double precision - COALESCE(s_t.null_frac, s_x.null_frac, 0::real))
+            * COALESCE(s_t.avg_width, s_x.avg_width, 1024)::double precision) AS nulldatawidth
+    FROM generate_series(1, i.indnatts::integer) AS gs(attpos)
+    LEFT JOIN pg_catalog.pg_attribute a1
+           ON (string_to_array(textin(int2vectorout(i.indkey)), ' '::text)::integer[])[gs.attpos] <> 0
+          AND a1.attrelid = i.indrelid
+          AND a1.attnum   = (string_to_array(textin(int2vectorout(i.indkey)), ' '::text)::integer[])[gs.attpos]
+    LEFT JOIN pg_catalog.pg_attribute a2
+           ON (string_to_array(textin(int2vectorout(i.indkey)), ' '::text)::integer[])[gs.attpos] = 0
+          AND a2.attrelid = ci.oid
+          AND a2.attnum   = gs.attpos
+    LEFT JOIN pg_catalog.pg_stats s_t
+           ON s_t.schemaname = n.nspname
+          AND s_t.tablename  = ct.relname
+          AND s_t.attname    = a1.attname
+    LEFT JOIN pg_catalog.pg_stats s_x
+           ON s_x.schemaname = n.nspname
+          AND s_x.tablename  = ci.relname
+          AND s_x.attname    = a2.attname
+) agg
+
+-- Index tuple header width, aligned on MAXALIGN.
+CROSS JOIN LATERAL (
+    SELECT
+        (
+            (agg.index_tuple_hdr_bm + c.maxalign
+             - CASE -- Add padding to the index tuple header to align on MAXALIGN
+                 WHEN (agg.index_tuple_hdr_bm % c.maxalign) = 0 THEN c.maxalign
+                 ELSE agg.index_tuple_hdr_bm % c.maxalign
+               END)::double precision
+          + agg.nulldatawidth
+          + c.maxalign::double precision
+          - CASE -- Add padding to the data to align on MAXALIGN
+              WHEN agg.nulldatawidth = 0::double precision THEN 0
+              WHEN (agg.nulldatawidth::integer % c.maxalign) = 0 THEN c.maxalign
+              ELSE agg.nulldatawidth::integer % c.maxalign
+            END::double precision
+        )::numeric AS nulldatahdrwidth
+) hdr
+
+-- Estimated number of pages, with and without the fillfactor applied.
+CROSS JOIN LATERAL (
+    SELECT
+        agg.is_na,
+        COALESCE(
+            1::double precision + ceil(
+                ci.reltuples / floor(
+                    (c.bs - c.pageopqdata::numeric - c.pagehdr::numeric)::double precision
+                    / (4::numeric + hdr.nulldatahdrwidth)::double precision
+                )
+            ),
+            0::double precision
+        ) AS est_pages,
+        COALESCE(
+            1::double precision + ceil(
+                ci.reltuples / floor(
+                    ((c.bs - c.pageopqdata::numeric - c.pagehdr::numeric) * c.fillfactor::numeric)::double precision
+                    / (100::double precision * (4::numeric + hdr.nulldatahdrwidth)::double precision)
+                )
+            ),
+            0::double precision
+        ) AS est_pages_ff
+) bloat
+
+WHERE ci.relkind = 'i'
+  AND ci.relam = (SELECT oid FROM pg_am WHERE amname = 'btree'::name)
+  AND ci.relpages > 0
+ORDER BY n.nspname, ct.relname, ci.relname;
