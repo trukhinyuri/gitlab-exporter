@@ -7,7 +7,6 @@
 WITH pg_stats_cached AS MATERIALIZED (
   SELECT schemaname, tablename, attname, null_frac, avg_width
   FROM pg_catalog.pg_stats
-  WHERE inherited = false
 )
 SELECT current_database(), nspname AS schemaname, tblname, idxname AS object_name, bs*(relpages)::bigint AS real_size,
   bs*(relpages-est_pages)::bigint AS extra_size,
