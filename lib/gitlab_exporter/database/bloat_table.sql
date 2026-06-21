@@ -1,6 +1,6 @@
 -- Originally from: https://github.com/ioguix/pgsql-bloat-estimation/blob/master/table/table_bloat.sql
 /* WARNING: executed with a non-superuser role, the query inspect only tables and materialized view (9.3+) you are granted to read.
-* This query is compatible with PostgreSQL 9.0 and more
+* This query is compatible with PostgreSQL 12 and later
 */
 -- pg_stats is materialized so the planner sees the true row count before planning the join,
 -- avoiding a catastrophic cardinality underestimate on PostgreSQL 17.

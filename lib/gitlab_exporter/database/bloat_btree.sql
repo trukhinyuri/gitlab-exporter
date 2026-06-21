@@ -1,7 +1,7 @@
 -- Originally from: https://github.com/ioguix/pgsql-bloat-estimation/blob/master/btree/btree_bloat.sql
 -- WARNING: executed with a non-superuser role, the query inspect only index on tables you are granted to read.
 -- WARNING: rows with is_na = 't' are known to have bad statistics ("name" type is not supported).
--- This query is compatible with PostgreSQL 8.2 and after
+-- This query is compatible with PostgreSQL 12 and after
 -- pg_stats is materialized so the planner sees the true row count before planning the join,
 -- avoiding a catastrophic cardinality underestimate on PostgreSQL 17.
 WITH pg_stats_cached AS MATERIALIZED (
