@@ -2,6 +2,13 @@
 /* WARNING: executed with a non-superuser role, the query inspect only tables and materialized view (9.3+) you are granted to read.
 * This query is compatible with PostgreSQL 9.0 and more
 */
+-- pg_stats is materialized so the planner sees the true row count before planning the join,
+-- avoiding a catastrophic cardinality underestimate on PostgreSQL 17.
+WITH pg_stats_cached AS MATERIALIZED (
+  SELECT schemaname, tablename, attname, null_frac, avg_width
+  FROM pg_stats
+  WHERE inherited = false
+)
 SELECT current_database(), schemaname, tblname AS object_name, bs*tblpages AS real_size,
   (tblpages-est_tblpages)*bs AS extra_size,
   CASE WHEN tblpages - est_tblpages > 0
@@ -49,8 +56,8 @@ FROM (
       FROM pg_attribute AS att
         JOIN pg_class AS tbl ON att.attrelid = tbl.oid
         JOIN pg_namespace AS ns ON ns.oid = tbl.relnamespace
-        LEFT JOIN pg_stats AS s ON s.schemaname=ns.nspname
-          AND s.tablename = tbl.relname AND s.inherited=false AND s.attname=att.attname
+        LEFT JOIN pg_stats_cached AS s ON s.schemaname=ns.nspname
+          AND s.tablename = tbl.relname AND s.attname=att.attname
         LEFT JOIN pg_class AS toast ON tbl.reltoastrelid = toast.oid
       WHERE NOT att.attisdropped
         AND tbl.relkind in ('r','m')

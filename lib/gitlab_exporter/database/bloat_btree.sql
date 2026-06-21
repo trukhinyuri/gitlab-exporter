@@ -2,6 +2,13 @@
 -- WARNING: executed with a non-superuser role, the query inspect only index on tables you are granted to read.
 -- WARNING: rows with is_na = 't' are known to have bad statistics ("name" type is not supported).
 -- This query is compatible with PostgreSQL 8.2 and after
+-- pg_stats is materialized so the planner sees the true row count before planning the join,
+-- avoiding a catastrophic cardinality underestimate on PostgreSQL 17.
+WITH pg_stats_cached AS MATERIALIZED (
+  SELECT schemaname, tablename, attname, null_frac, avg_width
+  FROM pg_catalog.pg_stats
+  WHERE inherited = false
+)
 SELECT current_database(), nspname AS schemaname, tblname, idxname AS object_name, bs*(relpages)::bigint AS real_size,
   bs*(relpages-est_pages)::bigint AS extra_size,
   100 * (relpages-est_pages)::float / relpages AS extra_ratio,
@@ -91,9 +98,9 @@ FROM (
                   AND a2.attnum = ic.attpos
             ) i
             JOIN pg_catalog.pg_namespace n ON n.oid = i.relnamespace
-            JOIN pg_catalog.pg_stats s ON s.schemaname = n.nspname
-                                      AND s.tablename = i.attrelname
-                                      AND s.attname = i.attname
+            JOIN pg_stats_cached s ON s.schemaname = n.nspname
+                                  AND s.tablename = i.attrelname
+                                  AND s.attname = i.attname
             GROUP BY 1,2,3,4,5,6,7,8,9,10,11
       ) AS rows_data_stats
   ) AS rows_hdr_pdg_stats
