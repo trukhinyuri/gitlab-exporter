@@ -2,6 +2,7 @@ module GitLab
   module Exporter
     module Database
       # A helper class to collect zoekt metrics.
+      # rubocop:disable Metrics/ClassLength
       class ZoektCollector < Base
         # Query to get processing zoekt_tasks distribution by zoekt_node_id
         ZOEKT_TASKS_PROCESSING_QUERY = <<~SQL.freeze
@@ -108,6 +109,40 @@ module GitLab
             zoekt_nodes ON zoekt_indices.zoekt_node_id = zoekt_nodes.id
         SQL
 
+        ZOEKT_NODE_ENABLED_NAMESPACES_QUERY = <<~SQL.freeze
+          SELECT
+            zn.id AS node_id,
+            zn.metadata ->> 'name' AS node_name,
+            COUNT(DISTINCT zi.zoekt_enabled_namespace_id) AS count
+          FROM zoekt_nodes zn
+          LEFT JOIN zoekt_indices zi ON zi.zoekt_node_id = zn.id
+          GROUP BY zn.id, zn.metadata ->> 'name'
+        SQL
+
+        ZOEKT_NODE_TASKS_QUERY = <<~SQL.freeze
+          SELECT
+            zn.id AS node_id,
+            zn.metadata ->> 'name' AS node_name,
+            zt.state,
+            COUNT(*) AS count
+          FROM zoekt_nodes zn
+          LEFT JOIN zoekt_tasks zt ON zt.zoekt_node_id = zn.id
+          GROUP BY zn.id, zn.metadata ->> 'name', zt.state
+        SQL
+
+        ZOEKT_INDICES_STALE_USED_STORAGE_QUERY = <<~SQL.freeze
+          SELECT COUNT(*) AS count FROM zoekt_indices WHERE last_indexed_at >= used_storage_bytes_updated_at
+        SQL
+
+        ZOEKT_TASK_STATES = {
+          0 => "pending",
+          1 => "processing",
+          10 => "done",
+          250 => "skipped",
+          255 => "failed",
+          256 => "orphaned"
+        }.freeze
+
         def run
           return {} unless zoekt_indexing_enabled?
 
@@ -119,7 +154,10 @@ module GitLab
             repositories_state_query_result: execute(ZOEKT_REPOSITORIES_STATE_QUERY),
             indices_state_query_result: execute(ZOEKT_INDICES_STATE_QUERY),
             indices_watermark_query_result: execute(ZOEKT_INDICES_WATERMARK_QUERY),
-            indices_storage_query_result: execute(ZOEKT_INDICES_STORAGE_QUERY)
+            indices_storage_query_result: execute(ZOEKT_INDICES_STORAGE_QUERY),
+            node_enabled_namespaces_query_result: execute(ZOEKT_NODE_ENABLED_NAMESPACES_QUERY),
+            node_tasks_query_result: execute(ZOEKT_NODE_TASKS_QUERY),
+            indices_stale_used_storage_query_result: execute(ZOEKT_INDICES_STALE_USED_STORAGE_QUERY)
           }.compact
         end
 
@@ -181,6 +219,7 @@ module GitLab
           nil
         end
       end
+      # rubocop:enable Metrics/ClassLength
 
       # The prober which is called when gathering metrics
       # rubocop:disable Metrics/ClassLength
@@ -245,6 +284,24 @@ module GitLab
           "gauge"
         )
 
+        PrometheusMetrics.describe(
+          "search_zoekt_node_enabled_namespaces",
+          "Number of enabled namespaces per Zoekt node",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "search_zoekt_node_tasks",
+          "Number of Zoekt indexing tasks on a node, broken down by state",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "search_zoekt_indices_with_stale_used_storage_bytes",
+          "Number of Zoekt indices whose used_storage_bytes value has not been updated since the last index run",
+          "gauge"
+        )
+
         def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
           @collector = opts[:collector] || ZoektCollector.new(**opts)
@@ -269,6 +326,9 @@ module GitLab
           process_indices_state_results(results[:indices_state_query_result])
           process_indices_watermark_results(results[:indices_watermark_query_result])
           process_indices_storage_results(results[:indices_storage_query_result])
+          process_node_enabled_namespaces_results(results[:node_enabled_namespaces_query_result])
+          process_node_tasks_results(results[:node_tasks_query_result])
+          process_indices_stale_used_storage_results(results[:indices_stale_used_storage_query_result])
         end
 
         def process_task_results(results)
@@ -363,23 +423,11 @@ module GitLab
         end
 
         def add_zoekt_repositories_state_to_metric(row)
-          @metrics.add(
-            "search_zoekt_repositories_states_total",
-            row["count"].to_i,
-            **{
-              state: row["state"]
-            }.compact
-          )
+          @metrics.add("search_zoekt_repositories_states_total", row["count"].to_i, **{ state: row["state"] }.compact)
         end
 
         def add_zoekt_indices_state_to_metric(row)
-          @metrics.add(
-            "search_zoekt_indices_states",
-            row["count"].to_i,
-            **{
-              state: row["state"]
-            }.compact
-          )
+          @metrics.add("search_zoekt_indices_states", row["count"].to_i, **{ state: row["state"] }.compact)
         end
 
         def add_zoekt_indices_watermark_to_metric(row)
@@ -392,26 +440,56 @@ module GitLab
           )
         end
 
-        # rubocop:disable Metrics/MethodLength
-        def add_zoekt_indices_storage_to_metric(row)
+        def process_node_enabled_namespaces_results(results)
+          results&.each { |row| add_zoekt_node_enabled_namespaces_to_metric(row) }
+        end
+
+        def process_node_tasks_results(results)
+          results&.each { |row| add_zoekt_node_tasks_to_metric(row) }
+        end
+
+        def process_indices_stale_used_storage_results(results)
+          results&.each { |row| add_zoekt_indices_stale_used_storage_to_metric(row) }
+        end
+
+        def add_zoekt_node_enabled_namespaces_to_metric(row)
           @metrics.add(
-            "search_zoekt_indices_reserved_storage_bytes",
-            row["reserved_storage_bytes"].to_i,
+            "search_zoekt_node_enabled_namespaces",
+            row["count"].to_i,
             **{
-              zoekt_index_id: row["id"],
-              zoekt_node_name: row["node_name"]
-            }.compact
-          )
-          @metrics.add(
-            "search_zoekt_indices_used_storage_bytes",
-            row["used_storage_bytes"].to_i,
-            **{
-              zoekt_index_id: row["id"],
-              zoekt_node_name: row["node_name"]
+              node_id: row["node_id"],
+              node_name: row["node_name"]
             }.compact
           )
         end
-        # rubocop:enable Metrics/MethodLength
+
+        def add_zoekt_node_tasks_to_metric(row)
+          state_int = row["state"]&.to_i
+          return if row["state"].nil?
+
+          state_label = ZoektCollector::ZOEKT_TASK_STATES[state_int]
+          return if state_label.nil?
+
+          @metrics.add(
+            "search_zoekt_node_tasks",
+            row["count"].to_i,
+            **{
+              node_id: row["node_id"],
+              node_name: row["node_name"],
+              state: state_label
+            }.compact
+          )
+        end
+
+        def add_zoekt_indices_stale_used_storage_to_metric(row)
+          @metrics.add("search_zoekt_indices_with_stale_used_storage_bytes", row["count"].to_i)
+        end
+
+        def add_zoekt_indices_storage_to_metric(row)
+          payload = { zoekt_index_id: row["id"], zoekt_node_name: row["node_name"] }.compact
+          @metrics.add("search_zoekt_indices_reserved_storage_bytes", row["reserved_storage_bytes"].to_i, **payload)
+          @metrics.add("search_zoekt_indices_used_storage_bytes", row["used_storage_bytes"].to_i, **payload)
+        end
 
         def write_to(target)
           target.write(@metrics.to_s)
