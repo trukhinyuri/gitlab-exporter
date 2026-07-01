@@ -71,12 +71,16 @@ CROSS JOIN LATERAL (
         sum((1::double precision - COALESCE(s_t.null_frac, s_x.null_frac, 0::real))
             * COALESCE(s_t.avg_width, s_x.avg_width, 1024)::double precision) AS nulldatawidth
     FROM generate_series(1, i.indnatts::integer) AS gs(attpos)
+    -- Decode the indkey int2vector into an int[] once per index (not once per column).
+    CROSS JOIN LATERAL (
+        SELECT string_to_array(textin(int2vectorout(i.indkey)), ' '::text)::integer[] AS indkey_arr
+    ) ik
     LEFT JOIN pg_catalog.pg_attribute a1
-           ON (string_to_array(textin(int2vectorout(i.indkey)), ' '::text)::integer[])[gs.attpos] <> 0
+           ON ik.indkey_arr[gs.attpos] <> 0
           AND a1.attrelid = i.indrelid
-          AND a1.attnum   = (string_to_array(textin(int2vectorout(i.indkey)), ' '::text)::integer[])[gs.attpos]
+          AND a1.attnum   = ik.indkey_arr[gs.attpos]
     LEFT JOIN pg_catalog.pg_attribute a2
-           ON (string_to_array(textin(int2vectorout(i.indkey)), ' '::text)::integer[])[gs.attpos] = 0
+           ON ik.indkey_arr[gs.attpos] = 0
           AND a2.attrelid = ci.oid
           AND a2.attnum   = gs.attpos
     LEFT JOIN pg_catalog.pg_stats s_t
