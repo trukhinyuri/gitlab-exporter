@@ -116,21 +116,26 @@ CROSS JOIN LATERAL (
 CROSS JOIN LATERAL (
     SELECT
         agg.is_na,
+        -- NULLIF guards against division by zero: floor(...) reaches 0 once
+        -- nulldatahdrwidth exceeds the usable page size (an index whose columns are
+        -- entirely unanalyzed and fall back to the 1024-byte default width). Without
+        -- it, PostgreSQL raises a hard error that would fail the whole probe; instead
+        -- the NULL flows through the outer COALESCE to est_pages = 0.
         COALESCE(
             1::double precision + ceil(
-                ci.reltuples / floor(
+                ci.reltuples / NULLIF(floor(
                     (c.bs - c.pageopqdata::numeric - c.pagehdr::numeric)::double precision
                     / (4::numeric + hdr.nulldatahdrwidth)::double precision
-                )
+                ), 0)
             ),
             0::double precision
         ) AS est_pages,
         COALESCE(
             1::double precision + ceil(
-                ci.reltuples / floor(
+                ci.reltuples / NULLIF(floor(
                     ((c.bs - c.pageopqdata::numeric - c.pagehdr::numeric) * c.fillfactor::numeric)::double precision
                     / (100::double precision * (4::numeric + hdr.nulldatahdrwidth)::double precision)
-                )
+                ), 0)
             ),
             0::double precision
         ) AS est_pages_ff
