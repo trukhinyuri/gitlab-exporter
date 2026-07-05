@@ -26,7 +26,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "deep_merge", "~> 1.2.2"
   s.add_runtime_dependency "faraday", "2.14.3"
   s.add_runtime_dependency "pg", "1.6.3"
-  s.add_runtime_dependency "puma", "8.0.1"
+  s.add_runtime_dependency "puma", "8.0.2"
   s.add_runtime_dependency "quantile", "0.2.1"
   s.add_runtime_dependency "redis", "4.8.1"
   s.add_runtime_dependency "redis-namespace", "1.11.0"
