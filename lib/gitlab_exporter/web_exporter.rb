@@ -109,10 +109,9 @@ module GitLab
         end
 
         def memory_usage
-          io = IO.popen(%W[ps -o rss= -p #{$PID}])
-
-          mem = io.read
-          io.close
+          # Use the block form so the pipe is closed automatically even if the
+          # read raises, avoiding a file-descriptor leak.
+          mem = IO.popen(%W[ps -o rss= -p #{$PID}], &:read)
 
           return 0 unless $CHILD_STATUS.to_i.zero?
 
