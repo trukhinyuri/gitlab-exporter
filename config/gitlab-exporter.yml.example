@@ -6,7 +6,6 @@ db_common: &db_common
 
 # Web server config
 server:
-  name: webrick # cf. https://github.com/sinatra/sinatra#available-settings
   listen_address: 0.0.0.0
   listen_port: 9168
   # Maximum amount of memory to use in megabytes, after which the process is killed
