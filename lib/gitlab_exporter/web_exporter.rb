@@ -14,6 +14,15 @@ module GitLab
       DEFAULT_LISTEN_PORT = 9168
       DEFAULT_MEMORY_THRESHOLD = 1024
 
+      # Security response headers previously added by Sinatra's Rack::Protection
+      # middleware, which is gone now that we serve directly via WEBrick. Kept for
+      # parity so scanners and consumers see the same headers as before.
+      SECURITY_HEADERS = {
+        "X-Content-Type-Options" => "nosniff",
+        "X-Frame-Options" => "SAMEORIGIN",
+        "X-XSS-Protection" => "1; mode=block"
+      }.freeze
+
       class << self
         include TLSHelper
 
@@ -91,6 +100,9 @@ module GitLab
           buffer = StringIO.new
           prober.write_to(buffer)
 
+          SECURITY_HEADERS.each do |header, value|
+            response[header] = value
+          end
           response.content_type = "text/plain; version=0.0.4; charset=utf-8"
           response.body = buffer.string
         ensure
