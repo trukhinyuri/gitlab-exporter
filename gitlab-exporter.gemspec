@@ -22,16 +22,18 @@ Gem::Specification.new do |s|
 
   s.required_ruby_version = Gem::Requirement.new(">= 3.0")
 
+  # base64 is required by sidekiq but not declared by it, and is no longer a
+  # default gem as of Ruby 3.4. It used to be pulled in transitively via
+  # sinatra -> rack-protection; declare it directly now that those are gone.
+  s.add_runtime_dependency "base64", "0.2.0"
   s.add_runtime_dependency "connection_pool", "2.5.5"
   s.add_runtime_dependency "deep_merge", "~> 1.2.2"
   s.add_runtime_dependency "faraday", "2.14.3"
   s.add_runtime_dependency "pg", "1.6.3"
-  s.add_runtime_dependency "puma", "8.0.2"
   s.add_runtime_dependency "quantile", "0.2.1"
   s.add_runtime_dependency "redis", "4.8.1"
   s.add_runtime_dependency "redis-namespace", "1.11.0"
   s.add_runtime_dependency "sidekiq", "6.5.12"
-  s.add_runtime_dependency "sinatra", "~> 3.2.0"
   s.add_runtime_dependency "webrick", "~> 1.9"
 
   s.add_development_dependency "rspec", "~> 3.12.0"
