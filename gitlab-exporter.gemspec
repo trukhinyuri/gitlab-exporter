@@ -25,7 +25,7 @@ Gem::Specification.new do |s|
   # base64 is required by sidekiq but not declared by it, and is no longer a
   # default gem as of Ruby 3.4. It used to be pulled in transitively via
   # sinatra -> rack-protection; declare it directly now that those are gone.
-  s.add_runtime_dependency "base64", "0.2.0"
+  s.add_runtime_dependency "base64", "0.3.0"
   s.add_runtime_dependency "connection_pool", "2.5.5"
   s.add_runtime_dependency "deep_merge", "~> 1.2.2"
   s.add_runtime_dependency "faraday", "2.14.3"
