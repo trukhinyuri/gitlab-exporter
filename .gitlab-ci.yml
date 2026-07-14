@@ -51,6 +51,11 @@ rspec:
   script:
     - bundle exec rspec spec -f d -c
   before_script: *before_scripts
+  variables:
+    # RuboCop only runs in its own job, and its transitive dependencies (e.g.
+    # unicode-emoji) are not always compatible with the newest Ruby. Skip the
+    # test group here so the RSpec matrix installs cleanly on every Ruby.
+    BUNDLE_WITHOUT: "test"
   parallel:
     matrix:
       - RUBY_VERSION: ["3.1", "3.2", "3.3", "3.4", "4.0"]
@@ -79,6 +84,9 @@ rspec_integration:
           redis-sentinel /opt/bitnami/redis-sentinel/etc/sentinel.conf
 
   variables:
+    # See the rspec job: skip the test group (RuboCop) so the matrix installs
+    # cleanly on every Ruby.
+    BUNDLE_WITHOUT: "test"
     REDIS_URL: "redis://redis"
     REDIS_SENTINEL_URL: "redis://mymaster"
     REDIS_SENTINELS: "redis-sentinel:26379"
