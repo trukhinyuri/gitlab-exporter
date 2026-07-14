@@ -20,7 +20,7 @@ Gem::Specification.new do |s|
   s.homepage      = "https://gitlab.com/gitlab-org/ruby/gems/gitlab-exporter"
   s.license       = "MIT"
 
-  s.required_ruby_version = Gem::Requirement.new(">= 3.0")
+  s.required_ruby_version = Gem::Requirement.new(">= 3.1")
 
   # base64 is required by sidekiq but not declared by it, and is no longer a
   # default gem as of Ruby 3.4. It used to be pulled in transitively via
