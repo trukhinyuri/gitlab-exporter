@@ -35,8 +35,6 @@ module GitLab
 
           result.each do |table_name, tuple_stats|
             tuple_stats.each do |column_name, value|
-              next if value.is_a?(Numeric)
-
               @metrics.add("gitlab_database_stat_table_#{column_name}",
                            value.to_f,
                            table_name: table_name)
