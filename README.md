@@ -23,9 +23,10 @@ metrics.
      `gitlab_pg_sequences_min_value`, `gitlab_pg_sequences_max_value`, `gitlab_pg_sequences_current_value`
     * [Row count queries](lib/gitlab_exporter/database/row_count.rb) --
       `gitlab_database_rows`
-    * [CI builds](lib/gitlab_exporter/database/ci_builds.rb) --
+    * [CI builds](lib/gitlab_exporter/database/ci_builds.rb) (**deprecated**) --
       `ci_pending_builds`, `ci_created_builds`, `ci_stale_builds`,
-      `ci_running_builds`
+      `ci_running_builds`, `ci_unarchived_traces`
+      (see [Deprecated: CI builds metrics](#deprecated-ci-builds-metrics))
     * [Bloat](lib/gitlab_exporter/database/bloat.rb) --
       `gitlab_database_bloat_$type_$key` with type `btree` (index bloat) or `table`
       (table bloat) and keys `bloat_ratio bloat_size extra_size real_size` (see below)
@@ -132,6 +133,57 @@ Also see the [original documentation](https://github.com/ioguix/pgsql-bloat-esti
 
 Note that all metrics returned are estimates without an upper bound for
 the error.
+
+### Deprecated: CI builds metrics
+
+The [CI builds probe](lib/gitlab_exporter/database/ci_builds.rb) is deprecated and
+will be removed in a future major version. It collects its metrics by querying
+`p_ci_builds` directly, which puts avoidable load on tables that job scheduling
+already loads heavily, and it has had almost no maintenance since 2021. GitLab
+Rails and GitLab Runner instrument most of the same information by counting
+events as they happen; GitLab.com stopped using this probe for CI state years
+ago.
+
+The probe prints a deprecation notice on every run, and each of its metrics
+carries `(deprecated, ...)` in its `# HELP` line, so the warning reaches
+Prometheus and Grafana and not only the exporter's log.
+
+Replacements, where one exists:
+
+| Deprecated metric | Replacement |
+| --- | --- |
+| `ci_pending_builds` | `gitlab_ci_current_queue_size` (Rails, gauge, by `runner_type`) |
+| `ci_running_builds` | `gitlab_runner_jobs` (Runner, gauge, by `runner`, `state`, `stage`) |
+| `ci_created_builds` | None. A `created` build is not queued yet, so nothing counts it. |
+| `ci_stale_builds` | None. The nearest signal is `gitlab_ci_queue_operations_total{operation="build_status_stale"}` (Rails, counter), which counts stale rows met while queueing rather than how many are stale now. |
+| `ci_unarchived_traces` | None. |
+
+The replacements are not a like-for-like relabel: the Rails queue metrics are
+keyed by `runner_type` and the Runner metrics by runner, so neither carries the
+`namespace` label this probe reports. Queue health is better served by the Rails
+metrics that have no exporter equivalent at all -- `job_queue_duration_seconds`
+(how long jobs wait), `job_register_attempts_total` and
+`job_register_attempts_failed_total`, and `gitlab_ci_queue_operations_total`.
+Those four are always instrumented.
+
+**`gitlab_ci_current_queue_size`, and every other `gitlab_ci_queue_*` metric, is
+behind the `gitlab_ci_builds_queuing_metrics` ops feature flag, which is disabled
+by default.** Enable it before pointing a dashboard at them, or the replacement
+panels stay empty:
+
+```ruby
+Feature.enable(:gitlab_ci_builds_queuing_metrics)
+```
+
+Metric definitions live in
+[`lib/gitlab/ci/queue/metrics.rb`](https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/queue/metrics.rb)
+(Rails) and
+[`commands/builds_helper.go`](https://gitlab.com/gitlab-org/gitlab-runner/-/blob/main/commands/builds_helper.go)
+(Runner). See
+[GitLab Prometheus metrics](https://docs.gitlab.com/administration/monitoring/prometheus/gitlab_metrics/)
+for enabling the Rails exporter, and
+[Monitoring runners](https://docs.gitlab.com/runner/monitoring/) for the
+Runner's.
 
 ## Contributing
 

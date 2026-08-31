@@ -29,15 +29,29 @@ describe GitLab::Exporter::PrometheusMetrics do
 
     allow(Time).to receive(:now).and_return(time)
 
-    described_class.describe("mymetric", "description")
-    described_class.describe("missingmetric", "otherdescription")
-    subject.add("mymetric", 1.3, mylabel: "x", myotherlabel: "y")
+    # Descriptions are class-level state, and probes register theirs when their
+    # file loads, which happens once. Describing on a subclass keeps this example
+    # out of the shared registry: clearing it here would drop those registrations
+    # for every later example, and nothing can put them back.
+    metrics_class = Class.new(described_class)
+    metrics = metrics_class.new
 
-    expect(subject.to_s).to eq(<<~METRICS)
+    metrics_class.describe("mymetric", "description")
+    metrics_class.describe("missingmetric", "otherdescription")
+    metrics.add("mymetric", 1.3, mylabel: "x", myotherlabel: "y")
+
+    expect(metrics.to_s).to eq(<<~METRICS)
       # HELP mymetric description
       mymetric{mylabel="x",myotherlabel="y"} 1.3 #{(time.to_f * 1000).to_i}
     METRICS
+  end
 
-    described_class.clear_descriptions
+  it "clears descriptions" do
+    metrics_class = Class.new(described_class)
+    metrics_class.describe("mymetric", "description", "gauge")
+
+    expect { metrics_class.clear_descriptions }
+      .to change { metrics_class.description("mymetric") }.from("description").to(nil)
+    expect(metrics_class.metric_type("mymetric")).to be_nil
   end
 end
