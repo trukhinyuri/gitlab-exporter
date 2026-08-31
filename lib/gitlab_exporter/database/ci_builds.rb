@@ -294,12 +294,53 @@ module GitLab
 
       # The prober which is called when gathering metrics
       class CiBuildsProber
+        # The stdout notice in #probe_db reaches whoever reads the exporter's log,
+        # which is not who reads the metrics. HELP is the one channel that travels
+        # with the sample to the scraper, so the deprecation rides there too: it
+        # survives into Prometheus and shows up in Grafana's metric browser.
+        DEPRECATED = "(deprecated, to be removed in a future major version)".freeze
+        REPLACEMENT = "See the CI builds entry in README.md for replacements.".freeze
+
+        PrometheusMetrics.describe(
+          "ci_created_builds",
+          "#{DEPRECATED} Number of CI builds in the created state, by namespace. #{REPLACEMENT}",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "ci_pending_builds",
+          "#{DEPRECATED} Number of CI builds in the pending state, by namespace. #{REPLACEMENT}",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "ci_stale_builds",
+          "#{DEPRECATED} Number of running CI builds not updated for over an hour. #{REPLACEMENT}",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "ci_running_builds",
+          "#{DEPRECATED} Number of running CI builds, by runner and namespace. #{REPLACEMENT}",
+          "gauge"
+        )
+
+        PrometheusMetrics.describe(
+          "ci_unarchived_traces",
+          "#{DEPRECATED} Number of finished CI builds whose trace is not archived. #{REPLACEMENT}",
+          "gauge"
+        )
+
         def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
           @collector = CiBuildsCollector.new(**opts)
         end
 
         def probe_db
+          puts "[DEPRECATED] probe_db and CiBuildsProber are now considered obsolete"\
+            " and will be removed in a future major version,"\
+            " please use the CI/CD queuing metrics emitted by GitLab Rails instead"
+
           @results = @collector.run
 
           ci_builds_metrics(@results[:created_builds], "ci_created_builds") if @results[:created_builds]

@@ -361,3 +361,55 @@ describe GitLab::Exporter::Database do
     end
   end
 end
+
+# Asserting on the notice keeps a later refactor of #probe_db from dropping it
+# silently, which would leave operators unwarned before the probe goes (issue #119).
+describe GitLab::Exporter::Database::CiBuildsProber do
+  let(:prober) do
+    described_class.new(connection_string: "host=localhost",
+                        metrics: GitLab::Exporter::PrometheusMetrics.new(include_timestamp: false))
+  end
+
+  let(:metric_names) do
+    %w[ci_created_builds ci_pending_builds ci_stale_builds ci_running_builds ci_unarchived_traces]
+  end
+
+  it "warns that the probe is deprecated and names the replacement" do
+    allow_any_instance_of(GitLab::Exporter::Database::CiBuildsCollector).to receive(:run)
+      .and_return(pending_builds: [], stale_builds: 0, per_runner: [], unarchived_traces: 0)
+
+    expect { prober.probe_db }.to output(/\[DEPRECATED\].*CiBuildsProber.*GitLab Rails/m).to_stdout
+  end
+
+  # The stdout notice never reaches the scraper. HELP does, so every metric the
+  # probe can emit has to carry the deprecation, not just the ones with a
+  # replacement.
+  it "describes every metric it can emit as deprecated" do
+    metric_names.each do |name|
+      expect(GitLab::Exporter::PrometheusMetrics.description(name))
+        .to start_with("(deprecated"), "#{name} is emitted without a deprecated HELP line"
+      expect(GitLab::Exporter::PrometheusMetrics.metric_type(name)).to eq("gauge")
+    end
+  end
+
+  it "renders the deprecation into the scrape output" do
+    allow_any_instance_of(GitLab::Exporter::Database::CiBuildsCollector).to receive(:run)
+      .and_return(pending_builds: [{ namespace: "1", shared_runners: "yes", value: 12 }],
+                  stale_builds: 3, per_runner: [], unarchived_traces: 0)
+
+    output = StringIO.new
+    capture_stdout do prober.probe_db.write_to(output) end
+
+    expect(output.string).to include("# HELP ci_pending_builds (deprecated")
+    expect(output.string).to include("# TYPE ci_pending_builds gauge")
+    expect(output.string).to include(%(ci_pending_builds{namespace="1",shared_runners="yes"} 12.0))
+  end
+
+  def capture_stdout
+    original = $stdout
+    $stdout = StringIO.new
+    yield
+  ensure
+    $stdout = original
+  end
+end
