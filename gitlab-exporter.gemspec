@@ -28,7 +28,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "base64", "0.3.0"
   s.add_runtime_dependency "connection_pool", "2.5.5"
   s.add_runtime_dependency "deep_merge", "~> 1.2.2"
-  s.add_runtime_dependency "faraday", "2.14.3"
+  s.add_runtime_dependency "faraday", "2.14.4"
   s.add_runtime_dependency "pg", "1.6.3"
   s.add_runtime_dependency "quantile", "0.2.1"
   s.add_runtime_dependency "redis", "4.8.1"
