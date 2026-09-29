@@ -8,6 +8,7 @@ module GitLab
       autoload :RowCountProber,       "gitlab_exporter/database/row_count"
       autoload :BloatProber,          "gitlab_exporter/database/bloat"
       autoload :RemoteMirrorsProber,  "gitlab_exporter/database/remote_mirrors"
+      autoload :GeoNodeStatusProber,  "gitlab_exporter/database/geo_node_status"
       autoload :PgSequencesProber,    "gitlab_exporter/database/pg_sequences"
       autoload :ZoektProber,          "gitlab_exporter/database/zoekt"
     end
