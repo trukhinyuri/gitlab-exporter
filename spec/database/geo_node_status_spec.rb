@@ -4,7 +4,7 @@ require "gitlab_exporter/database/geo_node_status"
 describe GitLab::Exporter::Database::GeoNodeStatusCollector do
   let(:connection_pool) { double("connection pool") }
   let(:connection) { double("connection") }
-  let(:results) { [{ "geo_node_id" => 7, "geo_node_name" => "secondary", "status" => { "projects_count" => 12 } }] }
+  let(:results) { [{ "geo_node_name" => "secondary", "status" => { "projects_count" => 12 } }] }
 
   subject(:collector) { described_class.new(connection_string: "host=localhost") }
 
@@ -39,8 +39,10 @@ describe GitLab::Exporter::Database::GeoNodeStatusProber do
         "geo_node_name" => "secondary",
         "status" => {
           "projects_count" => 12,
+          "db_replication_lag_seconds" => 4,
           "project_repositories_count" => 21,
           "projects_verification_total_count" => 8,
+          "git_fetch_event_count_weekly" => 100,
           "container_repositories_replication_enabled" => true,
           "status_message" => "Healthy"
         },
@@ -55,19 +57,21 @@ describe GitLab::Exporter::Database::GeoNodeStatusProber do
     it "exports integer Geo metrics with Rails-compatible names and site labels" do
       prober.probe_db
       prober.write_to(writer)
-      labels = 'geo_node_id="7",geo_node_name="secondary"'
+      labels = 'name="secondary",url="secondary"'
 
-      expect(writer.string).to include("geo_projects{#{labels}} 12")
-      expect(writer.string).to include("# TYPE geo_projects gauge")
+      expect(writer.string).to include("geo_db_replication_lag_seconds{#{labels}} 4")
+      expect(writer.string).to include("# TYPE geo_db_replication_lag_seconds gauge")
       expect(writer.string).to include("geo_repositories{#{labels}} 21")
       expect(writer.string).to include("geo_projects_verification_total{#{labels}} 8")
       expect(writer.string).to include("geo_last_successful_status_check_timestamp{#{labels}} 1750000000")
+      expect(writer.string).not_to include("geo_projects{")
+      expect(writer.string).not_to include("geo_git_fetch_event")
       expect(writer.string).not_to include("container_repositories_replication_enabled")
       expect(writer.string).not_to include("status_message")
     end
 
     it "handles a missing status payload" do
-      allow(collector).to receive(:run).and_return([{ "geo_node_id" => 7, "geo_node_name" => "secondary" }])
+      allow(collector).to receive(:run).and_return([{ "geo_node_name" => "secondary" }])
 
       expect { prober.probe_db }.not_to raise_error
     end
