@@ -6,6 +6,12 @@ module GitLab
         QUERY = <<~SQL.freeze
           SELECT
             geo_nodes.name AS geo_node_name,
+            geo_node_statuses.db_replication_lag_seconds,
+            geo_node_statuses.replication_slots_count,
+            geo_node_statuses.replication_slots_used_count,
+            geo_node_statuses.replication_slots_max_retained_wal_bytes,
+            geo_node_statuses.last_event_id,
+            geo_node_statuses.cursor_last_event_id,
             geo_node_statuses.status,
             EXTRACT(EPOCH FROM geo_node_statuses.last_event_date)::bigint AS last_event_timestamp,
             EXTRACT(EPOCH FROM geo_node_statuses.cursor_last_event_date)::bigint AS cursor_last_event_timestamp,
@@ -30,15 +36,18 @@ module GitLab
         METRIC_PREFIX = "geo_".freeze
         COUNT_SUFFIX = /_(count|total)\z/
         METRIC_ALIASES = { "project_repositories_count" => "repositories_count" }.freeze
-        CORE_STATUS_METRICS = %w[
+        COLUMN_METRICS = %w[
           db_replication_lag_seconds
-          project_repositories_count
           replication_slots_count
           replication_slots_used_count
           replication_slots_max_retained_wal_bytes
           last_event_id
           cursor_last_event_id
-          event_log_max_id
+        ].freeze
+        TIMESTAMP_METRICS = %w[
+          last_event_timestamp
+          cursor_last_event_timestamp
+          last_successful_status_check_timestamp
         ].freeze
         REPLICATOR_METRIC_SUFFIXES = %w[
           _count
@@ -54,11 +63,6 @@ module GitLab
           _oldest_unsynced_time
         ].freeze
         NON_PROMETHEUS_STATUS_FIELDS = %w[projects_count].freeze
-        TIMESTAMP_METRICS = %w[
-          last_event_timestamp
-          cursor_last_event_timestamp
-          last_successful_status_check_timestamp
-        ].freeze
 
         def initialize(metrics: PrometheusMetrics.new, **opts)
           @metrics = metrics
@@ -76,7 +80,7 @@ module GitLab
               add_metric(name, value, labels) if value.is_a?(Integer) && prometheus_metric?(name)
             end
 
-            TIMESTAMP_METRICS.each do |name|
+            (COLUMN_METRICS + TIMESTAMP_METRICS).each do |name|
               add_metric(name, row[name], labels) if row[name].is_a?(Integer)
             end
           end
@@ -95,8 +99,9 @@ module GitLab
         def prometheus_metric?(name)
           name = name.to_s
           return false if NON_PROMETHEUS_STATUS_FIELDS.include?(name)
+          return false if COLUMN_METRICS.include?(name)
 
-          CORE_STATUS_METRICS.include?(name) || REPLICATOR_METRIC_SUFFIXES.any? { |suffix| name.end_with?(suffix) }
+          REPLICATOR_METRIC_SUFFIXES.any? { |suffix| name.end_with?(suffix) }
         end
 
         def add_metric(name, value, labels)
