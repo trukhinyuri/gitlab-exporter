@@ -1,5 +1,5 @@
 module GitLab
   module Exporter
-    VERSION = "17.0.2".freeze
+    VERSION = "17.0.3".freeze
   end
 end
