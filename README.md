@@ -32,6 +32,11 @@ metrics.
       (table bloat) and keys `bloat_ratio bloat_size extra_size real_size` (see below)
     * [Remote mirrors](lib/gitlab_exporter/database/remote_mirrors.rb) --
       `project_remote_mirror_last_successful_update_time_seconds`, `project_remote_mirror_last_update_time_seconds`
+    * [Geo node status](lib/gitlab_exporter/database/geo_node_status.rb) -- Geo metrics from
+      `geo_node_statuses`, emitted as `geo_<status_field>` gauges with trailing `_count` and
+      `_total` suffixes removed, matching Rails' exported metric fields and `name`/`url` labels.
+      Usage-data counters are excluded. Enable the `geo_node_status` probe in the `database`
+      endpoint configuration.
     * [Zoekt](lib/gitlab_exporter/database/zoekt.rb) --
       `search_zoekt_task_processing_queue_size`
 1. Git
