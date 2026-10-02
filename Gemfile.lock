@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    gitlab-exporter (17.0.3)
+    gitlab-exporter (17.1.0)
       base64 (= 0.3.0)
       connection_pool (= 2.5.5)
       deep_merge (~> 1.2.2)
