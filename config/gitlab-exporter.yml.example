@@ -77,9 +77,9 @@ probes:
         <<: *db_common_opts
         project_ids:
         - 1
-      geo_node_status:
-        class_name: Database::GeoNodeStatusProber
-        <<: *db_common
+    geo_node_status:
+      class_name: Database::GeoNodeStatusProber
+      <<: *db_common
     zoekt:
       class_name: Database::ZoektProber
       <<: *db_common
