@@ -32,6 +32,18 @@ context "With valid pair of repositories" do
 end
 
 describe GitLab::Exporter::CLI::Server do
+  describe "#help" do
+    it "aligns the --extra-config-command description with the other options" do
+      help = described_class.new([].extend(OptionParser::Arguable)).help
+
+      expect(help).to include(
+        "        --extra-config-command command\n" \
+        "                                     Shell command that returns YAML config to be merged\n" \
+        "                                     with the config file\n"
+      )
+    end
+  end
+
   context "extra-config-command is passed" do
     let(:argv) do
       ["-c", "spec/fixtures/config.yml", "--extra-config-command", extra_config_command]
