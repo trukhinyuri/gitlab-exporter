@@ -38,7 +38,19 @@ metrics.
       Usage-data counters are excluded. Enable the `geo_node_status` probe in the `database`
       endpoint configuration.
     * [Zoekt](lib/gitlab_exporter/database/zoekt.rb) --
-      `search_zoekt_task_processing_queue_size`
+      `search_zoekt_task_processing_queue_size`,
+      `search_zoekt_repositories_schema_version_count`,
+      `search_zoekt_nodes_status`,
+      `search_zoekt_node_unclaimed_storage_bytes`,
+      `search_zoekt_node_storage_percent_used`,
+      `search_zoekt_node_enabled_namespaces`,
+      `search_zoekt_node_tasks`,
+      `search_zoekt_repositories_states_total`,
+      `search_zoekt_indices_states`,
+      `search_zoekt_indices_watermark_levels`,
+      `search_zoekt_indices_reserved_storage_bytes`,
+      `search_zoekt_indices_used_storage_bytes`,
+      `search_zoekt_indices_with_stale_used_storage_bytes`
 1. Git
     * [git pull/push timings](lib/gitlab_exporter/git.rb) --
       `git_pull_time_milliseconds`, `git_push_time_milliseconds`
