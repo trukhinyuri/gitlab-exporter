@@ -176,8 +176,9 @@ module GitLab
             opts.on("-c config.yml", "Monitoring config") do |val|
               @config_file = val
             end
-            opts.on("--extra-config-command command", "Shell command that returns YAML config to be merged
-                    with the config file") do |val|
+            opts.on("--extra-config-command command",
+                    "Shell command that returns YAML config to be merged",
+                    "with the config file") do |val|
               @extra_config_command = val
             end
           end
