@@ -45,7 +45,8 @@ module GitLab
 
       def populate_info
         # Pad the array by one element to make field numbers match the man page.
-        [""].concat(File.read("/proc/#{@pid}/stat").split(" "))
+        stat_content = File.read("/proc/#{@pid}/stat").force_encoding(Encoding::UTF_8).scrub
+        [""].concat(stat_content.split(" "))
       rescue Errno::ENOENT
         nil
       end

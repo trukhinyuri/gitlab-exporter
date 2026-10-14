@@ -101,7 +101,7 @@ module GitLab
 
         Utils.pgrep("^git ").each do |pid|
           process_cmd = begin
-            File.read("/proc/#{pid}/cmdline")
+            File.read("/proc/#{pid}/cmdline").force_encoding(Encoding::UTF_8).scrub
           rescue StandardError
             "" # Process file is gone (race condition)
           end
@@ -138,7 +138,8 @@ module GitLab
       def self.extract_subcommand(cmd)
         return if cmd.empty?
 
-        cmd_splitted = cmd.split("\u0000") # cmdline does not return it space-separated
+        sanitized_cmd = cmd.dup.force_encoding(Encoding::UTF_8).scrub
+        cmd_splitted = sanitized_cmd.split("\u0000") # cmdline does not return it space-separated
 
         cmd_splitted.shift # Because it's "git"
         cmd_splitted.shift while cmd_splitted.first &&

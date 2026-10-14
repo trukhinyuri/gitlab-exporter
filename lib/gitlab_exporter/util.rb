@@ -51,7 +51,8 @@ module GitLab
 
       def pgrep(pattern)
         # pgrep will include the PID of the shell, so strip that out
-        exec_pgrep(pattern).split("\n").each_with_object([]) do |line, arr|
+        output = exec_pgrep(pattern).dup.force_encoding(Encoding::UTF_8).scrub
+        output.split("\n").each_with_object([]) do |line, arr|
           pid, name = line.split(" ")
           arr << pid if name != "sh"
         end
